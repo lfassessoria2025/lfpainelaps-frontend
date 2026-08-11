@@ -17,6 +17,16 @@ export interface UserOut {
   status: UserStatus;
 }
 
+// app/schemas/users.py — usado na gestão de equipe (GET /users), nunca inclui
+// password_hash nem qualquer token.
+export interface UserSummaryOut {
+  id: number;
+  email: string;
+  is_admin: boolean;
+  status: UserStatus;
+  role_id: number | null;
+}
+
 export interface LoginRequest {
   email: string;
   senha: string;

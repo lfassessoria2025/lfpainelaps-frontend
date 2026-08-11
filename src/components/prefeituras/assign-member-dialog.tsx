@@ -9,12 +9,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import type { PrefeituraOut } from "@/lib/api-types";
+import type { PrefeituraOut, UserSummaryOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { prefeiturasService } from "@/services/prefeituras";
+import { usersService } from "@/services/users";
 
 interface AssignMemberDialogProps {
   open: boolean;
@@ -22,23 +30,33 @@ interface AssignMemberDialogProps {
   prefeituras: PrefeituraOut[];
 }
 
-/**
- * Não existe `GET /users` no contrato atual — a UI pede o ID do usuário
- * diretamente (o admin já sabe quem convidou). Quando o backend ganhar uma
- * listagem de usuários, trocar o input por um combobox.
- */
 export function AssignMemberDialog({ open, onOpenChange, prefeituras }: AssignMemberDialogProps) {
-  const [userId, setUserId] = useState("");
+  const [users, setUsers] = useState<UserSummaryOut[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [userId, setUserId] = useState<string>("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setUserId("");
-      setSelected(new Set());
-      setError(null);
-    }
+    if (!open) return;
+    setUserId("");
+    setSelected(new Set());
+    setError(null);
+
+    const controller = new AbortController();
+    setIsLoadingUsers(true);
+    usersService
+      .list(controller.signal)
+      .then((data) => setUsers(data))
+      .catch((err) => {
+        if (err instanceof ApiError) {
+          setError("Não foi possível carregar a lista de usuários.");
+        }
+      })
+      .finally(() => setIsLoadingUsers(false));
+
+    return () => controller.abort();
   }, [open]);
 
   function toggle(id: number, checked: boolean) {
@@ -51,15 +69,16 @@ export function AssignMemberDialog({ open, onOpenChange, prefeituras }: AssignMe
   }
 
   async function handleSubmit() {
-    const parsedId = Number(userId);
-    if (!userId || Number.isNaN(parsedId)) {
-      setError("Informe o ID numérico do usuário.");
+    if (!userId) {
+      setError("Selecione um usuário.");
       return;
     }
     setError(null);
     setIsSubmitting(true);
     try {
-      await prefeiturasService.setMembers(parsedId, { prefeitura_ids: Array.from(selected) });
+      await prefeiturasService.setMembers(Number(userId), {
+        prefeitura_ids: Array.from(selected),
+      });
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : "Não foi possível atribuir prefeituras.");
@@ -80,17 +99,24 @@ export function AssignMemberDialog({ open, onOpenChange, prefeituras }: AssignMe
 
         <FieldGroup>
           <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor="user-id">ID do usuário</FieldLabel>
-            <Input
-              id="user-id"
-              inputMode="numeric"
-              value={userId}
-              onChange={(event) => setUserId(event.target.value.replace(/\D/g, ""))}
-              aria-invalid={Boolean(error)}
-            />
-            <FieldDescription>
-              Retornado no convite (Cargos e permissões → Convidar funcionário).
-            </FieldDescription>
+            <FieldLabel htmlFor="assign-user">Usuário</FieldLabel>
+            <Select value={userId} onValueChange={(value) => setUserId(value ?? "")}>
+              <SelectTrigger id="assign-user" className="w-full">
+                <SelectValue
+                  placeholder={isLoadingUsers ? "Carregando…" : "Selecione um usuário"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={String(user.id)}>
+                      {user.email}
+                      {user.status !== "ativo" ? ` (${user.status})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             {error ? <FieldError>{error}</FieldError> : null}
           </Field>
           <Field>
