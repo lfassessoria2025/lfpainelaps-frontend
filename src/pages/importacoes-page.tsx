@@ -105,7 +105,12 @@ export function ImportacoesPage() {
             onValueChange={(value) => value && setSelectedId(Number(value))}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione a prefeitura" />
+              <SelectValue placeholder="Selecione a prefeitura">
+                {(value: string | null) =>
+                  prefeituras.find((prefeitura) => String(prefeitura.id) === value)?.name ??
+                  "Selecione a prefeitura"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>

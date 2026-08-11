@@ -102,9 +102,12 @@ export function AssignMemberDialog({ open, onOpenChange, prefeituras }: AssignMe
             <FieldLabel htmlFor="assign-user">Usuário</FieldLabel>
             <Select value={userId} onValueChange={(value) => setUserId(value ?? "")}>
               <SelectTrigger id="assign-user" className="w-full">
-                <SelectValue
-                  placeholder={isLoadingUsers ? "Carregando…" : "Selecione um usuário"}
-                />
+                <SelectValue placeholder={isLoadingUsers ? "Carregando…" : "Selecione um usuário"}>
+                  {(value: string | null) =>
+                    users.find((user) => String(user.id) === value)?.email ??
+                    (isLoadingUsers ? "Carregando…" : "Selecione um usuário")
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>

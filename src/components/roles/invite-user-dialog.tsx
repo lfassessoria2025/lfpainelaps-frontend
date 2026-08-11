@@ -100,7 +100,13 @@ export function InviteUserDialog({ open, onOpenChange, roles, onInvited }: Invit
               <FieldLabel htmlFor="invite-role">Cargo</FieldLabel>
               <Select value={roleId} onValueChange={(value) => setRoleId(value ?? "none")}>
                 <SelectTrigger id="invite-role" className="w-full">
-                  <SelectValue placeholder="Sem cargo" />
+                  <SelectValue placeholder="Sem cargo">
+                    {(value: string | null) =>
+                      value && value !== "none"
+                        ? (roles.find((role) => String(role.id) === value)?.name ?? "Sem cargo")
+                        : "Sem cargo"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
