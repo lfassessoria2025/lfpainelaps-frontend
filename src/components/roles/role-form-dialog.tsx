@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { PERMISSION_GROUPS, PERMISSION_LABELS } from "@/lib/permission-labels";
 import type { Permission, RoleOut } from "@/lib/api-types";
+import { permissionsService } from "@/services/roles";
 
 interface RoleFormDialogProps {
   open: boolean;
@@ -22,19 +23,47 @@ interface RoleFormDialogProps {
   onSubmit: (values: { name: string; permissions: Permission[] }) => Promise<void>;
 }
 
+/**
+ * Agrupa o catálogo de permissões vindo do backend (`GET /permissions`) usando
+ * os grupos/rótulos conhecidos localmente. Qualquer permissão nova no
+ * catálogo que ainda não tenha grupo/rótulo cadastrado aqui aparece mesmo
+ * assim (grupo "Outras", rótulo bruto) — a lista nunca fica hardcoded a
+ * ponto de esconder uma permissão que o backend já concede.
+ */
+function buildDisplayGroups(catalog: Permission[]) {
+  const known = new Set(PERMISSION_GROUPS.flatMap((group) => group.permissions));
+  const groups = PERMISSION_GROUPS.map((group) => ({
+    label: group.label,
+    permissions: group.permissions.filter((permission) => catalog.includes(permission)),
+  })).filter((group) => group.permissions.length > 0);
+
+  const outras = catalog.filter((permission) => !known.has(permission));
+  if (outras.length > 0) {
+    groups.push({ label: "Outras", permissions: outras });
+  }
+  return groups;
+}
+
 export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormDialogProps) {
   const [name, setName] = useState("");
   const [permissions, setPermissions] = useState<Set<Permission>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [catalog, setCatalog] = useState<Permission[] | null>(null);
 
   useEffect(() => {
     if (open) {
       setName(role?.name ?? "");
       setPermissions(new Set(role?.permissions ?? []));
       setError(null);
+      permissionsService
+        .catalog()
+        .then((data) => setCatalog(data.permissions))
+        .catch(() => setCatalog(Object.keys(PERMISSION_LABELS) as Permission[]));
     }
   }, [open, role]);
+
+  const displayGroups = catalog ? buildDisplayGroups(catalog) : [];
 
   function togglePermission(permission: Permission, checked: boolean) {
     setPermissions((current) => {
@@ -85,27 +114,31 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
           </Field>
 
           <div className="flex max-h-80 flex-col gap-4 overflow-y-auto pr-1">
-            {PERMISSION_GROUPS.map((group) => (
-              <FieldSet key={group.label}>
-                <FieldLegend variant="label">{group.label}</FieldLegend>
-                <div className="flex flex-col gap-2">
-                  {group.permissions.map((permission) => (
-                    <label
-                      key={permission}
-                      className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
-                    >
-                      <Checkbox
-                        checked={permissions.has(permission)}
-                        onCheckedChange={(checked) =>
-                          togglePermission(permission, checked === true)
-                        }
-                      />
-                      {PERMISSION_LABELS[permission]}
-                    </label>
-                  ))}
-                </div>
-              </FieldSet>
-            ))}
+            {catalog === null ? (
+              <Spinner className="size-5" />
+            ) : (
+              displayGroups.map((group) => (
+                <FieldSet key={group.label}>
+                  <FieldLegend variant="label">{group.label}</FieldLegend>
+                  <div className="flex flex-col gap-2">
+                    {group.permissions.map((permission) => (
+                      <label
+                        key={permission}
+                        className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                      >
+                        <Checkbox
+                          checked={permissions.has(permission)}
+                          onCheckedChange={(checked) =>
+                            togglePermission(permission, checked === true)
+                          }
+                        />
+                        {PERMISSION_LABELS[permission] ?? permission}
+                      </label>
+                    ))}
+                  </div>
+                </FieldSet>
+              ))
+            )}
           </div>
         </FieldGroup>
 

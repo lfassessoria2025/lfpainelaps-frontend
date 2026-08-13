@@ -44,6 +44,7 @@ export interface AcceptInvitationRequest {
 export type Permission =
   | "relatorio.visualizar"
   | "relatorio.baixar"
+  | "relatorio.gestante.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -175,6 +176,35 @@ export interface UploadInstructionsOut {
   method: string;
   headers: Record<string, string>;
   expires_at: string; // ISO datetime
+}
+
+// ---------------------------------------------------------------------------
+// Indicador C3 — gestante/puerpério (app/schemas/gestante.py)
+// ---------------------------------------------------------------------------
+
+export interface GestanteAcompanhamentoOut {
+  id: number;
+  nome_cidadao: string;
+  data_nascimento: string | null; // ISO date
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  dt_inicio_gestacao: string; // ISO date
+  dt_fim_gestacao: string; // ISO date
+  dt_fim_puerperio: string; // ISO date
+  excluida_por_aborto: boolean;
+  pratica_a_captacao_precoce: boolean;
+  pratica_b_consultas: number;
+  pratica_c_pressao: number;
+  pratica_d_peso_altura: number;
+  pratica_e_vd_gestacao: number;
+  pratica_f_vacina_dtpa: boolean;
+  pratica_g_exames_1t: boolean;
+  pratica_h_exames_3t: boolean;
+  pratica_k_saude_bucal: boolean;
+  pratica_i_consulta_puerperio: boolean;
+  pratica_j_vd_puerperio: boolean;
+  pontuacao_total: number;
+  created_at: string; // ISO datetime
 }
 
 // ---------------------------------------------------------------------------

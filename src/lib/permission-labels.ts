@@ -4,6 +4,7 @@ import type { Permission } from "@/lib/api-types";
 export const PERMISSION_LABELS: Record<Permission, string> = {
   "relatorio.visualizar": "Visualizar relatórios",
   "relatorio.baixar": "Baixar relatórios",
+  "relatorio.gestante.visualizar": "Visualizar indicador de gestantes (C3)",
   "dump.upload": "Enviar backup (dump)",
   "cargo.criar": "Criar cargos",
   "cargo.editar": "Editar cargos",
@@ -15,7 +16,10 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 };
 
 export const PERMISSION_GROUPS: { label: string; permissions: Permission[] }[] = [
-  { label: "Relatórios", permissions: ["relatorio.visualizar", "relatorio.baixar"] },
+  {
+    label: "Relatórios",
+    permissions: ["relatorio.visualizar", "relatorio.baixar", "relatorio.gestante.visualizar"],
+  },
   { label: "Importações", permissions: ["dump.upload"] },
   {
     label: "Cargos",
