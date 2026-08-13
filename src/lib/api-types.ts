@@ -207,6 +207,23 @@ export interface GestanteAcompanhamentoOut {
   created_at: string; // ISO datetime
 }
 
+// Agregado sem dado nominal (app/schemas/gestante.py: MetricaPraticaOut/MetricasIndicadorOut)
+// — usado pela aba de Analytics, nunca traz nome/data de nascimento individual.
+export interface MetricaPraticaOut {
+  pratica: string;
+  titulo: string;
+  total_gestantes: number;
+  total_cumprida: number;
+  percentual_cumprido: number;
+}
+
+export interface MetricasIndicadorOut {
+  prefeitura_id: number;
+  prefeitura_nome: string;
+  total_gestantes: number;
+  praticas: MetricaPraticaOut[];
+}
+
 // ---------------------------------------------------------------------------
 // Erro padronizado da API (FastAPI HTTPException)
 // ---------------------------------------------------------------------------

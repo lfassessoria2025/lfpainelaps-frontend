@@ -1,4 +1,4 @@
-import { Baby, Building2, LayoutDashboard, ShieldCheck, UploadCloud } from "lucide-react";
+import { Baby, BarChart3, Building2, LayoutDashboard, ShieldCheck, UploadCloud } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to: "/prefeituras", label: "Prefeituras", icon: Building2 },
   { to: "/importacoes", label: "Importações", icon: UploadCloud },
   { to: "/gestantes", label: "Gestantes", icon: Baby },
+  { to: "/analytics", label: "Analytics", icon: BarChart3 },
 ] as const;
 
 export function AppSidebar() {
