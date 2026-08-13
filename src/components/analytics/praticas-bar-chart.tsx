@@ -33,9 +33,16 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
   // tooltip/legenda automaticamente — não precisa duplicar lookup aqui.
   const chaveDaSerie = (prefeituraId: number) => `serie_${prefeituraId}`;
 
-  const praticas = dados[0].praticas.map((p) => p.pratica);
-  const linhas = praticas.map((pratica) => {
-    const linha: Record<string, string | number | null> = { pratica };
+  // O nome completo da prática vem do backend (item.titulo, mesmo campo
+  // usado por qualquer indicador futuro) — o eixo mostra o rótulo por
+  // extenso em vez de só a letra, pedido explícito da cliente pra
+  // reconhecer as práticas do jeito que já vê na planilha dela.
+  const praticas = dados[0].praticas.map((p) => ({ pratica: p.pratica, titulo: p.titulo }));
+  const linhas = praticas.map(({ pratica, titulo }) => {
+    const linha: Record<string, string | number | null> = {
+      pratica,
+      rotulo: `${pratica} · ${titulo}`,
+    };
     for (const prefeitura of dados) {
       const item = prefeitura.praticas.find((p) => p.pratica === pratica);
       linha[chaveDaSerie(prefeitura.prefeitura_id)] = item?.percentual_cumprido ?? null;
@@ -43,16 +50,35 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
     return linha;
   });
 
+  // Barras horizontais: o nome completo da prática cabe por extenso no
+  // eixo Y, sem precisar rotacionar texto ou truncar (11 categorias com
+  // nomes longos não cabem legíveis num eixo X vertical).
+  const alturaPorLinha = dados.length > 1 ? 44 : 32;
+  const altura = Math.max(360, praticas.length * alturaPorLinha);
+
   return (
-    <ResponsiveContainer width="100%" height={360}>
-      <BarChart data={linhas} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-        <XAxis dataKey="pratica" tickLine={false} axisLine={false} />
-        <YAxis
+    <ResponsiveContainer width="100%" height={altura}>
+      <BarChart
+        data={linhas}
+        layout="vertical"
+        margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+        barCategoryGap={dados.length > 1 ? 12 : 6}
+      >
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
+        <XAxis
+          type="number"
+          domain={[0, 100]}
           tickLine={false}
           axisLine={false}
-          domain={[0, 100]}
           tickFormatter={(value: number) => `${value}%`}
+        />
+        <YAxis
+          type="category"
+          dataKey="rotulo"
+          tickLine={false}
+          axisLine={false}
+          width={260}
+          tick={{ fontSize: 12 }}
         />
         <Tooltip formatter={(value) => (value === null ? "sem dado" : `${value}%`)} />
         {dados.length > 1 ? <Legend /> : null}
@@ -62,7 +88,7 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
             dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
             name={prefeitura.prefeitura_nome}
             fill={CORES[indice % CORES.length]}
-            radius={[4, 4, 0, 0]}
+            radius={[0, 4, 4, 0]}
           />
         ))}
       </BarChart>

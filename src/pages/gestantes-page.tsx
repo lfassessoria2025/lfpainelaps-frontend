@@ -203,67 +203,86 @@ export function GestantesPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="sticky left-0 z-10 bg-background">Gestante</TableHead>
-                <TableHead>Equipe</TableHead>
-                {PRATICAS.map((pratica) => (
-                  <TableHead key={pratica.letra} className="text-center">
-                    <Tooltip>
-                      <TooltipTrigger className="cursor-default font-semibold">
-                        {pratica.letra}
-                      </TooltipTrigger>
-                      <TooltipContent>{pratica.titulo}</TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                ))}
-                <TableHead className="text-right">Pontuação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {gestantes.map((gestante) => (
-                <TableRow key={gestante.id}>
-                  <TableCell className="sticky left-0 z-10 bg-background font-medium">
-                    <div className="flex flex-col">
-                      <span>{gestante.nome_cidadao}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(gestante.data_nascimento)}
-                        {gestante.excluida_por_aborto ? (
-                          <Badge variant="outline" className="ml-2">
-                            Excluída (aborto)
-                          </Badge>
-                        ) : null}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {gestante.equipe_nome ?? "—"}
-                  </TableCell>
-                  {PRATICAS.map((pratica) => {
-                    const { status, texto } = statusDaPratica(gestante, pratica);
-                    return (
-                      <TableCell key={pratica.letra} className="text-center">
-                        <span
-                          className={cn(
-                            "inline-flex min-w-9 items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
-                            STATUS_CLASSNAME[status],
-                          )}
-                        >
-                          {texto}
-                        </span>
-                      </TableCell>
-                    );
-                  })}
-                  <TableCell className="text-right">
-                    <Badge className="tabular-nums">{gestante.pontuacao_total}</Badge>
-                  </TableCell>
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Legenda:</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-emerald-500" /> Completa
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-amber-500" /> Parcial
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-muted-foreground/40" /> Pendente
+            </span>
+          </div>
+          <div className="overflow-x-auto rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="sticky left-0 z-10 bg-muted/40">Gestante</TableHead>
+                  <TableHead>Equipe</TableHead>
+                  {PRATICAS.map((pratica) => (
+                    <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
+                      <Tooltip>
+                        <TooltipTrigger className="flex w-full cursor-default flex-col items-center gap-0.5">
+                          <span className="text-[10px] font-normal tracking-wide text-muted-foreground">
+                            {pratica.letra}
+                          </span>
+                          <span className="text-xs leading-tight font-semibold whitespace-normal text-foreground">
+                            {pratica.rotulo}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{pratica.titulo}</TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-right">Pontuação</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {gestantes.map((gestante) => (
+                  <TableRow key={gestante.id}>
+                    <TableCell className="sticky left-0 z-10 bg-background font-medium">
+                      <div className="flex flex-col">
+                        <span>{gestante.nome_cidadao}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(gestante.data_nascimento)}
+                          {gestante.excluida_por_aborto ? (
+                            <Badge variant="outline" className="ml-2">
+                              Excluída (aborto)
+                            </Badge>
+                          ) : null}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {gestante.equipe_nome ?? "—"}
+                    </TableCell>
+                    {PRATICAS.map((pratica) => {
+                      const { status, texto } = statusDaPratica(gestante, pratica);
+                      return (
+                        <TableCell key={pratica.letra} className="text-center">
+                          <span
+                            className={cn(
+                              "inline-flex min-w-9 items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
+                              STATUS_CLASSNAME[status],
+                            )}
+                          >
+                            {texto}
+                          </span>
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-right">
+                      <Badge className="tabular-nums">{gestante.pontuacao_total}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );
