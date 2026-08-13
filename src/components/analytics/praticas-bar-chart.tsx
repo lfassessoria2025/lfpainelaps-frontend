@@ -25,12 +25,20 @@ const CORES = ["var(--color-primary)", "#f2994a", "#27ae60", "#eb5757"];
 export function PraticasBarChart({ dados }: PraticasBarChartProps) {
   if (dados.length === 0) return null;
 
+  // Chave por prefeitura_id (único de fato), nunca por nome — duas
+  // prefeituras podem ter o mesmo `name` (só `ibge_code` é único no banco),
+  // e uma chave por nome faria uma sobrescrever a outra silenciosamente no
+  // gráfico de comparação (achado do CR na Fase C, corrigido aqui). O nome
+  // vai só na prop `name` do <Bar>, que o recharts já usa como rótulo do
+  // tooltip/legenda automaticamente — não precisa duplicar lookup aqui.
+  const chaveDaSerie = (prefeituraId: number) => `serie_${prefeituraId}`;
+
   const praticas = dados[0].praticas.map((p) => p.pratica);
   const linhas = praticas.map((pratica) => {
-    const linha: Record<string, string | number> = { pratica };
+    const linha: Record<string, string | number | null> = { pratica };
     for (const prefeitura of dados) {
       const item = prefeitura.praticas.find((p) => p.pratica === pratica);
-      linha[prefeitura.prefeitura_nome] = item?.percentual_cumprido ?? 0;
+      linha[chaveDaSerie(prefeitura.prefeitura_id)] = item?.percentual_cumprido ?? null;
     }
     return linha;
   });
@@ -46,12 +54,13 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
           domain={[0, 100]}
           tickFormatter={(value: number) => `${value}%`}
         />
-        <Tooltip formatter={(value) => `${value}%`} />
+        <Tooltip formatter={(value) => (value === null ? "sem dado" : `${value}%`)} />
         {dados.length > 1 ? <Legend /> : null}
         {dados.map((prefeitura, indice) => (
           <Bar
             key={prefeitura.prefeitura_id}
-            dataKey={prefeitura.prefeitura_nome}
+            dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
+            name={prefeitura.prefeitura_nome}
             fill={CORES[indice % CORES.length]}
             radius={[4, 4, 0, 0]}
           />

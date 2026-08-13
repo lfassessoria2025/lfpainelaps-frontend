@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AnalyticsPage } from "@/pages/analytics-page";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
@@ -27,6 +28,12 @@ const mockedGestanteService = vi.mocked(gestanteService);
 const mockedPrefeiturasService = vi.mocked(prefeiturasService);
 
 const PREFEITURA: PrefeituraOut = { id: 1, ibge_code: "3500000", name: "Jeriquara", active: true };
+const OUTRA_PREFEITURA: PrefeituraOut = {
+  id: 2,
+  ibge_code: "3500001",
+  name: "Pedregulho",
+  active: true,
+};
 
 const METRICAS: MetricasIndicadorOut = {
   prefeitura_id: 1,
@@ -36,6 +43,12 @@ const METRICAS: MetricasIndicadorOut = {
     { pratica: "A", titulo: "Captação precoce", total_gestantes: 2, total_cumprida: 1, percentual_cumprido: 50 },
     { pratica: "B", titulo: "7+ consultas", total_gestantes: 2, total_cumprida: 2, percentual_cumprido: 100 },
   ],
+};
+
+const METRICAS_OUTRA: MetricasIndicadorOut = {
+  ...METRICAS,
+  prefeitura_id: 2,
+  prefeitura_nome: "Pedregulho",
 };
 
 describe("AnalyticsPage", () => {
@@ -82,5 +95,40 @@ describe("AnalyticsPage", () => {
     render(<AnalyticsPage />);
 
     expect(await screen.findByText("Não foi possível carregar")).toBeInTheDocument();
+  });
+
+  it("liga o modo comparar e mostra checkboxes de todas as prefeituras", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+    mockedGestanteService.comparar.mockResolvedValue([METRICAS, METRICAS_OUTRA]);
+
+    render(<AnalyticsPage />);
+    await screen.findByText("Analytics");
+
+    const toggle = screen.getByRole("switch", { name: /comparar entre prefeituras/i });
+    await userEvent.click(toggle);
+
+    expect(await screen.findByText("Jeriquara")).toBeInTheDocument();
+    expect(screen.getByText("Pedregulho")).toBeInTheDocument();
+  });
+
+  it("no modo comparar, chama comparar() com os ids marcados", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+    mockedGestanteService.comparar.mockResolvedValue([METRICAS, METRICAS_OUTRA]);
+
+    render(<AnalyticsPage />);
+    await screen.findByText("Analytics");
+
+    await userEvent.click(screen.getByRole("switch", { name: /comparar entre prefeituras/i }));
+    await screen.findByText("Pedregulho");
+    const checkboxes = screen.getAllByRole("checkbox");
+    await userEvent.click(checkboxes[1]);
+
+    await waitFor(() =>
+      expect(mockedGestanteService.comparar).toHaveBeenCalledWith(
+        expect.arrayContaining([PREFEITURA.id, OUTRA_PREFEITURA.id]),
+      ),
+    );
   });
 });

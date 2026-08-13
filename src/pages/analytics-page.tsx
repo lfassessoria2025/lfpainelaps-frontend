@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BarChart3, Lock, ShieldAlert } from "lucide-react";
 import { PraticasBarChart } from "@/components/analytics/praticas-bar-chart";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
   Select,
@@ -11,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/layout/page-header";
 import type { MetricasIndicadorOut, PrefeituraOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
@@ -19,9 +21,15 @@ import { prefeiturasService } from "@/services/prefeituras";
 
 export function AnalyticsPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
+
+  // Visão única (Fase A): uma prefeitura selecionada por vez.
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  const [metricas, setMetricas] = useState<MetricasIndicadorOut | null>(null);
+  // Comparação (Fase B): 2+ prefeituras marcadas via checkbox.
+  const [comparando, setComparando] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const [dados, setDados] = useState<MetricasIndicadorOut[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
@@ -31,22 +39,31 @@ export function AnalyticsPage() {
       .then((data) => {
         setPrefeituras(data);
         const primeiraAtiva = data.find((p) => p.active) ?? data[0];
-        if (primeiraAtiva) setSelectedId(primeiraAtiva.id);
+        if (primeiraAtiva) {
+          setSelectedId(primeiraAtiva.id);
+          setSelectedIds(new Set([primeiraAtiva.id]));
+        }
       })
       .catch(() => setPrefeituras([]));
   }, []);
 
-  const loadMetricas = useCallback(async () => {
-    if (selectedId === null) return;
+  const carregar = useCallback(async () => {
+    const ids = comparando ? [...selectedIds] : selectedId !== null ? [selectedId] : [];
+    if (ids.length === 0) {
+      setDados([]);
+      return;
+    }
     try {
-      const data = await gestanteService.metricas(selectedId);
-      setMetricas(data);
+      const resultado = comparando
+        ? await gestanteService.comparar(ids)
+        : [await gestanteService.metricas(ids[0])];
+      setDados(resultado);
       setLoadError(null);
       setForbidden(false);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         setForbidden(true);
-        setMetricas(null);
+        setDados(null);
         setLoadError(null);
         return;
       }
@@ -55,13 +72,24 @@ export function AnalyticsPage() {
         err instanceof ApiError ? err.detail : "Não foi possível carregar as métricas.",
       );
     }
-  }, [selectedId]);
+  }, [comparando, selectedId, selectedIds]);
 
   useEffect(() => {
-    setMetricas(null);
+    setDados(null);
     setForbidden(false);
-    void loadMetricas();
-  }, [loadMetricas]);
+    void carregar();
+  }, [carregar]);
+
+  const toggleSelecionada = (prefeituraId: number, marcada: boolean) => {
+    setSelectedIds((atual) => {
+      const proximo = new Set(atual);
+      if (marcada) proximo.add(prefeituraId);
+      else proximo.delete(prefeituraId);
+      return proximo;
+    });
+  };
+
+  const totalGestantes = dados?.reduce((soma, item) => soma + item.total_gestantes, 0) ?? 0;
 
   return (
     <div>
@@ -70,9 +98,35 @@ export function AnalyticsPage() {
         description="Indicador C3 (Gestantes) — % de cumprimento por prática, filtrado por prefeitura."
       />
 
+      <div className="mb-4 flex items-center gap-2">
+        <Switch
+          checked={comparando}
+          onCheckedChange={setComparando}
+          aria-label="Comparar entre prefeituras"
+        />
+        <span className="text-sm text-foreground">Comparar entre prefeituras</span>
+      </div>
+
       <div className="mb-4 max-w-xs">
         {prefeituras === null ? (
           <Skeleton className="h-9 w-full" />
+        ) : comparando ? (
+          <div className="flex flex-col gap-2 rounded-lg border p-3">
+            {prefeituras.map((prefeitura) => (
+              <label
+                key={prefeitura.id}
+                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+              >
+                <Checkbox
+                  checked={selectedIds.has(prefeitura.id)}
+                  onCheckedChange={(checked) =>
+                    toggleSelecionada(prefeitura.id, checked === true)
+                  }
+                />
+                {prefeitura.name}
+              </label>
+            ))}
+          </div>
         ) : (
           <Select
             value={selectedId ? String(selectedId) : undefined}
@@ -126,9 +180,9 @@ export function AnalyticsPage() {
             <EmptyDescription>{loadError}</EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : metricas === null ? (
+      ) : dados === null ? (
         <Skeleton className="h-90 w-full" />
-      ) : metricas.total_gestantes === 0 ? (
+      ) : dados.length === 0 || totalGestantes === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -136,13 +190,15 @@ export function AnalyticsPage() {
             </EmptyMedia>
             <EmptyTitle>Sem dado suficiente</EmptyTitle>
             <EmptyDescription>
-              Não há gestantes em acompanhamento nesta prefeitura para gerar o gráfico.
+              {comparando
+                ? "Selecione ao menos uma prefeitura com gestantes em acompanhamento."
+                : "Não há gestantes em acompanhamento nesta prefeitura para gerar o gráfico."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <div className="rounded-lg border p-4">
-          <PraticasBarChart dados={[metricas]} />
+          <PraticasBarChart dados={dados} />
         </div>
       )}
     </div>
