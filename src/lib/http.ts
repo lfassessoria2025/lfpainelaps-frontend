@@ -52,6 +52,33 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return data as T;
 }
 
+interface DownloadResult {
+  blob: Blob;
+  filename: string;
+}
+
+const CONTENT_DISPOSITION_FILENAME = /filename="?([^"]+)"?/;
+
+/** Download binário (ex.: exportação em planilha) — não passa pelo parser JSON de `request`. */
+async function getBlob(path: string, signal?: AbortSignal): Promise<DownloadResult> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+    credentials: "include",
+    signal,
+  });
+
+  if (!response.ok) {
+    const isJson = response.headers.get("content-type")?.includes("application/json");
+    const data = isJson ? ((await response.json()) as ApiErrorBody) : undefined;
+    throw new ApiError(response.status, data?.detail ?? `Erro inesperado (HTTP ${response.status}).`);
+  }
+
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const filename = CONTENT_DISPOSITION_FILENAME.exec(disposition)?.[1] ?? "download";
+  const blob = await response.blob();
+  return { blob, filename };
+}
+
 export const http = {
   get: <T>(path: string, signal?: AbortSignal) => request<T>(path, { method: "GET", signal }),
   post: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
@@ -60,4 +87,5 @@ export const http = {
     request<T>(path, { method: "PUT", body, signal }),
   delete: <T>(path: string, signal?: AbortSignal) =>
     request<T>(path, { method: "DELETE", signal }),
+  getBlob,
 };

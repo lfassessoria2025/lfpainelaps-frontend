@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Baby, Lock, ShieldAlert } from "lucide-react";
+import { Baby, Download, Loader2, Lock, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
   Select,
@@ -47,6 +48,9 @@ export function GestantesPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
+  const [exportando, setExportando] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
   useEffect(() => {
     prefeiturasService
       .list()
@@ -85,12 +89,44 @@ export function GestantesPage() {
     void loadGestantes();
   }, [loadGestantes]);
 
+  const handleExportar = useCallback(async () => {
+    if (selectedId === null) return;
+    setExportando(true);
+    setExportError(null);
+    try {
+      const { blob, filename } = await gestanteService.exportar(selectedId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(
+        err instanceof ApiError ? err.detail : "Não foi possível gerar a planilha.",
+      );
+    } finally {
+      setExportando(false);
+    }
+  }, [selectedId]);
+
+  const podeExportar = !forbidden && !loadError && gestantes !== null && gestantes.length > 0;
+
   return (
     <div>
       <PageHeader
         title="Gestantes e puerpério"
         description="Indicador C3 (Previne Brasil) — acompanhamento nominal para busca ativa."
+        actions={
+          podeExportar ? (
+            <Button variant="outline" onClick={handleExportar} disabled={exportando}>
+              {exportando ? <Loader2 className="animate-spin" /> : <Download />}
+              Baixar planilha
+            </Button>
+          ) : undefined
+        }
       />
+      {exportError ? <p className="mb-4 text-sm text-destructive">{exportError}</p> : null}
 
       <div className="mb-4 max-w-xs">
         {prefeituras === null ? (

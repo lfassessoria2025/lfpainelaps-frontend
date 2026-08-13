@@ -7,4 +7,6 @@ export const gestanteService = {
       `/prefeituras/${prefeituraId}/indicadores/gestantes`,
       signal,
     ),
+  exportar: (prefeituraId: number, signal?: AbortSignal) =>
+    http.getBlob(`/prefeituras/${prefeituraId}/indicadores/gestantes/exportar`, signal),
 };

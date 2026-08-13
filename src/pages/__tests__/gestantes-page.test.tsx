@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { GestantesPage } from "@/pages/gestantes-page";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
@@ -7,7 +8,7 @@ import { prefeiturasService } from "@/services/prefeituras";
 import type { GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
 
 vi.mock("@/services/gestante", () => ({
-  gestanteService: { list: vi.fn() },
+  gestanteService: { list: vi.fn(), exportar: vi.fn() },
 }));
 vi.mock("@/services/prefeituras", () => ({
   prefeiturasService: { list: vi.fn() },
@@ -73,5 +74,56 @@ describe("GestantesPage", () => {
     render(<GestantesPage />);
 
     expect(await screen.findByText("Sem permissão para ver este indicador")).toBeInTheDocument();
+  });
+
+  it("não mostra o botão de baixar planilha quando não há gestantes", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([]);
+
+    render(<GestantesPage />);
+
+    expect(await screen.findByText("Nenhuma gestante em acompanhamento")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /baixar planilha/i })).not.toBeInTheDocument();
+  });
+
+  it("baixa a planilha ao clicar em 'Baixar planilha'", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    mockedGestanteService.exportar.mockResolvedValue({
+      blob: new Blob(["conteudo"], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      filename: "gestantes_Jeriquara_20260813.xlsx",
+    });
+
+    const createObjectURL = vi.fn(() => "blob:mock-url");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
+
+    render(<GestantesPage />);
+    const botao = await screen.findByRole("button", { name: /baixar planilha/i });
+
+    await userEvent.click(botao);
+
+    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id);
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("mostra erro se a exportação falhar", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    mockedGestanteService.exportar.mockRejectedValue(
+      new ApiError(403, "Ator não tem a permissão relatorio.gestante.visualizar."),
+    );
+
+    render(<GestantesPage />);
+    const botao = await screen.findByRole("button", { name: /baixar planilha/i });
+
+    await userEvent.click(botao);
+
+    expect(
+      await screen.findByText("Ator não tem a permissão relatorio.gestante.visualizar."),
+    ).toBeInTheDocument();
   });
 });
