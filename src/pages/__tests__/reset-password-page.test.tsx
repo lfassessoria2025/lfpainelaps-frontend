@@ -18,7 +18,13 @@ vi.mock("@/contexts/auth-context", () => ({
 const mockedResetPassword = vi.mocked(authService.resetPassword);
 const mockedUseAuth = vi.mocked(useAuth);
 
-const USUARIO: UserOut = { id: 1, email: "gestor@example.com", is_admin: false, status: "ativo" };
+const USUARIO: UserOut = {
+  id: 1,
+  email: "gestor@example.com",
+  name: null,
+  is_admin: false,
+  status: "ativo",
+};
 
 function renderPage(token = "token-valido", setAuthenticatedUser = vi.fn()) {
   mockedUseAuth.mockReturnValue({

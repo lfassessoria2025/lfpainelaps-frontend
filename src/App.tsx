@@ -33,6 +33,9 @@ const GestantesPage = lazy(() =>
 const AnalyticsPage = lazy(() =>
   import("@/pages/analytics-page").then((m) => ({ default: m.AnalyticsPage })),
 );
+const ProfilePage = lazy(() =>
+  import("@/pages/profile-page").then((m) => ({ default: m.ProfilePage })),
+);
 const NotFoundPage = lazy(() =>
   import("@/pages/not-found-page").then((m) => ({ default: m.NotFoundPage })),
 );
@@ -62,6 +65,7 @@ function App() {
             <Route path="/importacoes" element={<ImportacoesPage />} />
             <Route path="/gestantes" element={<GestantesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/perfil" element={<ProfilePage />} />
           </Route>
         </Route>
 

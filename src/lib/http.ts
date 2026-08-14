@@ -85,6 +85,8 @@ export const http = {
     request<T>(path, { method: "POST", body, signal }),
   put: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
     request<T>(path, { method: "PUT", body, signal }),
+  patch: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
+    request<T>(path, { method: "PATCH", body, signal }),
   delete: <T>(path: string, signal?: AbortSignal) =>
     request<T>(path, { method: "DELETE", signal }),
   getBlob,

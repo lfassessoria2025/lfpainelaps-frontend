@@ -1,4 +1,4 @@
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, UserCog, User as UserIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -45,16 +45,22 @@ export function AppTopbar() {
             <span className="hidden text-sm text-foreground sm:inline">{user?.email}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
-              <span className="flex items-center gap-1.5 text-sm font-medium">
-                <UserIcon className="size-3.5" /> {user?.email}
-              </span>
-              <span className="text-xs font-normal text-muted-foreground">
-                {user?.is_admin ? "Administrador" : "Funcionário"}
-              </span>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <UserIcon className="size-3.5" /> {user?.email}
+                </span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {user?.is_admin ? "Administrador" : "Funcionário"}
+                </span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => navigate("/perfil")}>
+                <UserCog data-icon="inline-start" />
+                Editar perfil
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} variant="destructive">
                 <LogOut data-icon="inline-start" />
                 Sair

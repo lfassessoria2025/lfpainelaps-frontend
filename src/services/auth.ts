@@ -1,9 +1,11 @@
 import { http } from "@/lib/http";
 import type {
   AcceptInvitationRequest,
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
   ResetPasswordRequest,
+  UpdateProfileRequest,
   UserOut,
 } from "@/lib/api-types";
 
@@ -18,4 +20,8 @@ export const authService = {
     http.post<{ detail: string }>("/auth/esqueci-senha", payload),
   resetPassword: (payload: ResetPasswordRequest) =>
     http.post<UserOut>("/auth/redefinir-senha", payload),
+  updateProfile: (payload: UpdateProfileRequest) =>
+    http.patch<UserOut>("/auth/me", payload),
+  changePassword: (payload: ChangePasswordRequest) =>
+    http.post<UserOut>("/auth/me/trocar-senha", payload),
 };

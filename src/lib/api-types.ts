@@ -13,6 +13,7 @@ export type UserStatus = "convidado" | "ativo" | "desativado";
 export interface UserOut {
   id: number;
   email: string;
+  name: string | null;
   is_admin: boolean;
   status: UserStatus;
 }
@@ -44,6 +45,16 @@ export interface ForgotPasswordRequest {
 export interface ResetPasswordRequest {
   token: string | null;
   senha: string;
+}
+
+// Edição do próprio perfil (PATCH /auth/me e POST /auth/me/trocar-senha).
+export interface UpdateProfileRequest {
+  name: string;
+}
+
+export interface ChangePasswordRequest {
+  senha_atual: string;
+  senha_nova: string;
 }
 
 // ---------------------------------------------------------------------------
