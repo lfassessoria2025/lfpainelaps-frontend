@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 
@@ -34,31 +35,34 @@ export function AppTopbar() {
       <div className="flex items-center gap-2">
         <SidebarTrigger />
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 outline-none hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring">
-          <Avatar className="size-8">
-            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          <span className="hidden text-sm text-foreground sm:inline">{user?.email}</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="flex flex-col gap-0.5">
-            <span className="flex items-center gap-1.5 text-sm font-medium">
-              <UserIcon className="size-3.5" /> {user?.email}
-            </span>
-            <span className="text-xs font-normal text-muted-foreground">
-              {user?.is_admin ? "Administrador" : "Funcionário"}
-            </span>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={handleLogout} variant="destructive">
-              <LogOut data-icon="inline-start" />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 outline-none hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring">
+            <Avatar className="size-8">
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+            </Avatar>
+            <span className="hidden text-sm text-foreground sm:inline">{user?.email}</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="flex flex-col gap-0.5">
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <UserIcon className="size-3.5" /> {user?.email}
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {user?.is_admin ? "Administrador" : "Funcionário"}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={handleLogout} variant="destructive">
+                <LogOut data-icon="inline-start" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }

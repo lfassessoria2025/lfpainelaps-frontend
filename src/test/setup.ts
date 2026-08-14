@@ -7,3 +7,18 @@ import "@testing-library/jest-dom/vitest";
 afterEach(() => {
   cleanup();
 });
+
+// jsdom não implementa matchMedia — next-themes (FLO-32) chama isso sempre
+// que enableSystem está ligado, mesmo fora dos testes que mexem em tema.
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }) as unknown as MediaQueryList;
+}
