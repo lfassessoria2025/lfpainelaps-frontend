@@ -3,9 +3,10 @@ import {
   chaveDaSerie,
   montarFatiasCumprimento,
   montarLinhasDoGrafico,
+  montarLinhasEvolucao,
   montarRankingPrefeituras,
 } from "@/lib/analytics-chart-data";
-import type { MetricasIndicadorOut } from "@/lib/api-types";
+import type { MetricasIndicadorOut, SerieHistoricaPontoOut } from "@/lib/api-types";
 
 const JERIQUARA: MetricasIndicadorOut = {
   prefeitura_id: 1,
@@ -139,6 +140,35 @@ describe("montarRankingPrefeituras", () => {
 
     expect(montarRankingPrefeituras([vazia])).toEqual([
       { prefeitura_id: 3, prefeitura_nome: "Sem dados", percentual_cumprido: 0 },
+    ]);
+  });
+});
+
+describe("montarLinhasEvolucao", () => {
+  it("une datas e cria uma série ponderada por prefeitura", () => {
+    const ponto: SerieHistoricaPontoOut = {
+      importacao_id: 10,
+      data_referencia: "2026-01-15T12:00:00Z",
+      total_gestantes: 2,
+      praticas: JERIQUARA.praticas,
+    };
+
+    const linhas = montarLinhasEvolucao([
+      { prefeitura_id: 1, prefeitura_nome: "Jeriquara", pontos: [ponto] },
+      {
+        prefeitura_id: 2,
+        prefeitura_nome: "Pedregulho",
+        pontos: [{ ...ponto, importacao_id: 20, praticas: [JERIQUARA.praticas[0]] }],
+      },
+    ]);
+
+    expect(linhas).toEqual([
+      {
+        data: "2026-01-15T12:00:00Z",
+        data_rotulo: "15/01/2026",
+        [chaveDaSerie(1)]: 75,
+        [chaveDaSerie(2)]: 50,
+      },
     ]);
   });
 });

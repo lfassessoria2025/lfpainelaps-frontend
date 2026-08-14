@@ -1,4 +1,4 @@
-import type { MetricasIndicadorOut } from "@/lib/api-types";
+import type { MetricasIndicadorOut, SerieHistoricaPontoOut } from "@/lib/api-types";
 
 // Chave por prefeitura_id (único de fato), nunca por nome — duas prefeituras
 // podem ter o mesmo `name` (só `ibge_code` é único no banco), e uma chave
@@ -119,4 +119,36 @@ export function montarRankingPrefeituras(
         a.prefeitura_nome.localeCompare(b.prefeitura_nome, "pt-BR") ||
         a.prefeitura_id - b.prefeitura_id,
     );
+}
+
+export interface SerieHistoricaPrefeitura {
+  prefeitura_id: number;
+  prefeitura_nome: string;
+  pontos: SerieHistoricaPontoOut[];
+}
+
+export function montarLinhasEvolucao(
+  series: SerieHistoricaPrefeitura[],
+): Record<string, string | number | null>[] {
+  const porData = new Map<string, Record<string, string | number | null>>();
+  for (const serie of series) {
+    for (const ponto of serie.pontos) {
+      const data = ponto.data_referencia;
+      const linha = porData.get(data) ?? { data, data_rotulo: formatarData(data) };
+      let cumpridas = 0;
+      let ocorrencias = 0;
+      for (const pratica of ponto.praticas) {
+        cumpridas += pratica.total_cumprida;
+        ocorrencias += pratica.total_gestantes;
+      }
+      linha[chaveDaSerie(serie.prefeitura_id)] =
+        ocorrencias === 0 ? 0 : Math.round((cumpridas / ocorrencias) * 10000) / 100;
+      porData.set(data, linha);
+    }
+  }
+  return [...porData.values()].toSorted((a, b) => String(a.data).localeCompare(String(b.data)));
+}
+
+function formatarData(valor: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(valor));
 }

@@ -4,6 +4,7 @@ import { PraticasBarChart } from "@/components/analytics/praticas-bar-chart";
 import { PraticasPieChart } from "@/components/analytics/praticas-pie-chart";
 import { PraticasRadarChart } from "@/components/analytics/praticas-radar-chart";
 import { PrefeiturasRankingChart } from "@/components/analytics/prefeituras-ranking-chart";
+import { EvolucaoLineChart } from "@/components/analytics/evolucao-line-chart";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -19,11 +20,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/page-header";
 import type { MetricasIndicadorOut, PrefeituraOut } from "@/lib/api-types";
+import type { SerieHistoricaPrefeitura } from "@/lib/analytics-chart-data";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
 
-type TipoGrafico = "barra" | "pizza" | "radar" | "ranking";
+type TipoGrafico = "barra" | "pizza" | "radar" | "ranking" | "evolucao";
 
 export function AnalyticsPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
@@ -42,6 +44,9 @@ export function AnalyticsPage() {
   // Troca só o componente renderizado — não re-busca dado, os 3 tipos de
   // gráfico consomem o mesmo `dados` já carregado.
   const [tipoGrafico, setTipoGrafico] = useState<TipoGrafico>("barra");
+  const [historico, setHistorico] = useState<SerieHistoricaPrefeitura[] | null>(null);
+  const [historicoKey, setHistoricoKey] = useState("");
+  const [historicoError, setHistoricoError] = useState<string | null>(null);
 
   useEffect(() => {
     prefeiturasService
@@ -89,6 +94,37 @@ export function AnalyticsPage() {
     setForbidden(false);
     void carregar();
   }, [carregar]);
+
+  useEffect(() => {
+    if (tipoGrafico !== "evolucao" || prefeituras === null) return;
+    const ids = comparando ? [...selectedIds].toSorted((a, b) => a - b) : selectedId ? [selectedId] : [];
+    const chave = ids.join(",");
+    if (chave === historicoKey) return;
+    if (ids.length === 0) {
+      setHistorico([]);
+      setHistoricoKey(chave);
+      return;
+    }
+    setHistorico(null);
+    setHistoricoError(null);
+    Promise.all(
+      ids.map(async (id) => ({
+        prefeitura_id: id,
+        prefeitura_nome: prefeituras.find((item) => item.id === id)?.name ?? String(id),
+        pontos: await gestanteService.serieHistorica(id),
+      })),
+    )
+      .then((series) => {
+        setHistorico(series);
+        setHistoricoKey(chave);
+      })
+      .catch((erro) => {
+        setHistoricoError(
+          erro instanceof ApiError ? erro.detail : "Não foi possível carregar o histórico.",
+        );
+        setHistorico([]);
+      });
+  }, [comparando, historicoKey, prefeituras, selectedId, selectedIds, tipoGrafico]);
 
   const toggleSelecionada = (prefeituraId: number, marcada: boolean) => {
     setSelectedIds((atual) => {
@@ -218,6 +254,7 @@ export function AnalyticsPage() {
                 <TabsTrigger value="pizza">Pizza</TabsTrigger>
                 {dados.length > 1 ? <TabsTrigger value="radar">Radar</TabsTrigger> : null}
                 <TabsTrigger value="ranking">Ranking</TabsTrigger>
+                <TabsTrigger value="evolucao">Evolução</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -229,6 +266,14 @@ export function AnalyticsPage() {
               <PraticasPieChart dados={dados} />
             ) : tipoGrafico === "ranking" ? (
               <PrefeiturasRankingChart dados={dados} />
+            ) : tipoGrafico === "evolucao" ? (
+              historicoError ? (
+                <p className="text-sm text-destructive">{historicoError}</p>
+              ) : historico === null ? (
+                <Skeleton className="h-95 w-full" />
+              ) : (
+                <EvolucaoLineChart series={historico} />
+              )
             ) : dados.length > 1 ? (
               <PraticasRadarChart dados={dados} />
             ) : (

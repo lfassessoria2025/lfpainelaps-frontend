@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
+import { CORES_COMPARACAO } from "@/components/analytics/chart-colors";
 
 /**
  * Radar de comparação entre prefeituras — um eixo por prática, uma série
@@ -28,8 +29,6 @@ interface PraticasRadarChartProps {
   /** 2+ prefeituras — radar de 1 prefeitura só não compara nada. */
   dados: MetricasIndicadorOut[];
 }
-
-const CORES = ["var(--color-primary)", "#f2994a", "#27ae60", "#eb5757"];
 
 export function PraticasRadarChart({ dados }: PraticasRadarChartProps) {
   if (dados.length === 0) return null;
@@ -52,8 +51,8 @@ export function PraticasRadarChart({ dados }: PraticasRadarChartProps) {
             key={prefeitura.prefeitura_id}
             dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
             name={prefeitura.prefeitura_nome}
-            stroke={CORES[indice % CORES.length]}
-            fill={CORES[indice % CORES.length]}
+            stroke={CORES_COMPARACAO[indice % CORES_COMPARACAO.length]}
+            fill={CORES_COMPARACAO[indice % CORES_COMPARACAO.length]}
             fillOpacity={0.2}
           />
         ))}

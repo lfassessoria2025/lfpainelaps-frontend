@@ -244,6 +244,13 @@ export interface MetricasIndicadorOut {
   praticas: MetricaPraticaOut[];
 }
 
+export interface SerieHistoricaPontoOut {
+  importacao_id: number;
+  data_referencia: string;
+  total_gestantes: number;
+  praticas: MetricaPraticaOut[];
+}
+
 // ---------------------------------------------------------------------------
 // Erro padronizado da API (FastAPI HTTPException)
 // ---------------------------------------------------------------------------

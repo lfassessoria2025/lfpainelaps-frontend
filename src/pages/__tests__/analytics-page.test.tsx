@@ -1,14 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AnalyticsPage } from "@/pages/analytics-page";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
-import type { MetricasIndicadorOut, PrefeituraOut } from "@/lib/api-types";
+import type { MetricasIndicadorOut, PrefeituraOut, SerieHistoricaPontoOut } from "@/lib/api-types";
 
 vi.mock("@/services/gestante", () => ({
-  gestanteService: { list: vi.fn(), exportar: vi.fn(), metricas: vi.fn(), comparar: vi.fn() },
+  gestanteService: {
+    list: vi.fn(),
+    exportar: vi.fn(),
+    metricas: vi.fn(),
+    comparar: vi.fn(),
+    serieHistorica: vi.fn(),
+  },
 }));
 vi.mock("@/services/prefeituras", () => ({
   prefeiturasService: { list: vi.fn() },
@@ -50,6 +56,19 @@ const METRICAS_OUTRA: MetricasIndicadorOut = {
   prefeitura_id: 2,
   prefeitura_nome: "Pedregulho",
 };
+
+const HISTORICO: SerieHistoricaPontoOut[] = [
+  {
+    importacao_id: 1,
+    data_referencia: "2026-01-15T12:00:00Z",
+    total_gestantes: 2,
+    praticas: METRICAS.praticas,
+  },
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("AnalyticsPage", () => {
   it("carrega a prefeitura ativa e renderiza o gráfico com as métricas", async () => {
@@ -144,5 +163,37 @@ describe("AnalyticsPage", () => {
 
     expect(await screen.findByText("Ranking geral")).toBeInTheDocument();
     expect(mockedGestanteService.metricas).toHaveBeenCalledTimes(chamadasAntes);
+  });
+
+  it("busca evolução sob demanda e reutiliza o cache ao voltar para a aba", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+    mockedGestanteService.serieHistorica.mockResolvedValue(HISTORICO);
+
+    render(<AnalyticsPage />);
+    await userEvent.click(await screen.findByRole("tab", { name: "Evolução" }));
+    expect(await screen.findByText("Evolução do cumprimento geral")).toBeInTheDocument();
+    expect(mockedGestanteService.serieHistorica).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("tab", { name: "Barra" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Evolução" }));
+    expect(mockedGestanteService.serieHistorica).toHaveBeenCalledTimes(1);
+  });
+
+  it("carrega uma série histórica por prefeitura no modo comparação", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+    mockedGestanteService.comparar.mockResolvedValue([METRICAS, METRICAS_OUTRA]);
+    mockedGestanteService.serieHistorica.mockResolvedValue(HISTORICO);
+
+    render(<AnalyticsPage />);
+    await userEvent.click(await screen.findByRole("switch", { name: /comparar/i }));
+    await userEvent.click((await screen.findAllByRole("checkbox"))[1]);
+    await userEvent.click(await screen.findByRole("tab", { name: "Evolução" }));
+
+    await waitFor(() => {
+      expect(mockedGestanteService.serieHistorica).toHaveBeenCalledWith(PREFEITURA.id);
+      expect(mockedGestanteService.serieHistorica).toHaveBeenCalledWith(OUTRA_PREFEITURA.id);
+    });
   });
 });

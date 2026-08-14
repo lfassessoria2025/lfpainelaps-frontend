@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
+import { CORES_COMPARACAO } from "@/components/analytics/chart-colors";
 
 /**
  * Gráfico genérico de % cumprido por prática — consome o mesmo shape
@@ -20,8 +21,6 @@ interface PraticasBarChartProps {
   /** Uma entrada por prefeitura — 1 para visão única, 2+ para comparação. */
   dados: MetricasIndicadorOut[];
 }
-
-const CORES = ["var(--color-primary)", "#f2994a", "#27ae60", "#eb5757"];
 
 export function PraticasBarChart({ dados }: PraticasBarChartProps) {
   if (dados.length === 0) return null;
@@ -65,7 +64,7 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
             key={prefeitura.prefeitura_id}
             dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
             name={prefeitura.prefeitura_nome}
-            fill={CORES[indice % CORES.length]}
+            fill={CORES_COMPARACAO[indice % CORES_COMPARACAO.length]}
             radius={[0, 4, 4, 0]}
           />
         ))}
