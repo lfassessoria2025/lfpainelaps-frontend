@@ -1,5 +1,6 @@
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { PieLabelRenderProps } from "recharts";
+import { Badge } from "@/components/ui/badge";
 import { montarFatiasCumprimento } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
 
@@ -31,10 +32,15 @@ export function PraticasPieChart({ dados }: PraticasPieChartProps) {
 
   return (
     <div>
-      <p className="mb-2 text-sm text-muted-foreground">
-        Cumprimento agregado — soma de todas as práticas
-        {dados.length > 1 ? " e prefeituras selecionadas" : ""}.
-      </p>
+      <div className="mb-2 flex items-center gap-2">
+        {dados.length > 1 ? (
+          <Badge variant="secondary">Agregado de {dados.length} prefeituras</Badge>
+        ) : null}
+        <p className="text-sm text-muted-foreground">
+          Cumprimento agregado — soma de todas as práticas
+          {dados.length > 1 ? " e prefeituras selecionadas" : ""}.
+        </p>
+      </div>
       <ResponsiveContainer width="100%" height={360}>
         <PieChart>
           <Pie
