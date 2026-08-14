@@ -12,6 +12,7 @@ import { authService } from "@/services/auth";
 import { ApiError } from "@/lib/http";
 
 const SENHA_MINIMA = 8;
+const NOME_MAXIMO = 150;
 
 export function ProfilePage() {
   const { user, setAuthenticatedUser } = useAuth();
@@ -32,6 +33,10 @@ export function ProfilePage() {
 
     if (!name.trim()) {
       setNameError("Nome não pode ser vazio.");
+      return;
+    }
+    if (name.trim().length > NOME_MAXIMO) {
+      setNameError(`Nome deve ter no máximo ${NOME_MAXIMO} caracteres.`);
       return;
     }
 
@@ -99,6 +104,7 @@ export function ProfilePage() {
                     id="name"
                     autoComplete="name"
                     required
+                    maxLength={NOME_MAXIMO}
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     aria-invalid={Boolean(nameError)}

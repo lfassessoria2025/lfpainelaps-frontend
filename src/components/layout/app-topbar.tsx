@@ -28,7 +28,8 @@ export function AppTopbar() {
     }
   }
 
-  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "??";
+  const displayName = user?.name?.trim() || user?.email;
+  const initials = displayName ? displayName.slice(0, 2).toUpperCase() : "??";
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4">
@@ -42,16 +43,16 @@ export function AppTopbar() {
             <Avatar className="size-8">
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
-            <span className="hidden text-sm text-foreground sm:inline">{user?.email}</span>
+            <span className="hidden text-sm text-foreground sm:inline">{displayName}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="flex flex-col gap-0.5">
                 <span className="flex items-center gap-1.5 text-sm font-medium">
-                  <UserIcon className="size-3.5" /> {user?.email}
+                  <UserIcon className="size-3.5" /> {displayName}
                 </span>
                 <span className="text-xs font-normal text-muted-foreground">
-                  {user?.is_admin ? "Administrador" : "Funcionário"}
+                  {user?.email} · {user?.is_admin ? "Administrador" : "Funcionário"}
                 </span>
               </DropdownMenuLabel>
             </DropdownMenuGroup>

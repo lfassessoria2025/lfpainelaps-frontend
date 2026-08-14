@@ -68,6 +68,12 @@ describe("ProfilePage — editar nome", () => {
     expect(await screen.findByText("Nome não pode ser vazio.")).toBeInTheDocument();
     expect(mockedUpdateProfile).not.toHaveBeenCalled();
   });
+
+  it("limita o nome ao mesmo máximo aceito pelo backend", () => {
+    renderPage();
+
+    expect(screen.getByLabelText("Nome")).toHaveAttribute("maxLength", "150");
+  });
 });
 
 describe("ProfilePage — trocar senha", () => {

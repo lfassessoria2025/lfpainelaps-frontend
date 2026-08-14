@@ -41,11 +41,17 @@ function renderTopbar() {
 }
 
 describe("AppTopbar — item de editar perfil (FLO-43)", () => {
+  it("exibe imediatamente o nome presente no usuário autenticado", () => {
+    renderTopbar();
+
+    expect(screen.getByRole("button", { name: /Gestora/ })).toBeInTheDocument();
+  });
+
   it("navega para /perfil ao clicar em 'Editar perfil' no menu", async () => {
     const user = userEvent.setup();
     renderTopbar();
 
-    await user.click(screen.getByRole("button", { name: /gestor@example.com/ }));
+    await user.click(screen.getByRole("button", { name: /Gestora/ }));
     await user.click(await screen.findByText("Editar perfil"));
 
     expect(await screen.findByText("Página de perfil")).toBeInTheDocument();
