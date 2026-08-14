@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Baby, Download, Loader2, Lock, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import type { GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { PRATICAS, statusDaPratica, type StatusPratica } from "@/lib/gestante-praticas";
+import { calcularAffordanceDeScroll, type ScrollAffordanceState } from "@/lib/scroll-affordance";
 import { cn } from "@/lib/utils";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
@@ -51,6 +52,26 @@ export function GestantesPage() {
 
   const [exportando, setExportando] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollAffordance, setScrollAffordance] = useState<ScrollAffordanceState>({
+    mostrarSombraEsquerda: false,
+    mostrarSombraDireita: false,
+  });
+
+  const atualizarScrollAffordance = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setScrollAffordance(calcularAffordanceDeScroll(el));
+  }, []);
+
+  // Recalcula quando os dados chegam (a tabela só existe/tem largura real
+  // depois disso) e quando a janela muda de tamanho.
+  useEffect(() => {
+    atualizarScrollAffordance();
+    window.addEventListener("resize", atualizarScrollAffordance);
+    return () => window.removeEventListener("resize", atualizarScrollAffordance);
+  }, [atualizarScrollAffordance, gestantes]);
 
   useEffect(() => {
     prefeiturasService
@@ -222,7 +243,30 @@ export function GestantesPage() {
               DOM decide, e a tabela (renderizada depois) pintava por cima da
               sidebar durante o scroll horizontal (FLO-40). z-[1] fica acima
               das outras células da tabela, mas abaixo da sidebar. */}
-          <Card className="gap-0 overflow-x-auto border-border/60 py-0 shadow-sm">
+          <div className="relative">
+            {/* Sombras de affordance — indicam que há mais colunas fora da
+                tela, sem precisar descobrir arrastando por acaso (FLO-41).
+                z-[2]: acima da coluna sticky (z-[1]), abaixo da sidebar
+                (z-10, mesma regra do FLO-40). */}
+            <div
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute inset-y-0 left-0 z-[2] w-10 bg-gradient-to-r from-card to-transparent opacity-0 transition-opacity duration-150",
+                scrollAffordance.mostrarSombraEsquerda && "opacity-100",
+              )}
+            />
+            <div
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute inset-y-0 right-0 z-[2] w-10 bg-gradient-to-l from-card to-transparent opacity-0 transition-opacity duration-150",
+                scrollAffordance.mostrarSombraDireita && "opacity-100",
+              )}
+            />
+            <Card
+              ref={scrollRef}
+              onScroll={atualizarScrollAffordance}
+              className="gap-0 overflow-x-auto border-border/60 py-0 shadow-sm"
+            >
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -287,7 +331,8 @@ export function GestantesPage() {
                 ))}
               </TableBody>
             </Table>
-          </Card>
+            </Card>
+          </div>
         </>
       )}
     </div>
