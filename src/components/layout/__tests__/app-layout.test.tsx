@@ -35,7 +35,13 @@ describe("AppLayout — transição de página (FLO-33)", () => {
 
     const conteudo = screen.getByText("Página A");
     const wrapper = conteudo.parentElement;
-    expect(wrapper).toHaveClass("animate-in", "fade-in", "slide-in-from-bottom-1");
+    expect(wrapper).toHaveClass(
+      "animate-in",
+      "fade-in",
+      "slide-in-from-bottom-2",
+      "duration-500",
+      "ease-out",
+    );
   });
 
   it("a chave do wrapper de animação é o pathname da rota atual", () => {

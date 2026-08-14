@@ -16,7 +16,10 @@ export function AppLayout() {
               o que reinicia a animação de entrada — é assim que uma
               transição "premium" de página funciona sem lib de animação
               (tw-animate-css, já instalado; ver FLO-33). */}
-          <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div
+            key={location.pathname}
+            className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out"
+          >
             <Outlet />
           </div>
         </main>

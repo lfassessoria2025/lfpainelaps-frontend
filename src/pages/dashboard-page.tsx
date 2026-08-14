@@ -35,9 +35,14 @@ export function DashboardPage() {
         description="Escolha uma área para começar."
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {SHORTCUTS.map((shortcut) => (
-          <Link key={shortcut.to} to={shortcut.to} className="group">
-            <Card className="h-full border-border/60 shadow-sm transition-all duration-150 group-hover:border-primary/50 group-hover:shadow-md">
+        {SHORTCUTS.map((shortcut, index) => (
+          <Link
+            key={shortcut.to}
+            to={shortcut.to}
+            className="group animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-both"
+            style={{ animationDelay: `${index * 90}ms` }}
+          >
+            <Card className="h-full border-border/60 shadow-sm transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:border-primary/50 group-hover:shadow-lg">
               <CardHeader>
                 <shortcut.icon className="mb-2 size-6 text-primary" />
                 <CardTitle>{shortcut.title}</CardTitle>
