@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { BarChart3, Lock, ShieldAlert } from "lucide-react";
 import { PraticasBarChart } from "@/components/analytics/praticas-bar-chart";
+import { PraticasPieChart } from "@/components/analytics/praticas-pie-chart";
+import { PraticasRadarChart } from "@/components/analytics/praticas-radar-chart";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -13,11 +15,14 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/page-header";
 import type { MetricasIndicadorOut, PrefeituraOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
+
+type TipoGrafico = "barra" | "pizza" | "radar";
 
 export function AnalyticsPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
@@ -32,6 +37,10 @@ export function AnalyticsPage() {
   const [dados, setDados] = useState<MetricasIndicadorOut[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
+
+  // Troca só o componente renderizado — não re-busca dado, os 3 tipos de
+  // gráfico consomem o mesmo `dados` já carregado.
+  const [tipoGrafico, setTipoGrafico] = useState<TipoGrafico>("barra");
 
   useEffect(() => {
     prefeiturasService
@@ -197,9 +206,35 @@ export function AnalyticsPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="rounded-lg border p-4">
-          <PraticasBarChart dados={dados} />
-        </div>
+        <>
+          <div className="mb-4">
+            <Tabs
+              value={tipoGrafico}
+              onValueChange={(value) => setTipoGrafico(value as TipoGrafico)}
+            >
+              <TabsList>
+                <TabsTrigger value="barra">Barra</TabsTrigger>
+                <TabsTrigger value="pizza">Pizza</TabsTrigger>
+                {dados.length > 1 ? <TabsTrigger value="radar">Radar</TabsTrigger> : null}
+              </TabsList>
+            </Tabs>
+          </div>
+
+          <div className="rounded-lg border p-4">
+            {tipoGrafico === "barra" ? (
+              <PraticasBarChart dados={dados} />
+            ) : tipoGrafico === "pizza" ? (
+              <PraticasPieChart dados={dados} />
+            ) : dados.length > 1 ? (
+              <PraticasRadarChart dados={dados} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                O gráfico de radar compara 2 ou mais prefeituras. Ative "Comparar entre
+                prefeituras" e selecione pelo menos duas para visualizá-lo.
+              </p>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

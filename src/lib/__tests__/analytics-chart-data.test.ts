@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
+import {
+  chaveDaSerie,
+  montarFatiasCumprimento,
+  montarLinhasDoGrafico,
+} from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
 
 const JERIQUARA: MetricasIndicadorOut = {
@@ -62,5 +66,45 @@ describe("montarLinhasDoGrafico", () => {
 
   it("retorna lista vazia sem dados", () => {
     expect(montarLinhasDoGrafico([])).toEqual([]);
+  });
+});
+
+describe("montarFatiasCumprimento", () => {
+  it("agrega total_cumprida e total_gestantes de todas as práticas de uma prefeitura", () => {
+    const fatias = montarFatiasCumprimento([JERIQUARA]);
+
+    // A: 2 gestantes, 1 cumprida · B: 2 gestantes, 2 cumprida => 4 ocorrências, 3 cumpridas, 1 não
+    expect(fatias).toEqual([
+      { chave: "cumprida", nome: "Cumprida", valor: 3 },
+      { chave: "nao_cumprida", nome: "Não cumprida", valor: 1 },
+    ]);
+  });
+
+  it("soma múltiplas prefeituras (modo comparação) num único agregado", () => {
+    const outraPrefeitura: MetricasIndicadorOut = { ...JERIQUARA, prefeitura_id: 2 };
+
+    const fatias = montarFatiasCumprimento([JERIQUARA, outraPrefeitura]);
+
+    expect(fatias).toEqual([
+      { chave: "cumprida", nome: "Cumprida", valor: 6 },
+      { chave: "nao_cumprida", nome: "Não cumprida", valor: 2 },
+    ]);
+  });
+
+  it("prefeitura/prática sem gestante não quebra por divisão por zero", () => {
+    const semGestante: MetricasIndicadorOut = {
+      prefeitura_id: 3,
+      prefeitura_nome: "Vazia",
+      total_gestantes: 0,
+      praticas: [
+        { pratica: "A", titulo: "Captação precoce", total_gestantes: 0, total_cumprida: 0, percentual_cumprido: 0 },
+      ],
+    };
+
+    expect(montarFatiasCumprimento([semGestante])).toEqual([]);
+  });
+
+  it("retorna lista vazia sem dados", () => {
+    expect(montarFatiasCumprimento([])).toEqual([]);
   });
 });

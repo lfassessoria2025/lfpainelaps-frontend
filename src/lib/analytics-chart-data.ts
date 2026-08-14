@@ -38,3 +38,46 @@ export function montarLinhasDoGrafico(
     return linha;
   });
 }
+
+export interface CumpridaSlice {
+  /** "cumprida" | "nao_cumprida" — chave estável pro <Cell>/paleta, não pro rótulo (esse é `nome`). */
+  chave: "cumprida" | "nao_cumprida";
+  nome: string;
+  valor: number;
+}
+
+/**
+ * Agregação "cumprida vs. não-cumprida" pro gráfico de pizza — soma
+ * total_cumprida e total_gestantes de TODAS as práticas de TODAS as
+ * prefeituras recebidas (v1: uma pizza única agregada; em modo comparação
+ * as prefeituras selecionadas entram na mesma soma, decisão simples pra não
+ * travar a v1 — o componente deixa "agregado" explícito no rótulo pra não
+ * passar a impressão de ser uma única prefeitura).
+ *
+ * Não existe pontuação por gestante no contrato da API (MetricaPraticaOut
+ * só tem agregado por prática), então "cumprida" aqui é soma de ocorrências
+ * de prática cumprida, não gestante cumprindo tudo.
+ *
+ * Guarda contra divisão por zero: prefeitura/prática sem gestante
+ * (total_gestantes = 0) simplesmente não soma nada, não gera NaN.
+ */
+export function montarFatiasCumprimento(dados: MetricasIndicadorOut[]): CumpridaSlice[] {
+  let totalCumprida = 0;
+  let totalOcorrencias = 0;
+
+  for (const prefeitura of dados) {
+    for (const pratica of prefeitura.praticas) {
+      totalCumprida += pratica.total_cumprida;
+      totalOcorrencias += pratica.total_gestantes;
+    }
+  }
+
+  if (totalOcorrencias === 0) return [];
+
+  const naoCumprida = totalOcorrencias - totalCumprida;
+
+  return [
+    { chave: "cumprida", nome: "Cumprida", valor: totalCumprida },
+    { chave: "nao_cumprida", nome: "Não cumprida", valor: naoCumprida },
+  ];
+}
