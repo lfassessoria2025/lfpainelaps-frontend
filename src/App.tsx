@@ -11,6 +11,12 @@ const LoginPage = lazy(() => import("@/pages/login-page").then((m) => ({ default
 const AcceptInvitePage = lazy(() =>
   import("@/pages/accept-invite-page").then((m) => ({ default: m.AcceptInvitePage })),
 );
+const ForgotPasswordPage = lazy(() =>
+  import("@/pages/forgot-password-page").then((m) => ({ default: m.ForgotPasswordPage })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("@/pages/reset-password-page").then((m) => ({ default: m.ResetPasswordPage })),
+);
 const DashboardPage = lazy(() =>
   import("@/pages/dashboard-page").then((m) => ({ default: m.DashboardPage })),
 );
@@ -45,6 +51,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
+        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>

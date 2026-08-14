@@ -37,6 +37,15 @@ export interface AcceptInvitationRequest {
   senha: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string | null;
+  senha: string;
+}
+
 // ---------------------------------------------------------------------------
 // Permissions (app/schemas/permissions.py, app/domain/permissions.py)
 // ---------------------------------------------------------------------------

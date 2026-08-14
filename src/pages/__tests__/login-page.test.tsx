@@ -26,7 +26,7 @@ function renderLoginPage() {
 describe("LoginPage", () => {
   it("chama login com email e senha preenchidos e navega ao suceder", async () => {
     const login = vi.fn().mockResolvedValue(undefined);
-    mockedUseAuth.mockReturnValue({ user: null, login, logout: vi.fn(), refreshUser: vi.fn() });
+    mockedUseAuth.mockReturnValue({ user: null, login, logout: vi.fn(), refreshUser: vi.fn(), setAuthenticatedUser: vi.fn() });
 
     const user = userEvent.setup();
     renderLoginPage();
@@ -43,7 +43,7 @@ describe("LoginPage", () => {
 
   it("mostra a mensagem de erro do backend quando o login falha", async () => {
     const login = vi.fn().mockRejectedValue(new ApiError(401, "E-mail ou senha inválidos."));
-    mockedUseAuth.mockReturnValue({ user: null, login, logout: vi.fn(), refreshUser: vi.fn() });
+    mockedUseAuth.mockReturnValue({ user: null, login, logout: vi.fn(), refreshUser: vi.fn(), setAuthenticatedUser: vi.fn() });
 
     const user = userEvent.setup();
     renderLoginPage();
@@ -57,7 +57,7 @@ describe("LoginPage", () => {
 
   it("mostra mensagem genérica quando o erro não é um ApiError (ex.: falha de rede)", async () => {
     const login = vi.fn().mockRejectedValue(new Error("network down"));
-    mockedUseAuth.mockReturnValue({ user: null, login, logout: vi.fn(), refreshUser: vi.fn() });
+    mockedUseAuth.mockReturnValue({ user: null, login, logout: vi.fn(), refreshUser: vi.fn(), setAuthenticatedUser: vi.fn() });
 
     const user = userEvent.setup();
     renderLoginPage();

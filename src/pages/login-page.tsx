@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -69,7 +69,15 @@ export function LoginPage() {
               />
             </Field>
             <Field data-invalid={Boolean(error)}>
-              <FieldLabel htmlFor="senha">Senha</FieldLabel>
+              <div className="flex items-center justify-between">
+                <FieldLabel htmlFor="senha">Senha</FieldLabel>
+                <Link
+                  to="/esqueci-senha"
+                  className="text-xs text-primary underline-offset-4 hover:underline"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
               <Input
                 id="senha"
                 type="password"
