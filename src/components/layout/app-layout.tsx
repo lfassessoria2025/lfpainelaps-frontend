@@ -1,16 +1,24 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export function AppLayout() {
+  const location = useLocation();
+
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <AppTopbar />
         <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+          {/* `key` no pathname força o React a remontar a cada troca de rota,
+              o que reinicia a animação de entrada — é assim que uma
+              transição "premium" de página funciona sem lib de animação
+              (tw-animate-css, já instalado; ver FLO-33). */}
+          <div key={location.pathname} className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+            <Outlet />
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

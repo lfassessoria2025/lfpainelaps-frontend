@@ -128,3 +128,18 @@
     @apply font-sans;
     }
 }
+
+/* Quem pede menos movimento (acessibilidade) não recebe transição/animação
+   nenhuma — inclusive as de entrada de página e as de terceiros (recharts,
+   componentes shadcn). FLO-33: regra única e global, não repetida por
+   componente. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
