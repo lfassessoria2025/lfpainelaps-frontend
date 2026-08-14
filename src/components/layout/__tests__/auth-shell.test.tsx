@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { AuthShell } from "@/components/layout/auth-shell";
 
 describe("AuthShell", () => {
-  it("renderiza o conteúdo dentro do card com o visual glassmorphism", () => {
+  it("renderiza o conteúdo no split-screen com a identidade do produto", () => {
     render(
       <AuthShell>
         <p>Conteúdo da tela de auth</p>
@@ -11,8 +11,11 @@ describe("AuthShell", () => {
     );
 
     const conteudo = screen.getByText("Conteúdo da tela de auth");
-    const card = conteudo.closest("div.backdrop-blur-xl");
-    expect(card).not.toBeNull();
-    expect(card).toHaveClass("bg-card/80", "border-border/60", "animate-in");
+    expect(conteudo).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Transforme dados em cuidado mais presente." }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Benefícios da plataforma" }))
+      .toBeInTheDocument();
+    expect(conteudo.closest("div.max-w-sm")).not.toBeNull();
   });
 });

@@ -45,10 +45,7 @@ export function LoginPage() {
   return (
     <AuthShell>
       <div className="mb-6 flex flex-col items-center gap-1 text-center">
-        <div className="mb-2 flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground font-semibold">
-          AP
-        </div>
-        <h1 className="text-lg font-semibold text-foreground">Painel APS</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Bem-vindo de volta</h1>
         <p className="text-sm text-muted-foreground">
           Entre com sua conta para acessar os dados das prefeituras.
         </p>
