@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
 
 /**
@@ -25,36 +26,13 @@ const CORES = ["var(--color-primary)", "#f2994a", "#27ae60", "#eb5757"];
 export function PraticasBarChart({ dados }: PraticasBarChartProps) {
   if (dados.length === 0) return null;
 
-  // Chave por prefeitura_id (único de fato), nunca por nome — duas
-  // prefeituras podem ter o mesmo `name` (só `ibge_code` é único no banco),
-  // e uma chave por nome faria uma sobrescrever a outra silenciosamente no
-  // gráfico de comparação (achado do CR na Fase C, corrigido aqui). O nome
-  // vai só na prop `name` do <Bar>, que o recharts já usa como rótulo do
-  // tooltip/legenda automaticamente — não precisa duplicar lookup aqui.
-  const chaveDaSerie = (prefeituraId: number) => `serie_${prefeituraId}`;
-
-  // O nome completo da prática vem do backend (item.titulo, mesmo campo
-  // usado por qualquer indicador futuro) — o eixo mostra o rótulo por
-  // extenso em vez de só a letra, pedido explícito da cliente pra
-  // reconhecer as práticas do jeito que já vê na planilha dela.
-  const praticas = dados[0].praticas.map((p) => ({ pratica: p.pratica, titulo: p.titulo }));
-  const linhas = praticas.map(({ pratica, titulo }) => {
-    const linha: Record<string, string | number | null> = {
-      pratica,
-      rotulo: `${pratica} · ${titulo}`,
-    };
-    for (const prefeitura of dados) {
-      const item = prefeitura.praticas.find((p) => p.pratica === pratica);
-      linha[chaveDaSerie(prefeitura.prefeitura_id)] = item?.percentual_cumprido ?? null;
-    }
-    return linha;
-  });
+  const linhas = montarLinhasDoGrafico(dados);
 
   // Barras horizontais: o nome completo da prática cabe por extenso no
   // eixo Y, sem precisar rotacionar texto ou truncar (11 categorias com
   // nomes longos não cabem legíveis num eixo X vertical).
   const alturaPorLinha = dados.length > 1 ? 44 : 32;
-  const altura = Math.max(360, praticas.length * alturaPorLinha);
+  const altura = Math.max(360, linhas.length * alturaPorLinha);
 
   return (
     <ResponsiveContainer width="100%" height={altura}>

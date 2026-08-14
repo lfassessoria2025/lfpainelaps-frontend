@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { GestantesPage } from "@/pages/gestantes-page";
 import { ApiError } from "@/lib/http";
@@ -54,6 +54,17 @@ describe("GestantesPage", () => {
     expect(await screen.findByText("Maria da Silva")).toBeInTheDocument();
     expect(screen.getByText("ESF Centro")).toBeInTheDocument();
     expect(screen.getByText("8")).toBeInTheDocument();
+
+    // Nome completo da prática sempre visível no cabeçalho, não só a letra
+    // escondida no tooltip (pedido explícito da cliente, fatia FLO-28).
+    expect(screen.getByText("Consultas (7)")).toBeInTheDocument();
+    expect(screen.getByText("VD Gestação (3)")).toBeInTheDocument();
+
+    // Legenda de cor (completa/parcial/pendente) presente na tela.
+    const legenda = screen.getByText("Legenda:").closest("div")!;
+    expect(within(legenda).getByText("Completa")).toBeInTheDocument();
+    expect(within(legenda).getByText("Parcial")).toBeInTheDocument();
+    expect(within(legenda).getByText("Pendente")).toBeInTheDocument();
   });
 
   it("mostra estado vazio quando não há gestantes para a prefeitura", async () => {
