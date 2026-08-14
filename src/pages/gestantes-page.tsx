@@ -217,11 +217,16 @@ export function GestantesPage() {
               <span className="size-2.5 rounded-full bg-muted-foreground/40" /> Pendente
             </span>
           </div>
+          {/* Coluna "Gestante" sticky usa z-[1], não z-10: o Sidebar
+              (position: fixed) também usa z-10 — no mesmo nível, a ordem do
+              DOM decide, e a tabela (renderizada depois) pintava por cima da
+              sidebar durante o scroll horizontal (FLO-40). z-[1] fica acima
+              das outras células da tabela, mas abaixo da sidebar. */}
           <Card className="gap-0 overflow-x-auto border-border/60 py-0 shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="sticky left-0 z-10 bg-muted/40">Gestante</TableHead>
+                  <TableHead className="sticky left-0 z-[1] bg-muted/40">Gestante</TableHead>
                   <TableHead>Equipe</TableHead>
                   {PRATICAS.map((pratica) => (
                     <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
@@ -244,7 +249,7 @@ export function GestantesPage() {
               <TableBody>
                 {gestantes.map((gestante) => (
                   <TableRow key={gestante.id}>
-                    <TableCell className="sticky left-0 z-10 bg-background font-medium">
+                    <TableCell className="sticky left-0 z-[1] bg-background font-medium">
                       <div className="flex flex-col">
                         <span>{gestante.nome_cidadao}</span>
                         <span className="text-xs text-muted-foreground">
