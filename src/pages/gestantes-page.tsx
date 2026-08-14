@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Baby, Download, Loader2, Lock, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
   Select,
@@ -216,7 +217,7 @@ export function GestantesPage() {
               <span className="size-2.5 rounded-full bg-muted-foreground/40" /> Pendente
             </span>
           </div>
-          <div className="overflow-x-auto rounded-lg border">
+          <Card className="gap-0 overflow-x-auto border-border/60 py-0 shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
@@ -281,7 +282,7 @@ export function GestantesPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </Card>
         </>
       )}
     </div>
