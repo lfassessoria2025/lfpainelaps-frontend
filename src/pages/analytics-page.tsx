@@ -3,6 +3,7 @@ import { BarChart3, Lock, ShieldAlert } from "lucide-react";
 import { PraticasBarChart } from "@/components/analytics/praticas-bar-chart";
 import { PraticasPieChart } from "@/components/analytics/praticas-pie-chart";
 import { PraticasRadarChart } from "@/components/analytics/praticas-radar-chart";
+import { PrefeiturasRankingChart } from "@/components/analytics/prefeituras-ranking-chart";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -22,7 +23,7 @@ import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
 
-type TipoGrafico = "barra" | "pizza" | "radar";
+type TipoGrafico = "barra" | "pizza" | "radar" | "ranking";
 
 export function AnalyticsPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
@@ -216,6 +217,7 @@ export function AnalyticsPage() {
                 <TabsTrigger value="barra">Barra</TabsTrigger>
                 <TabsTrigger value="pizza">Pizza</TabsTrigger>
                 {dados.length > 1 ? <TabsTrigger value="radar">Radar</TabsTrigger> : null}
+                <TabsTrigger value="ranking">Ranking</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -225,6 +227,8 @@ export function AnalyticsPage() {
               <PraticasBarChart dados={dados} />
             ) : tipoGrafico === "pizza" ? (
               <PraticasPieChart dados={dados} />
+            ) : tipoGrafico === "ranking" ? (
+              <PrefeiturasRankingChart dados={dados} />
             ) : dados.length > 1 ? (
               <PraticasRadarChart dados={dados} />
             ) : (

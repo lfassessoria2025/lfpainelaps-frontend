@@ -131,4 +131,18 @@ describe("AnalyticsPage", () => {
       ),
     );
   });
+
+  it("troca para ranking sem buscar as métricas novamente", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+
+    render(<AnalyticsPage />);
+    const rankingTab = await screen.findByRole("tab", { name: "Ranking" });
+    const chamadasAntes = mockedGestanteService.metricas.mock.calls.length;
+
+    await userEvent.click(rankingTab);
+
+    expect(await screen.findByText("Ranking geral")).toBeInTheDocument();
+    expect(mockedGestanteService.metricas).toHaveBeenCalledTimes(chamadasAntes);
+  });
 });

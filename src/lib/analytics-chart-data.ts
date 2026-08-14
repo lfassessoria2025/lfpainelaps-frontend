@@ -81,3 +81,42 @@ export function montarFatiasCumprimento(dados: MetricasIndicadorOut[]): Cumprida
     { chave: "nao_cumprida", nome: "Não cumprida", valor: naoCumprida },
   ];
 }
+
+export interface RankingPrefeitura {
+  prefeitura_id: number;
+  prefeitura_nome: string;
+  percentual_cumprido: number;
+}
+
+/**
+ * Ranking geral ponderado: soma as práticas cumpridas e divide pelo total de
+ * ocorrências avaliadas. Não calcula média simples dos percentuais, pois isso
+ * daria o mesmo peso a práticas com populações diferentes.
+ */
+export function montarRankingPrefeituras(
+  dados: MetricasIndicadorOut[],
+): RankingPrefeitura[] {
+  return dados
+    .map((prefeitura) => {
+      let totalCumprida = 0;
+      let totalOcorrencias = 0;
+      for (const pratica of prefeitura.praticas) {
+        totalCumprida += pratica.total_cumprida;
+        totalOcorrencias += pratica.total_gestantes;
+      }
+      return {
+        prefeitura_id: prefeitura.prefeitura_id,
+        prefeitura_nome: prefeitura.prefeitura_nome,
+        percentual_cumprido:
+          totalOcorrencias === 0
+            ? 0
+            : Math.round((totalCumprida / totalOcorrencias) * 10000) / 100,
+      };
+    })
+    .toSorted(
+      (a, b) =>
+        b.percentual_cumprido - a.percentual_cumprido ||
+        a.prefeitura_nome.localeCompare(b.prefeitura_nome, "pt-BR") ||
+        a.prefeitura_id - b.prefeitura_id,
+    );
+}

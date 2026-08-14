@@ -3,6 +3,7 @@ import {
   chaveDaSerie,
   montarFatiasCumprimento,
   montarLinhasDoGrafico,
+  montarRankingPrefeituras,
 } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
 
@@ -106,5 +107,38 @@ describe("montarFatiasCumprimento", () => {
 
   it("retorna lista vazia sem dados", () => {
     expect(montarFatiasCumprimento([])).toEqual([]);
+  });
+});
+
+describe("montarRankingPrefeituras", () => {
+  it("ordena pelo percentual geral ponderado, do maior para o menor", () => {
+    const melhor: MetricasIndicadorOut = {
+      ...JERIQUARA,
+      prefeitura_id: 2,
+      prefeitura_nome: "Pedregulho",
+      praticas: [
+        { pratica: "A", titulo: "Captação", total_gestantes: 10, total_cumprida: 9, percentual_cumprido: 90 },
+        { pratica: "B", titulo: "Consultas", total_gestantes: 2, total_cumprida: 1, percentual_cumprido: 50 },
+      ],
+    };
+
+    const ranking = montarRankingPrefeituras([JERIQUARA, melhor]);
+
+    expect(ranking.map((item) => item.prefeitura_nome)).toEqual(["Pedregulho", "Jeriquara"]);
+    expect(ranking[0].percentual_cumprido).toBe(83.33);
+    expect(ranking[1].percentual_cumprido).toBe(75);
+  });
+
+  it("trata prefeitura sem ocorrências como zero e preserva a entrada", () => {
+    const vazia: MetricasIndicadorOut = {
+      prefeitura_id: 3,
+      prefeitura_nome: "Sem dados",
+      total_gestantes: 0,
+      praticas: [],
+    };
+
+    expect(montarRankingPrefeituras([vazia])).toEqual([
+      { prefeitura_id: 3, prefeitura_nome: "Sem dados", percentual_cumprido: 0 },
+    ]);
   });
 });
