@@ -51,9 +51,9 @@ describe("GestantesPage", () => {
 
     render(<GestantesPage />);
 
-    expect(await screen.findByText("Maria da Silva")).toBeInTheDocument();
-    expect(screen.getByText("ESF Centro")).toBeInTheDocument();
-    expect(screen.getByText("8")).toBeInTheDocument();
+    expect((await screen.findAllByText("Maria da Silva")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("ESF Centro").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("8").length).toBeGreaterThan(0);
 
     await userEvent.click(screen.getByRole("tab", { name: "Todos os parâmetros" }));
 
@@ -106,14 +106,14 @@ describe("GestantesPage", () => {
     expect(screen.getByText("Atualizado em")).toBeInTheDocument();
 
     await user.type(screen.getByRole("searchbox", { name: /buscar gestante ou equipe/i }), "Norte");
-    expect(await screen.findByText("Ana Souza")).toBeInTheDocument();
+    expect((await screen.findAllByText("Ana Souza")).length).toBeGreaterThan(0);
     expect(screen.queryByText("Maria da Silva")).not.toBeInTheDocument();
     expect(within(screen.getByText(/de 2 gestantes/)).getByText("1")).toBeInTheDocument();
 
     await user.clear(screen.getByRole("searchbox", { name: /buscar gestante ou equipe/i }));
     await user.click(screen.getByRole("combobox", { name: "Filtrar por status" }));
     await user.click(await screen.findByRole("option", { name: "Pendente" }));
-    expect(screen.getByText("Ana Souza")).toBeInTheDocument();
+    expect(screen.getAllByText("Ana Souza").length).toBeGreaterThan(0);
     expect(screen.queryByText("Maria da Silva")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("combobox", { name: "Filtrar por status" }));
@@ -123,6 +123,47 @@ describe("GestantesPage", () => {
     const linhas = screen.getAllByRole("row");
     expect(within(linhas[1]).getByText("Maria da Silva")).toBeInTheDocument();
     expect(within(linhas[2]).getByText("Ana Souza")).toBeInTheDocument();
+  });
+
+  it("personaliza colunas e altera a densidade da tabela", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+
+    await user.click(screen.getByRole("tab", { name: "Personalizado" }));
+    const escolherColunas = screen.getByRole("button", { name: "Escolher colunas visíveis" });
+    await user.click(escolherColunas);
+    const nascimento = await screen.findByRole("menuitemcheckbox", { name: "Nascimento" });
+    expect(nascimento).toHaveAttribute("aria-checked", "false");
+    await user.click(nascimento);
+
+    expect(within(screen.getByRole("table")).getByText("Nascimento")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("combobox", { name: "Densidade da tabela" }));
+    await user.click(await screen.findByRole("option", { name: "Compacta" }));
+    expect(screen.getByRole("table")).toHaveClass("[&_td]:py-1");
+  });
+
+  it("expõe todos os parâmetros no card progressivo com controle acessível", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+
+    const expandir = screen.getByRole("button", { name: "Ver todos os parâmetros" });
+    expect(expandir).toHaveAttribute("aria-expanded", "false");
+    await user.click(expandir);
+
+    expect(expandir).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Ocultar detalhes")).toBeInTheDocument();
+    expect(screen.getByText("Elegibilidade")).toBeInTheDocument();
+    expect(screen.getByText("K · Odonto")).toBeInTheDocument();
+    expect(document.getElementById("detalhes-gestante-10")).toBeInTheDocument();
   });
 
   it("mostra estado vazio quando não há gestantes para a prefeitura", async () => {

@@ -1,8 +1,16 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, Download, Loader2, Lock, Search, ShieldAlert } from "lucide-react";
+import { Baby, ChevronDown, Download, Loader2, Lock, Search, Settings2, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,7 +64,38 @@ function formatDateTime(value: string): string {
 
 type StatusFiltro = StatusPratica | "todos";
 type Ordenacao = "nome-asc" | "pontuacao-desc" | "pontuacao-asc";
-type PresetColunas = "essenciais" | "todos";
+type PresetColunas = "essenciais" | "personalizado" | "todos";
+type DensidadeTabela = "confortavel" | "compacta";
+type ColunaId =
+  | "equipe"
+  | "nascimento"
+  | "ine"
+  | "inicio-gestacao"
+  | "fim-gestacao"
+  | "fim-puerperio"
+  | "elegibilidade"
+  | "status"
+  | "pontuacao"
+  | "atualizado"
+  | `pratica-${string}`;
+
+const COLUNAS_FIXAS: ReadonlyArray<{ id: ColunaId; rotulo: string }> = [
+  { id: "equipe", rotulo: "Equipe" },
+  { id: "nascimento", rotulo: "Nascimento" },
+  { id: "ine", rotulo: "INE" },
+  { id: "inicio-gestacao", rotulo: "Início gestação" },
+  { id: "fim-gestacao", rotulo: "Fim gestação" },
+  { id: "fim-puerperio", rotulo: "Fim puerpério" },
+  { id: "elegibilidade", rotulo: "Elegibilidade" },
+  { id: "status", rotulo: "Status" },
+  { id: "pontuacao", rotulo: "Pontuação" },
+  { id: "atualizado", rotulo: "Atualizado em" },
+];
+const COLUNAS_ESSENCIAIS = new Set<ColunaId>(["equipe", "status", "pontuacao"]);
+const COLUNAS_TODAS: ColunaId[] = [
+  ...COLUNAS_FIXAS.map(({ id }) => id),
+  ...PRATICAS.map(({ letra }) => `pratica-${letra}` as ColunaId),
+];
 
 export function GestantesPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
@@ -73,6 +112,11 @@ export function GestantesPage() {
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>("todos");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("nome-asc");
   const [presetColunas, setPresetColunas] = useState<PresetColunas>("essenciais");
+  const [colunasPersonalizadas, setColunasPersonalizadas] = useState<ColunaId[]>([
+    ...COLUNAS_ESSENCIAIS,
+  ]);
+  const [densidade, setDensidade] = useState<DensidadeTabela>("confortavel");
+  const [cardsExpandidos, setCardsExpandidos] = useState<number[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollAffordance, setScrollAffordance] = useState<ScrollAffordanceState>({
@@ -154,6 +198,23 @@ export function GestantesPage() {
   }, [selectedId]);
 
   const podeExportar = !forbidden && !loadError && gestantes !== null && gestantes.length > 0;
+  const colunaVisivel = useCallback(
+    (coluna: ColunaId) =>
+      presetColunas === "todos" ||
+      (presetColunas === "essenciais" && COLUNAS_ESSENCIAIS.has(coluna)) ||
+      (presetColunas === "personalizado" && colunasPersonalizadas.includes(coluna)),
+    [colunasPersonalizadas, presetColunas],
+  );
+  const alternarColuna = useCallback((coluna: ColunaId, checked: boolean) => {
+    setColunasPersonalizadas((atuais) =>
+      checked ? [...new Set([...atuais, coluna])] : atuais.filter((item) => item !== coluna),
+    );
+  }, []);
+  const alternarCard = useCallback((id: number) => {
+    setCardsExpandidos((atuais) =>
+      atuais.includes(id) ? atuais.filter((item) => item !== id) : [...atuais, id],
+    );
+  }, []);
   const gestantesFiltradas = useMemo(() => {
     if (!gestantes) return [];
     const termo = buscaDeferred.trim().toLocaleLowerCase("pt-BR");
@@ -331,9 +392,70 @@ export function GestantesPage() {
               >
                 <TabsList aria-label="Colunas visíveis">
                   <TabsTrigger value="essenciais">Essenciais</TabsTrigger>
+                  <TabsTrigger value="personalizado">Personalizado</TabsTrigger>
                   <TabsTrigger value="todos">Todos os parâmetros</TabsTrigger>
                 </TabsList>
               </Tabs>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              {presetColunas === "personalizado" ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={<Button variant="outline" size="sm" />}
+                    aria-label="Escolher colunas visíveis"
+                  >
+                    <Settings2 data-icon="inline-start" />
+                    Escolher colunas
+                    <ChevronDown data-icon="inline-end" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-64" align="start">
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Dados da gestante</DropdownMenuLabel>
+                      {COLUNAS_FIXAS.map((coluna) => (
+                        <DropdownMenuCheckboxItem
+                          key={coluna.id}
+                          checked={colunasPersonalizadas.includes(coluna.id)}
+                          onCheckedChange={(checked) => alternarColuna(coluna.id, checked)}
+                        >
+                          {coluna.rotulo}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuGroup>
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Parâmetros do indicador</DropdownMenuLabel>
+                      {PRATICAS.map((pratica) => {
+                        const id = `pratica-${pratica.letra}` as ColunaId;
+                        return (
+                          <DropdownMenuCheckboxItem
+                            key={id}
+                            checked={colunasPersonalizadas.includes(id)}
+                            onCheckedChange={(checked) => alternarColuna(id, checked)}
+                          >
+                            {pratica.letra} · {pratica.rotulo}
+                          </DropdownMenuCheckboxItem>
+                        );
+                      })}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              <label className="flex min-w-40 flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Densidade da tabela
+                <Select
+                  value={densidade}
+                  onValueChange={(value) => value && setDensidade(value as DensidadeTabela)}
+                >
+                  <SelectTrigger className="w-full" aria-label="Densidade da tabela">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="confortavel">Confortável</SelectItem>
+                      <SelectItem value="compacta">Compacta</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
             </div>
           </div>
           <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -353,7 +475,68 @@ export function GestantesPage() {
               DOM decide, e a tabela (renderizada depois) pintava por cima da
               sidebar durante o scroll horizontal (FLO-40). z-[1] fica acima
               das outras células da tabela, mas abaixo da sidebar. */}
-          <div className="relative">
+          <div className="flex flex-col gap-3 md:hidden" aria-label="Gestantes encontradas">
+            {gestantesFiltradas.map((gestante) => {
+              const statusGeral = statusGeralDaGestante(gestante);
+              const expandido = cardsExpandidos.includes(gestante.id);
+              return (
+                <Card key={gestante.id} className={cn("gap-3", densidade === "compacta" ? "p-3" : "p-4")}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{gestante.nome_cidadao}</p>
+                      <p className="text-sm text-muted-foreground">{gestante.equipe_nome ?? "Sem equipe"}</p>
+                    </div>
+                    <Badge variant="outline" className={STATUS_CLASSNAME[statusGeral]}>
+                      {STATUS_PRATICA_ROTULO[statusGeral]}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span>Pontuação</span>
+                    <Badge className="tabular-nums">{gestante.pontuacao_total}</Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    aria-expanded={expandido}
+                    aria-controls={`detalhes-gestante-${gestante.id}`}
+                    onClick={() => alternarCard(gestante.id)}
+                  >
+                    {expandido ? "Ocultar detalhes" : "Ver todos os parâmetros"}
+                    <ChevronDown className={cn("transition-transform", expandido && "rotate-180")} data-icon="inline-end" />
+                  </Button>
+                  {expandido ? (
+                    <div id={`detalhes-gestante-${gestante.id}`} className="flex flex-col gap-4">
+                      <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                        <dt className="text-muted-foreground">Nascimento</dt><dd>{formatDate(gestante.data_nascimento)}</dd>
+                        <dt className="text-muted-foreground">INE</dt><dd>{gestante.equipe_ine ?? "—"}</dd>
+                        <dt className="text-muted-foreground">Início gestação</dt><dd>{formatDate(gestante.dt_inicio_gestacao)}</dd>
+                        <dt className="text-muted-foreground">Fim gestação</dt><dd>{formatDate(gestante.dt_fim_gestacao)}</dd>
+                        <dt className="text-muted-foreground">Fim puerpério</dt><dd>{formatDate(gestante.dt_fim_puerperio)}</dd>
+                        <dt className="text-muted-foreground">Elegibilidade</dt><dd>{gestante.excluida_por_aborto ? "Excluída (aborto)" : "Incluída"}</dd>
+                        <dt className="text-muted-foreground">Atualizado em</dt><dd>{formatDateTime(gestante.created_at)}</dd>
+                      </dl>
+                      <dl className="flex flex-col gap-2 text-sm">
+                        {PRATICAS.map((pratica) => {
+                          const { status, texto } = statusDaPratica(gestante, pratica);
+                          return (
+                            <div key={pratica.letra} className="flex items-center justify-between gap-3">
+                              <dt>{pratica.letra} · {pratica.rotulo}</dt>
+                              <dd><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", STATUS_CLASSNAME[status])}>{texto}</span></dd>
+                            </div>
+                          );
+                        })}
+                      </dl>
+                    </div>
+                  ) : null}
+                </Card>
+              );
+            })}
+            {gestantesFiltradas.length === 0 ? (
+              <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Nenhuma gestante corresponde aos filtros selecionados.</p>
+            ) : null}
+          </div>
+          <div className="relative hidden md:block">
             {/* Sombras de affordance — indicam que há mais colunas fora da
                 tela, sem precisar descobrir arrastando por acaso (FLO-41).
                 z-[2]: acima da coluna sticky (z-[1]), abaixo da sidebar
@@ -377,23 +560,19 @@ export function GestantesPage() {
               onScroll={atualizarScrollAffordance}
               className="gap-0 overflow-x-auto border-border/60 py-0 shadow-sm"
             >
-            <Table>
+            <Table className={cn(densidade === "compacta" && "[&_td]:py-1 [&_th]:h-8")}>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="sticky left-0 z-[1] bg-muted/40">Gestante</TableHead>
-                  <TableHead>Equipe</TableHead>
-                  {presetColunas === "todos" ? (
-                    <>
-                      <TableHead>Nascimento</TableHead>
-                      <TableHead>INE</TableHead>
-                      <TableHead>Início gestação</TableHead>
-                      <TableHead>Fim gestação</TableHead>
-                      <TableHead>Fim puerpério</TableHead>
-                      <TableHead>Elegibilidade</TableHead>
-                    </>
-                  ) : null}
-                  <TableHead>Status</TableHead>
-                  {presetColunas === "todos" ? PRATICAS.map((pratica) => (
+                  {colunaVisivel("equipe") ? <TableHead>Equipe</TableHead> : null}
+                  {colunaVisivel("nascimento") ? <TableHead>Nascimento</TableHead> : null}
+                  {colunaVisivel("ine") ? <TableHead>INE</TableHead> : null}
+                  {colunaVisivel("inicio-gestacao") ? <TableHead>Início gestação</TableHead> : null}
+                  {colunaVisivel("fim-gestacao") ? <TableHead>Fim gestação</TableHead> : null}
+                  {colunaVisivel("fim-puerperio") ? <TableHead>Fim puerpério</TableHead> : null}
+                  {colunaVisivel("elegibilidade") ? <TableHead>Elegibilidade</TableHead> : null}
+                  {colunaVisivel("status") ? <TableHead>Status</TableHead> : null}
+                  {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => (
                     <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
                       <Tooltip>
                         <TooltipTrigger className="flex w-full cursor-default flex-col items-center gap-0.5">
@@ -407,9 +586,9 @@ export function GestantesPage() {
                         <TooltipContent>{pratica.titulo}</TooltipContent>
                       </Tooltip>
                     </TableHead>
-                  )) : null}
-                  <TableHead className="text-right">Pontuação</TableHead>
-                  {presetColunas === "todos" ? <TableHead>Atualizado em</TableHead> : null}
+                  ))}
+                  {colunaVisivel("pontuacao") ? <TableHead className="text-right">Pontuação</TableHead> : null}
+                  {colunaVisivel("atualizado") ? <TableHead>Atualizado em</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -430,25 +609,21 @@ export function GestantesPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    {colunaVisivel("equipe") ? <TableCell className="text-muted-foreground">
                       {gestante.equipe_nome ?? "—"}
-                    </TableCell>
-                    {presetColunas === "todos" ? (
-                      <>
-                        <TableCell>{formatDate(gestante.data_nascimento)}</TableCell>
-                        <TableCell className="font-mono text-xs">{gestante.equipe_ine ?? "—"}</TableCell>
-                        <TableCell>{formatDate(gestante.dt_inicio_gestacao)}</TableCell>
-                        <TableCell>{formatDate(gestante.dt_fim_gestacao)}</TableCell>
-                        <TableCell>{formatDate(gestante.dt_fim_puerperio)}</TableCell>
-                        <TableCell>{gestante.excluida_por_aborto ? "Excluída (aborto)" : "Incluída"}</TableCell>
-                      </>
-                    ) : null}
-                    <TableCell>
+                    </TableCell> : null}
+                    {colunaVisivel("nascimento") ? <TableCell>{formatDate(gestante.data_nascimento)}</TableCell> : null}
+                    {colunaVisivel("ine") ? <TableCell className="font-mono text-xs">{gestante.equipe_ine ?? "—"}</TableCell> : null}
+                    {colunaVisivel("inicio-gestacao") ? <TableCell>{formatDate(gestante.dt_inicio_gestacao)}</TableCell> : null}
+                    {colunaVisivel("fim-gestacao") ? <TableCell>{formatDate(gestante.dt_fim_gestacao)}</TableCell> : null}
+                    {colunaVisivel("fim-puerperio") ? <TableCell>{formatDate(gestante.dt_fim_puerperio)}</TableCell> : null}
+                    {colunaVisivel("elegibilidade") ? <TableCell>{gestante.excluida_por_aborto ? "Excluída (aborto)" : "Incluída"}</TableCell> : null}
+                    {colunaVisivel("status") ? <TableCell>
                       <Badge variant="outline" className={STATUS_CLASSNAME[statusGeral]}>
                         {STATUS_PRATICA_ROTULO[statusGeral]}
                       </Badge>
-                    </TableCell>
-                    {presetColunas === "todos" ? PRATICAS.map((pratica) => {
+                    </TableCell> : null}
+                    {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => {
                       const { status, texto } = statusDaPratica(gestante, pratica);
                       return (
                         <TableCell key={pratica.letra} className="text-center">
@@ -462,11 +637,11 @@ export function GestantesPage() {
                           </span>
                         </TableCell>
                       );
-                    }) : null}
-                    <TableCell className="text-right">
+                    })}
+                    {colunaVisivel("pontuacao") ? <TableCell className="text-right">
                       <Badge className="tabular-nums">{gestante.pontuacao_total}</Badge>
-                    </TableCell>
-                    {presetColunas === "todos" ? (
+                    </TableCell> : null}
+                    {colunaVisivel("atualizado") ? (
                       <TableCell>{formatDateTime(gestante.created_at)}</TableCell>
                     ) : null}
                   </TableRow>
@@ -475,7 +650,7 @@ export function GestantesPage() {
                 {gestantesFiltradas.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={presetColunas === "todos" ? PRATICAS.length + 11 : 4}
+                      colSpan={1 + COLUNAS_TODAS.filter(colunaVisivel).length}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Nenhuma gestante corresponde aos filtros selecionados.

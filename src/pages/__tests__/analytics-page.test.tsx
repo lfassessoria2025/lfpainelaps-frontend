@@ -38,6 +38,11 @@ const mockedGestanteService = vi.mocked(gestanteService);
 const mockedPrefeiturasService = vi.mocked(prefeiturasService);
 const mockedIndicadoresService = vi.mocked(indicadoresService);
 
+async function compararPor(opcao: "Prefeitura" | "Período / importação" | "Parâmetro") {
+  await userEvent.click(screen.getByRole("combobox", { name: "Comparar por" }));
+  await userEvent.click(await screen.findByRole("option", { name: opcao }));
+}
+
 const INDICADOR: IndicadorCatalogoOut = {
   codigo: "c3",
   nome: "Gestantes e puerpério",
@@ -140,7 +145,7 @@ describe("AnalyticsPage", () => {
     expect(await screen.findByText("Não foi possível carregar")).toBeInTheDocument();
   });
 
-  it("liga o modo comparar e mostra checkboxes de todas as prefeituras", async () => {
+  it("seleciona comparação por prefeitura e mostra todas as opções", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
     mockedGestanteService.metricas.mockResolvedValue(METRICAS);
     mockedGestanteService.comparar.mockResolvedValue([METRICAS, METRICAS_OUTRA]);
@@ -148,11 +153,10 @@ describe("AnalyticsPage", () => {
     render(<AnalyticsPage />);
     await screen.findByText("Analytics");
 
-    const toggle = screen.getByRole("switch", { name: /comparar entre prefeituras/i });
-    await userEvent.click(toggle);
+    await compararPor("Prefeitura");
 
-    expect(await screen.findByText("Jeriquara")).toBeInTheDocument();
-    expect(screen.getByText("Pedregulho")).toBeInTheDocument();
+    expect(await screen.findByRole("checkbox", { name: "Jeriquara" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Pedregulho" })).toBeInTheDocument();
   });
 
   it("no modo comparar, chama comparar() com os ids marcados", async () => {
@@ -163,10 +167,9 @@ describe("AnalyticsPage", () => {
     render(<AnalyticsPage />);
     await screen.findByText("Analytics");
 
-    await userEvent.click(screen.getByRole("switch", { name: /comparar entre prefeituras/i }));
+    await compararPor("Prefeitura");
     await screen.findByText("Pedregulho");
-    const checkboxes = screen.getAllByRole("checkbox");
-    await userEvent.click(checkboxes[1]);
+    await userEvent.click(screen.getByRole("checkbox", { name: "Pedregulho" }));
 
     await waitFor(() =>
       expect(mockedGestanteService.comparar).toHaveBeenCalledWith(
@@ -213,8 +216,8 @@ describe("AnalyticsPage", () => {
     mockedGestanteService.serieHistorica.mockResolvedValue(HISTORICO);
 
     render(<AnalyticsPage />);
-    await userEvent.click(await screen.findByRole("switch", { name: /comparar/i }));
-    await userEvent.click((await screen.findAllByRole("checkbox"))[1]);
+    await compararPor("Prefeitura");
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Pedregulho" }));
     await userEvent.click(await screen.findByRole("tab", { name: "Visualizações" }));
     await userEvent.click(await screen.findByRole("tab", { name: "Evolução" }));
 
@@ -222,6 +225,40 @@ describe("AnalyticsPage", () => {
       expect(mockedGestanteService.serieHistorica).toHaveBeenCalledWith(PREFEITURA.id);
       expect(mockedGestanteService.serieHistorica).toHaveBeenCalledWith(OUTRA_PREFEITURA.id);
     });
+  });
+
+  it("carrega e seleciona períodos pela série histórica sem buscar endpoint novo", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+    mockedGestanteService.serieHistorica.mockResolvedValue([
+      ...HISTORICO,
+      { ...HISTORICO[0], importacao_id: 2, data_referencia: "2026-02-15T12:00:00Z" },
+    ]);
+
+    render(<AnalyticsPage />);
+    await screen.findByText("Analytics");
+    await compararPor("Período / importação");
+
+    expect(await screen.findByRole("checkbox", { name: "Importação de 15/02/2026" })).toBeChecked();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Importação de 15/01/2026" }));
+    await waitFor(() => expect(window.location.search).toContain("comparar_por=periodo"));
+    expect(window.location.search).toContain("periodos=1%2C2");
+    expect(mockedGestanteService.serieHistorica).toHaveBeenCalledWith(PREFEITURA.id);
+  });
+
+  it("filtra parâmetros, expõe chips e limpa os filtros ativos", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+
+    render(<AnalyticsPage />);
+    await screen.findByText("Analytics");
+    await compararPor("Parâmetro");
+    await userEvent.click(screen.getByRole("checkbox", { name: "Captação precoce" }));
+
+    await waitFor(() => expect(window.location.search).toContain("parametros=A"));
+    expect(screen.getByText("Comparar por: parametro")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Limpar filtros" }));
+    await waitFor(() => expect(window.location.search).not.toContain("comparar_por"));
   });
 
   it("navega para a tabela e exibe todos os parâmetros do catálogo", async () => {
