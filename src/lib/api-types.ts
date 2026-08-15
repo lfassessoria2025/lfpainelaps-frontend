@@ -251,6 +251,38 @@ export interface SerieHistoricaPontoOut {
   praticas: MetricaPraticaOut[];
 }
 
+export type TipoParametroIndicador = "booleano" | "contagem";
+export type DimensaoComparacaoIndicador = "prefeitura" | "periodo" | "parametro";
+export type VisualizacaoIndicador = "barra" | "pizza" | "radar" | "ranking" | "evolucao";
+
+export interface ParametroIndicadorCatalogoOut {
+  codigo: string;
+  rotulo: string;
+  descricao: string;
+  tipo: TipoParametroIndicador;
+  meta: number | null;
+  filtravel: boolean;
+  ordenavel: boolean;
+}
+
+export interface IndicadorCatalogoOut {
+  codigo: string;
+  nome: string;
+  categoria: string;
+  descricao: string;
+  permissao: string;
+  parametros: ParametroIndicadorCatalogoOut[];
+  dimensoes_comparacao: DimensaoComparacaoIndicador[];
+  visualizacoes: VisualizacaoIndicador[];
+  possui_historico: boolean;
+  granularidade_historico: "importacao" | null;
+  possui_lista_nominal: boolean;
+}
+
+export interface IndicadoresCatalogoOut {
+  indicadores: IndicadorCatalogoOut[];
+}
+
 // ---------------------------------------------------------------------------
 // Erro padronizado da API (FastAPI HTTPException)
 // ---------------------------------------------------------------------------

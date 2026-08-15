@@ -5,7 +5,8 @@ import { AnalyticsPage } from "@/pages/analytics-page";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
-import type { MetricasIndicadorOut, PrefeituraOut, SerieHistoricaPontoOut } from "@/lib/api-types";
+import { indicadoresService } from "@/services/indicadores";
+import type { IndicadorCatalogoOut, MetricasIndicadorOut, PrefeituraOut, SerieHistoricaPontoOut } from "@/lib/api-types";
 
 vi.mock("@/services/gestante", () => ({
   gestanteService: {
@@ -18,6 +19,9 @@ vi.mock("@/services/gestante", () => ({
 }));
 vi.mock("@/services/prefeituras", () => ({
   prefeiturasService: { list: vi.fn() },
+}));
+vi.mock("@/services/indicadores", () => ({
+  indicadoresService: { catalogo: vi.fn() },
 }));
 
 vi.mock("recharts", async () => {
@@ -32,6 +36,24 @@ vi.mock("recharts", async () => {
 
 const mockedGestanteService = vi.mocked(gestanteService);
 const mockedPrefeiturasService = vi.mocked(prefeiturasService);
+const mockedIndicadoresService = vi.mocked(indicadoresService);
+
+const INDICADOR: IndicadorCatalogoOut = {
+  codigo: "c3",
+  nome: "Gestantes e puerpério",
+  categoria: "Saúde da mulher",
+  descricao: "Cumprimento das práticas de acompanhamento.",
+  permissao: "relatorio.gestante.visualizar",
+  parametros: [
+    { codigo: "A", rotulo: "Captação precoce", descricao: "Início oportuno", tipo: "booleano", meta: 1, filtravel: true, ordenavel: true },
+    { codigo: "B", rotulo: "7+ consultas", descricao: "Consultas realizadas", tipo: "contagem", meta: 7, filtravel: true, ordenavel: true },
+  ],
+  dimensoes_comparacao: ["prefeitura", "periodo", "parametro"],
+  visualizacoes: ["barra", "pizza", "radar", "ranking", "evolucao"],
+  possui_historico: true,
+  granularidade_historico: "importacao",
+  possui_lista_nominal: true,
+};
 
 const PREFEITURA: PrefeituraOut = { id: 1, ibge_code: "3500000", name: "Jeriquara", active: true };
 const OUTRA_PREFEITURA: PrefeituraOut = {
@@ -68,6 +90,8 @@ const HISTORICO: SerieHistoricaPontoOut[] = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.history.replaceState(null, "", "/analytics");
+  mockedIndicadoresService.catalogo.mockResolvedValue({ indicadores: [INDICADOR] });
 });
 
 describe("AnalyticsPage", () => {
@@ -156,7 +180,8 @@ describe("AnalyticsPage", () => {
     mockedGestanteService.metricas.mockResolvedValue(METRICAS);
 
     render(<AnalyticsPage />);
-    const rankingTab = await screen.findByRole("tab", { name: "Ranking" });
+    await userEvent.click(await screen.findByRole("tab", { name: "Visualizações" }));
+    const rankingTab = await screen.findByRole("tab", { name: "ranking" });
     const chamadasAntes = mockedGestanteService.metricas.mock.calls.length;
 
     await userEvent.click(rankingTab);
@@ -171,11 +196,12 @@ describe("AnalyticsPage", () => {
     mockedGestanteService.serieHistorica.mockResolvedValue(HISTORICO);
 
     render(<AnalyticsPage />);
+    await userEvent.click(await screen.findByRole("tab", { name: "Visualizações" }));
     await userEvent.click(await screen.findByRole("tab", { name: "Evolução" }));
     expect(await screen.findByText("Evolução do cumprimento geral")).toBeInTheDocument();
     expect(mockedGestanteService.serieHistorica).toHaveBeenCalledTimes(1);
 
-    await userEvent.click(screen.getByRole("tab", { name: "Barra" }));
+    await userEvent.click(screen.getByRole("tab", { name: "barra" }));
     await userEvent.click(screen.getByRole("tab", { name: "Evolução" }));
     expect(mockedGestanteService.serieHistorica).toHaveBeenCalledTimes(1);
   });
@@ -189,11 +215,36 @@ describe("AnalyticsPage", () => {
     render(<AnalyticsPage />);
     await userEvent.click(await screen.findByRole("switch", { name: /comparar/i }));
     await userEvent.click((await screen.findAllByRole("checkbox"))[1]);
+    await userEvent.click(await screen.findByRole("tab", { name: "Visualizações" }));
     await userEvent.click(await screen.findByRole("tab", { name: "Evolução" }));
 
     await waitFor(() => {
       expect(mockedGestanteService.serieHistorica).toHaveBeenCalledWith(PREFEITURA.id);
       expect(mockedGestanteService.serieHistorica).toHaveBeenCalledWith(OUTRA_PREFEITURA.id);
     });
+  });
+
+  it("navega para a tabela e exibe todos os parâmetros do catálogo", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+
+    render(<AnalyticsPage />);
+    await userEvent.click(await screen.findByRole("tab", { name: "Tabela" }));
+
+    expect(await screen.findByRole("cell", { name: "Captação precoce" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "7+ consultas" })).toBeInTheDocument();
+    expect(window.location.search).toContain("secao=tabela");
+  });
+
+  it("descarta filtros inválidos da query string e usa o catálogo", async () => {
+    window.history.replaceState(null, "", "/analytics?indicador=desconhecido&prefeituras=x&secao=script");
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+
+    render(<AnalyticsPage />);
+
+    expect(await screen.findByText("Gestantes e puerpério")).toBeInTheDocument();
+    await waitFor(() => expect(window.location.search).toContain("indicador=c3"));
+    expect(window.location.search).not.toContain("script");
   });
 });

@@ -113,6 +113,12 @@ export const PRATICAS: PraticaDef[] = [
 
 export type StatusPratica = "completa" | "parcial" | "pendente";
 
+export const STATUS_PRATICA_ROTULO: Record<StatusPratica, string> = {
+  completa: "Completa",
+  parcial: "Parcial",
+  pendente: "Pendente",
+};
+
 export function statusDaPratica(
   gestante: GestanteAcompanhamentoOut,
   def: PraticaDef,
@@ -125,4 +131,18 @@ export function statusDaPratica(
   if (valor >= def.meta) return { status: "completa", texto: `${valor}/${def.meta}` };
   if (valor > 0) return { status: "parcial", texto: `${valor}/${def.meta}` };
   return { status: "pendente", texto: `${valor}/${def.meta}` };
+}
+
+/**
+ * Resume o acompanhamento sem esconder os parâmetros individuais:
+ * completo quando todas as práticas atingiram a meta, parcial quando há
+ * algum avanço e pendente quando nenhuma prática foi iniciada.
+ */
+export function statusGeralDaGestante(
+  gestante: GestanteAcompanhamentoOut,
+): StatusPratica {
+  const status = PRATICAS.map((pratica) => statusDaPratica(gestante, pratica).status);
+  if (status.every((item) => item === "completa")) return "completa";
+  if (status.some((item) => item !== "pendente")) return "parcial";
+  return "pendente";
 }
