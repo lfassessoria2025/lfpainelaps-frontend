@@ -230,6 +230,9 @@ describe("GestantesPage", () => {
     const regiao = screen.getByRole("region", {
       name: /tabela nominal de gestantes; use as setas horizontais/i,
     });
+    expect(regiao).toHaveAttribute("data-slot", "table-container");
+    expect(regiao).toHaveClass("overflow-x-auto", "max-w-full", "overscroll-x-contain");
+    expect(regiao.closest('[data-slot="card"]')).not.toHaveClass("overflow-x-auto");
     Object.defineProperties(regiao, {
       clientWidth: { configurable: true, value: 500 },
       scrollWidth: { configurable: true, value: 900 },
@@ -243,6 +246,28 @@ describe("GestantesPage", () => {
     regiao.scrollLeft = 400;
     fireEvent.scroll(regiao);
     await waitFor(() => expect(screen.getByTestId("overflow-esquerda")).toHaveClass("opacity-100"));
+  });
+
+  it("mantém a página contida quando abre todos os parâmetros", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+    await user.click(screen.getByRole("tab", { name: "Todos os parâmetros" }));
+
+    const tabela = screen.getByRole("table");
+    const regiao = screen.getByRole("region", {
+      name: /tabela nominal de gestantes; use as setas horizontais/i,
+    });
+    const card = regiao.closest('[data-slot="card"]');
+
+    expect(screen.getByRole("combobox", { name: "Filtrar por parâmetro" })).toBeVisible();
+    expect(regiao).toContainElement(tabela);
+    expect(card).toHaveClass("min-w-0", "max-w-full");
+    expect(within(tabela).getByText("Pontuação")).toBeInTheDocument();
+    expect(within(tabela).getByText("Atualizado em")).toBeInTheDocument();
   });
 
   it("mostra estado vazio quando não há gestantes para a prefeitura", async () => {

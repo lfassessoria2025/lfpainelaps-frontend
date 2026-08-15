@@ -255,7 +255,7 @@ export function GestantesPage() {
   }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro]);
 
   return (
-    <div>
+    <div className="min-w-0">
       <PageHeader
         title="Gestantes e puerpério"
         description="Indicador C3 (Previne Brasil) — acompanhamento nominal para busca ativa."
@@ -587,7 +587,7 @@ export function GestantesPage() {
               <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Nenhuma gestante corresponde aos filtros selecionados.</p>
             ) : null}
           </div>
-          <div className="relative hidden md:block">
+          <div className="relative hidden min-w-0 max-w-full md:block">
             {/* Sombras de affordance — indicam que há mais colunas fora da
                 tela, sem precisar descobrir arrastando por acaso (FLO-41).
                 z-[2]: acima da coluna sticky (z-[1]), abaixo da sidebar
@@ -608,18 +608,21 @@ export function GestantesPage() {
                 scrollAffordance.mostrarSombraDireita && "opacity-100",
               )}
             />
-            <Card
-              ref={scrollRef}
-              onScroll={atualizarScrollAffordance}
-              role="region"
-              aria-label="Tabela nominal de gestantes; use as setas horizontais para ver mais colunas"
-              tabIndex={0}
-              className="gap-0 overflow-x-auto border-border/60 py-0 shadow-sm"
+            <Card className="min-w-0 max-w-full gap-0 border-border/60 py-0 shadow-sm">
+            <Table
+              containerClassName="max-w-full overscroll-x-contain"
+              containerProps={{
+                ref: scrollRef,
+                onScroll: atualizarScrollAffordance,
+                role: "region",
+                "aria-label": "Tabela nominal de gestantes; use as setas horizontais para ver mais colunas",
+                tabIndex: 0,
+              }}
+              className={cn(densidade === "compacta" && "[&_td]:py-1 [&_th]:h-8")}
             >
-            <Table className={cn(densidade === "compacta" && "[&_td]:py-1 [&_th]:h-8")}>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="sticky left-0 z-[1] bg-muted/40">Gestante</TableHead>
+                  <TableHead className="sticky left-0 z-[1] min-w-40 bg-muted/40">Gestante</TableHead>
                   {colunaVisivel("equipe") ? <TableHead>Equipe</TableHead> : null}
                   {colunaVisivel("nascimento") ? <TableHead>Nascimento</TableHead> : null}
                   {colunaVisivel("ine") ? <TableHead>INE</TableHead> : null}
@@ -652,9 +655,9 @@ export function GestantesPage() {
                   const statusGeral = statusGeralDaGestante(gestante);
                   return (
                   <TableRow key={gestante.id}>
-                    <TableCell className="sticky left-0 z-[1] bg-background font-medium">
-                      <div className="flex flex-col">
-                        <span>{gestante.nome_cidadao}</span>
+                    <TableCell className="sticky left-0 z-[1] min-w-40 max-w-52 bg-background font-medium">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate" title={gestante.nome_cidadao}>{gestante.nome_cidadao}</span>
                         <span className="text-xs text-muted-foreground">
                           {formatDate(gestante.data_nascimento)}
                           {gestante.excluida_por_aborto ? (

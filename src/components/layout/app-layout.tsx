@@ -9,16 +9,16 @@ export function AppLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <AppTopbar />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-6">
           {/* `key` no pathname força o React a remontar a cada troca de rota,
               o que reinicia a animação de entrada — é assim que uma
               transição "premium" de página funciona sem lib de animação
               (tw-animate-css, já instalado; ver FLO-33). */}
           <div
             key={location.pathname}
-            className="animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out"
+            className="animate-in min-w-0 fade-in slide-in-from-bottom-2 duration-500 ease-out"
           >
             <Outlet />
           </div>
