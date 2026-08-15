@@ -63,7 +63,13 @@ function formatDateTime(value: string): string {
 }
 
 type StatusFiltro = StatusPratica | "todos";
-type Ordenacao = "nome-asc" | "pontuacao-desc" | "pontuacao-asc";
+type ParametroFiltro = "todos" | (typeof PRATICAS)[number]["letra"];
+type Ordenacao =
+  | "nome-asc"
+  | "pontuacao-desc"
+  | "pontuacao-asc"
+  | "parametro-desc"
+  | "parametro-asc";
 type PresetColunas = "essenciais" | "personalizado" | "todos";
 type DensidadeTabela = "confortavel" | "compacta";
 type ColunaId =
@@ -110,6 +116,7 @@ export function GestantesPage() {
   const [busca, setBusca] = useState("");
   const buscaDeferred = useDeferredValue(busca);
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>("todos");
+  const [parametroFiltro, setParametroFiltro] = useState<ParametroFiltro>("todos");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("nome-asc");
   const [presetColunas, setPresetColunas] = useState<PresetColunas>("essenciais");
   const [colunasPersonalizadas, setColunasPersonalizadas] = useState<ColunaId[]>([
@@ -224,17 +231,28 @@ export function GestantesPage() {
         gestante.nome_cidadao.toLocaleLowerCase("pt-BR").includes(termo) ||
         (gestante.equipe_nome ?? "").toLocaleLowerCase("pt-BR").includes(termo) ||
         (gestante.equipe_ine ?? "").toLocaleLowerCase("pt-BR").includes(termo);
-      const correspondeStatus =
-        statusFiltro === "todos" || statusGeralDaGestante(gestante) === statusFiltro;
+      const praticaSelecionada = PRATICAS.find((pratica) => pratica.letra === parametroFiltro);
+      const statusParaFiltro = praticaSelecionada
+        ? statusDaPratica(gestante, praticaSelecionada).status
+        : statusGeralDaGestante(gestante);
+      const correspondeStatus = statusFiltro === "todos" || statusParaFiltro === statusFiltro;
       return correspondeBusca && correspondeStatus;
     });
 
     return resultado.toSorted((a, b) => {
       if (ordenacao === "pontuacao-desc") return b.pontuacao_total - a.pontuacao_total;
       if (ordenacao === "pontuacao-asc") return a.pontuacao_total - b.pontuacao_total;
+      const praticaSelecionada = PRATICAS.find((pratica) => pratica.letra === parametroFiltro);
+      if (praticaSelecionada && ordenacao.startsWith("parametro-")) {
+        const ordemStatus: Record<StatusPratica, number> = { completa: 2, parcial: 1, pendente: 0 };
+        const statusA = statusDaPratica(a, praticaSelecionada).status;
+        const statusB = statusDaPratica(b, praticaSelecionada).status;
+        const diferenca = ordemStatus[statusA] - ordemStatus[statusB];
+        if (diferenca !== 0) return ordenacao === "parametro-desc" ? -diferenca : diferenca;
+      }
       return a.nome_cidadao.localeCompare(b.nome_cidadao, "pt-BR");
     });
-  }, [buscaDeferred, gestantes, ordenacao, statusFiltro]);
+  }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro]);
 
   return (
     <div>
@@ -344,7 +362,34 @@ export function GestantesPage() {
                 </div>
               </label>
               <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
-                Status do acompanhamento
+                Parâmetro
+                <Select
+                  value={parametroFiltro}
+                  onValueChange={(value) => {
+                    if (!value) return;
+                    setParametroFiltro(value as ParametroFiltro);
+                    if (value === "todos" && ordenacao.startsWith("parametro-")) {
+                      setOrdenacao("nome-asc");
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full" aria-label="Filtrar por parâmetro">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="todos">Acompanhamento geral</SelectItem>
+                      {PRATICAS.map((pratica) => (
+                        <SelectItem key={pratica.letra} value={pratica.letra}>
+                          {pratica.letra} · {pratica.rotulo}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
+                {parametroFiltro === "todos" ? "Status do acompanhamento" : "Status do parâmetro"}
                 <Select
                   value={statusFiltro}
                   onValueChange={(value) => value && setStatusFiltro(value as StatusFiltro)}
@@ -376,6 +421,12 @@ export function GestantesPage() {
                       <SelectItem value="nome-asc">Nome (A–Z)</SelectItem>
                       <SelectItem value="pontuacao-desc">Maior pontuação</SelectItem>
                       <SelectItem value="pontuacao-asc">Menor pontuação</SelectItem>
+                      {parametroFiltro !== "todos" ? (
+                        <>
+                          <SelectItem value="parametro-desc">Parâmetro: melhor resultado</SelectItem>
+                          <SelectItem value="parametro-asc">Parâmetro: pior resultado</SelectItem>
+                        </>
+                      ) : null}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -543,6 +594,7 @@ export function GestantesPage() {
                 (z-10, mesma regra do FLO-40). */}
             <div
               aria-hidden
+              data-testid="overflow-esquerda"
               className={cn(
                 "pointer-events-none absolute inset-y-0 left-0 z-[2] w-10 bg-gradient-to-r from-card to-transparent opacity-0 transition-opacity duration-150",
                 scrollAffordance.mostrarSombraEsquerda && "opacity-100",
@@ -550,6 +602,7 @@ export function GestantesPage() {
             />
             <div
               aria-hidden
+              data-testid="overflow-direita"
               className={cn(
                 "pointer-events-none absolute inset-y-0 right-0 z-[2] w-10 bg-gradient-to-l from-card to-transparent opacity-0 transition-opacity duration-150",
                 scrollAffordance.mostrarSombraDireita && "opacity-100",
@@ -558,6 +611,9 @@ export function GestantesPage() {
             <Card
               ref={scrollRef}
               onScroll={atualizarScrollAffordance}
+              role="region"
+              aria-label="Tabela nominal de gestantes; use as setas horizontais para ver mais colunas"
+              tabIndex={0}
               className="gap-0 overflow-x-auto border-border/60 py-0 shadow-sm"
             >
             <Table className={cn(densidade === "compacta" && "[&_td]:py-1 [&_th]:h-8")}>

@@ -261,6 +261,113 @@ describe("AnalyticsPage", () => {
     await waitFor(() => expect(window.location.search).not.toContain("comparar_por"));
   });
 
+  it("remove um único chip sem limpar os demais filtros", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+
+    render(<AnalyticsPage />);
+    await screen.findByText("Analytics");
+    await compararPor("Parâmetro");
+    await userEvent.click(screen.getByRole("checkbox", { name: "Captação precoce" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "7+ consultas" }));
+
+    await waitFor(() => expect(window.location.search).toContain("parametros=A%2CB"));
+    await userEvent.click(screen.getByRole("button", { name: "Remover parâmetro Captação precoce" }));
+
+    await waitFor(() => expect(window.location.search).toContain("parametros=B"));
+    expect(window.location.search).toContain("comparar_por=parametro");
+    expect(screen.queryByRole("button", { name: "Remover parâmetro Captação precoce" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remover parâmetro 7+ consultas" })).toBeInTheDocument();
+  });
+
+  it("restaura uma URL válida após recarregar a página", async () => {
+    window.history.replaceState(null, "", "/analytics?indicador=c3&prefeituras=1%2C2&comparar_por=prefeitura&secao=visualizacoes&grafico=ranking");
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    mockedGestanteService.comparar.mockResolvedValue([METRICAS, METRICAS_OUTRA]);
+
+    const primeiraPagina = render(<AnalyticsPage />);
+    expect(await screen.findByRole("checkbox", { name: "Jeriquara" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Pedregulho" })).toBeChecked();
+    expect(await screen.findByText("Ranking geral")).toBeInTheDocument();
+
+    primeiraPagina.unmount();
+    render(<AnalyticsPage />);
+
+    expect(await screen.findByRole("checkbox", { name: "Jeriquara" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Pedregulho" })).toBeChecked();
+    expect(await screen.findByText("Ranking geral")).toBeInTheDocument();
+  });
+
+  it("mantém dados pessoais fora da URL ao alterar filtros", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+    mockedGestanteService.comparar.mockResolvedValue([METRICAS, METRICAS_OUTRA]);
+
+    render(<AnalyticsPage />);
+    await screen.findByText("Analytics");
+    await compararPor("Prefeitura");
+    await userEvent.click(screen.getByRole("checkbox", { name: "Pedregulho" }));
+
+    await waitFor(() => expect(window.location.search).toContain("prefeituras=1%2C2"));
+    const url = decodeURIComponent(window.location.search).toLocaleLowerCase("pt-BR");
+    expect(url).not.toContain("cpf");
+    expect(url).not.toContain("cns");
+    expect(url).not.toContain("nome");
+    expect(url).not.toContain("jeriquara");
+    expect(url).not.toContain("pedregulho");
+  });
+
+  it("não oferece dimensões e visualizações ausentes do catálogo", async () => {
+    mockedIndicadoresService.catalogo.mockResolvedValue({
+      indicadores: [{
+        ...INDICADOR,
+        dimensoes_comparacao: ["parametro"],
+        visualizacoes: ["barra"],
+        possui_historico: false,
+        possui_lista_nominal: false,
+      }],
+    });
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+
+    render(<AnalyticsPage />);
+    await waitFor(() => expect(mockedGestanteService.metricas).toHaveBeenCalledWith(PREFEITURA.id));
+    await userEvent.click(screen.getByRole("combobox", { name: "Comparar por" }));
+
+    expect(screen.queryByRole("option", { name: "Prefeitura" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Período / importação" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "Parâmetro" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(screen.getByRole("tab", { name: "Visualizações" }));
+    expect(screen.getByRole("tab", { name: "barra" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "ranking" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Evolução" })).not.toBeInTheDocument();
+  });
+
+  it("permite operar comparação e seções somente pelo teclado", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    mockedGestanteService.metricas.mockResolvedValue(METRICAS);
+    mockedGestanteService.comparar.mockResolvedValue([METRICAS, METRICAS_OUTRA]);
+    const user = userEvent.setup();
+
+    render(<AnalyticsPage />);
+    await waitFor(() => expect(mockedGestanteService.metricas).toHaveBeenCalledWith(PREFEITURA.id));
+    const comparar = screen.getByRole("combobox", { name: "Comparar por" });
+    comparar.focus();
+    await user.keyboard("{Enter}");
+    await screen.findByRole("option", { name: "Prefeitura" });
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(await screen.findByRole("checkbox", { name: "Jeriquara" })).toBeInTheDocument();
+
+    const visaoGeral = screen.getByRole("tab", { name: "Visão geral" });
+    visaoGeral.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: "Visualizações" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("tab", { name: "Visualizações" })).toHaveAttribute("aria-selected", "true");
+    expect(window.location.search).toContain("secao=visualizacoes");
+  });
+
   it("navega para a tabela e exibe todos os parâmetros do catálogo", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.metricas.mockResolvedValue(METRICAS);

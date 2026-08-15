@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { GestantesPage } from "@/pages/gestantes-page";
 import { ApiError } from "@/lib/http";
@@ -125,6 +125,40 @@ describe("GestantesPage", () => {
     expect(within(linhas[2]).getByText("Ana Souza")).toBeInTheDocument();
   });
 
+  it("filtra e ordena pelo parâmetro individual selecionado", async () => {
+    const gestantePendente: GestanteAcompanhamentoOut = {
+      ...GESTANTE,
+      id: 11,
+      nome_cidadao: "Ana Souza",
+      pratica_b_consultas: 0,
+      pontuacao_total: 10,
+    };
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE, gestantePendente]);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findByText(/de 2 gestantes/);
+
+    await user.click(screen.getByRole("combobox", { name: "Filtrar por parâmetro" }));
+    await user.click(await screen.findByRole("option", { name: "B · Consultas (7)" }));
+    expect(screen.getByText("Status do parâmetro")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("combobox", { name: "Filtrar por status" }));
+    await user.click(await screen.findByRole("option", { name: "Parcial" }));
+    expect(screen.getAllByText("Maria da Silva").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Ana Souza")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("combobox", { name: "Filtrar por status" }));
+    await user.click(await screen.findByRole("option", { name: "Todos os status" }));
+    await user.click(screen.getByRole("combobox", { name: "Ordenar gestantes" }));
+    await user.click(await screen.findByRole("option", { name: "Parâmetro: pior resultado" }));
+
+    const linhas = screen.getAllByRole("row");
+    expect(within(linhas[1]).getByText("Ana Souza")).toBeInTheDocument();
+    expect(within(linhas[2]).getByText("Maria da Silva")).toBeInTheDocument();
+  });
+
   it("personaliza colunas e altera a densidade da tabela", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE]);
@@ -164,6 +198,51 @@ describe("GestantesPage", () => {
     expect(screen.getByText("Elegibilidade")).toBeInTheDocument();
     expect(screen.getByText("K · Odonto")).toBeInTheDocument();
     expect(document.getElementById("detalhes-gestante-10")).toBeInTheDocument();
+  });
+
+  it("permite expandir o card mobile pelo teclado", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    const user = userEvent.setup();
+    window.innerWidth = 375;
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+
+    const listaMobile = screen.getByRole("generic", { name: "Gestantes encontradas" });
+    expect(listaMobile).toHaveClass("md:hidden");
+    const expandir = screen.getByRole("button", { name: "Ver todos os parâmetros" });
+    expandir.focus();
+    await user.keyboard("{Enter}");
+
+    expect(expandir).toHaveAttribute("aria-expanded", "true");
+    expect(expandir).toHaveAttribute("aria-controls", "detalhes-gestante-10");
+    expect(document.activeElement).toBe(expandir);
+  });
+
+  it("expõe affordance e região focável quando a tabela tem overflow", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+
+    const regiao = screen.getByRole("region", {
+      name: /tabela nominal de gestantes; use as setas horizontais/i,
+    });
+    Object.defineProperties(regiao, {
+      clientWidth: { configurable: true, value: 500 },
+      scrollWidth: { configurable: true, value: 900 },
+      scrollLeft: { configurable: true, writable: true, value: 0 },
+    });
+    fireEvent.scroll(regiao);
+
+    await waitFor(() => expect(screen.getByTestId("overflow-direita")).toHaveClass("opacity-100"));
+    expect(regiao).toHaveAttribute("tabindex", "0");
+
+    regiao.scrollLeft = 400;
+    fireEvent.scroll(regiao);
+    await waitFor(() => expect(screen.getByTestId("overflow-esquerda")).toHaveClass("opacity-100"));
   });
 
   it("mostra estado vazio quando não há gestantes para a prefeitura", async () => {
