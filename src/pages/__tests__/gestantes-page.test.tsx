@@ -1,14 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { GestantesPage } from "@/pages/gestantes-page";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
-import type { GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
+import type { EquipeGestanteOut, GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
 
 vi.mock("@/services/gestante", () => ({
-  gestanteService: { list: vi.fn(), exportar: vi.fn() },
+  gestanteService: { list: vi.fn(), equipes: vi.fn(), exportar: vi.fn() },
 }));
 vi.mock("@/services/prefeituras", () => ({
   prefeiturasService: { list: vi.fn() },
@@ -18,6 +18,19 @@ const mockedGestanteService = vi.mocked(gestanteService);
 const mockedPrefeiturasService = vi.mocked(prefeiturasService);
 
 const PREFEITURA: PrefeituraOut = { id: 1, ibge_code: "3500000", name: "Jeriquara", active: true };
+const EQUIPES: EquipeGestanteOut[] = [
+  { chave: "ine:0001", nome: "ESF Centro", ine: "0001", total_gestantes: 1, sem_equipe: false },
+  { chave: "nome:ESF Rural", nome: "ESF Rural", ine: null, total_gestantes: 1, sem_equipe: false },
+  { chave: "sem-equipe", nome: null, ine: null, total_gestantes: 1, sem_equipe: true },
+];
+
+beforeEach(() => {
+  mockedGestanteService.equipes.mockResolvedValue(EQUIPES);
+});
+
+afterEach(() => {
+  window.history.replaceState({}, "", "/");
+});
 
 const GESTANTE: GestanteAcompanhamentoOut = {
   id: 10,
@@ -144,6 +157,87 @@ describe("GestantesPage", () => {
     const linhas = screen.getAllByRole("row");
     expect(within(linhas[1]).getByText("Maria da Silva")).toBeInTheDocument();
     expect(within(linhas[2]).getByText("Ana Souza")).toBeInTheDocument();
+  });
+
+  it("filtra por múltiplas equipes e mantém lista e URL no mesmo recorte", async () => {
+    const gestanteSemEquipe = {
+      ...GESTANTE,
+      id: 12,
+      nome_cidadao: "Joana Sem Equipe",
+      equipe_nome: null,
+      equipe_ine: null,
+    };
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockImplementation(async (_prefeituraId, equipes = []) =>
+      equipes.includes("ine:0001") || equipes.includes("sem-equipe")
+        ? [GESTANTE, gestanteSemEquipe]
+        : [GESTANTE],
+    );
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+
+    await user.click(screen.getByRole("button", { name: "Filtrar por equipe" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: /ESF Centro.*INE 0001/i }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: /Sem equipe.*Sem INE/i }));
+
+    await waitFor(() => {
+      expect(mockedGestanteService.list).toHaveBeenLastCalledWith(
+        PREFEITURA.id,
+        ["ine:0001", "sem-equipe"],
+        expect.any(AbortSignal),
+      );
+    });
+    expect(new URLSearchParams(window.location.search).getAll("equipe")).toEqual([
+      "ine:0001",
+      "sem-equipe",
+    ]);
+    expect(screen.getByText("2 equipes")).toBeInTheDocument();
+    expect(screen.getAllByText("Joana Sem Equipe").length).toBeGreaterThan(0);
+
+    mockedGestanteService.exportar.mockResolvedValue({
+      blob: new Blob(["conteudo"]),
+      filename: "gestantes_filtradas.xlsx",
+    });
+    const createObjectURL = vi.fn(() => "blob:equipes");
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+    await user.click(screen.getByRole("button", { name: /baixar planilha/i }));
+    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id, [
+      "ine:0001",
+      "sem-equipe",
+    ]);
+    vi.unstubAllGlobals();
+  });
+
+  it("limpa equipes ao trocar de prefeitura e carrega somente o novo catálogo", async () => {
+    const outraPrefeitura: PrefeituraOut = {
+      id: 2,
+      ibge_code: "3501008",
+      name: "Outra cidade",
+      active: true,
+    };
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, outraPrefeitura]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    mockedGestanteService.equipes.mockImplementation(async (prefeituraId) =>
+      prefeituraId === PREFEITURA.id
+        ? EQUIPES
+        : [{ chave: "ine:9999", nome: "ESF Nova", ine: "9999", total_gestantes: 1, sem_equipe: false }],
+    );
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+    await user.click(screen.getByRole("button", { name: "Filtrar por equipe" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: /ESF Centro.*INE 0001/i }));
+    await waitFor(() => expect(window.location.search).toContain("equipe=ine%3A0001"));
+
+    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(await screen.findByRole("option", { name: "Outra cidade" }));
+
+    await waitFor(() => expect(mockedGestanteService.equipes).toHaveBeenLastCalledWith(2, expect.any(AbortSignal)));
+    expect(window.location.search).toBe("");
+    expect(mockedGestanteService.list).toHaveBeenLastCalledWith(2, [], expect.any(AbortSignal));
   });
 
   it("filtra e ordena pelo parâmetro individual selecionado", async () => {
@@ -294,6 +388,7 @@ describe("GestantesPage", () => {
   it("mostra estado vazio quando não há gestantes para a prefeitura", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([]);
+    mockedGestanteService.equipes.mockResolvedValue([]);
 
     render(<GestantesPage />);
 
@@ -338,7 +433,7 @@ describe("GestantesPage", () => {
 
     await userEvent.click(botao);
 
-    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id);
+    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id, []);
     expect(createObjectURL).toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
 

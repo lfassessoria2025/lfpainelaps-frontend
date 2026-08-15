@@ -245,6 +245,14 @@ export interface GestanteAcompanhamentoOut {
   created_at: string; // ISO datetime
 }
 
+export interface EquipeGestanteOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_gestantes: number;
+  sem_equipe: boolean;
+}
+
 // Agregado sem dado nominal (app/schemas/gestante.py: MetricaPraticaOut/MetricasIndicadorOut)
 // — usado pela aba de Analytics, nunca traz nome/data de nascimento individual.
 export interface MetricaPraticaOut {

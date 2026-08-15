@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/layout/page-header";
-import type { GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
+import type { EquipeGestanteOut, GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
 import { apresentarAcaoCondicao, explicarMotivoCondicao } from "@/lib/condicao-autorreferida";
 import { ApiError } from "@/lib/http";
 import {
@@ -132,6 +132,10 @@ export function GestantesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [gestantes, setGestantes] = useState<GestanteAcompanhamentoOut[] | null>(null);
+  const [equipes, setEquipes] = useState<EquipeGestanteOut[] | null>(null);
+  const [equipesSelecionadas, setEquipesSelecionadas] = useState<string[]>(() =>
+    [...new Set(new URLSearchParams(window.location.search).getAll("equipe"))].slice(0, 50),
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
@@ -180,14 +184,74 @@ export function GestantesPage() {
       .catch(() => setPrefeituras([]));
   }, []);
 
-  const loadGestantes = useCallback(async () => {
+  const atualizarEquipesSelecionadas = useCallback(
+    (proximas: string[]) => {
+      const normalizadas = [...new Set(proximas)].toSorted();
+      setEquipesSelecionadas(normalizadas);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("equipe");
+      normalizadas.forEach((equipe) => url.searchParams.append("equipe", equipe));
+      window.history.replaceState(window.history.state, "", url);
+    },
+    [],
+  );
+
+  const handleTrocarPrefeitura = useCallback(
+    (value: string | null) => {
+      if (!value) return;
+      atualizarEquipesSelecionadas([]);
+      setEquipes(null);
+      setGestantes(null);
+      setSelectedId(Number(value));
+    },
+    [atualizarEquipesSelecionadas],
+  );
+
+  const alternarEquipe = useCallback(
+    (chave: string, selecionada: boolean) => {
+      atualizarEquipesSelecionadas(
+        selecionada
+          ? [...equipesSelecionadas, chave]
+          : equipesSelecionadas.filter((equipe) => equipe !== chave),
+      );
+    },
+    [atualizarEquipesSelecionadas, equipesSelecionadas],
+  );
+
+  useEffect(() => {
+    if (selectedId === null) return;
+    const controller = new AbortController();
+    setEquipes(null);
+    gestanteService
+      .equipes(selectedId, controller.signal)
+      .then((catalogo) => {
+        setEquipes(catalogo);
+      })
+      .catch((erro: unknown) => {
+        if (erro instanceof DOMException && erro.name === "AbortError") return;
+        setEquipes([]);
+      });
+    return () => controller.abort();
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (equipes === null) return;
+    const chavesValidas = new Set(equipes.map((equipe) => equipe.chave));
+    const selecoesValidas = equipesSelecionadas.filter((chave) => chavesValidas.has(chave));
+    if (selecoesValidas.length !== equipesSelecionadas.length) {
+      atualizarEquipesSelecionadas(selecoesValidas);
+    }
+  }, [atualizarEquipesSelecionadas, equipes, equipesSelecionadas]);
+
+  const loadGestantes = useCallback(async (signal?: AbortSignal) => {
     if (selectedId === null) return;
     try {
-      const data = await gestanteService.list(selectedId);
+      const data = await gestanteService.list(selectedId, equipesSelecionadas, signal);
       setGestantes(data);
       setLoadError(null);
       setForbidden(false);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       if (err instanceof ApiError && err.status === 403) {
         setForbidden(true);
         setGestantes(null);
@@ -199,12 +263,13 @@ export function GestantesPage() {
         err instanceof ApiError ? err.detail : "Não foi possível carregar os dados de gestantes.",
       );
     }
-  }, [selectedId]);
+  }, [equipesSelecionadas, selectedId]);
 
   useEffect(() => {
-    setGestantes(null);
+    const controller = new AbortController();
     setForbidden(false);
-    void loadGestantes();
+    void loadGestantes(controller.signal);
+    return () => controller.abort();
   }, [loadGestantes]);
 
   const handleExportar = useCallback(async () => {
@@ -212,7 +277,7 @@ export function GestantesPage() {
     setExportando(true);
     setExportError(null);
     try {
-      const { blob, filename } = await gestanteService.exportar(selectedId);
+      const { blob, filename } = await gestanteService.exportar(selectedId, equipesSelecionadas);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -226,7 +291,16 @@ export function GestantesPage() {
     } finally {
       setExportando(false);
     }
-  }, [selectedId]);
+  }, [equipesSelecionadas, selectedId]);
+
+  const rotuloFiltroEquipe =
+    equipesSelecionadas.length === 0
+      ? "Todas as equipes"
+      : equipesSelecionadas.length === 1
+        ? (equipes?.find((equipe) => equipe.chave === equipesSelecionadas[0])?.sem_equipe
+            ? "Sem equipe"
+            : equipes?.find((equipe) => equipe.chave === equipesSelecionadas[0])?.nome ?? "1 equipe")
+        : `${equipesSelecionadas.length} equipes`;
 
   const podeExportar = !forbidden && !loadError && gestantes !== null && gestantes.length > 0;
   const colunaVisivel = useCallback(
@@ -300,7 +374,7 @@ export function GestantesPage() {
         ) : (
           <Select
             value={selectedId ? String(selectedId) : undefined}
-            onValueChange={(value) => value && setSelectedId(Number(value))}
+            onValueChange={handleTrocarPrefeitura}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione a prefeitura">
@@ -356,7 +430,7 @@ export function GestantesPage() {
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
-      ) : gestantes.length === 0 ? (
+      ) : gestantes.length === 0 && equipesSelecionadas.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -385,6 +459,41 @@ export function GestantesPage() {
                   />
                 </div>
               </label>
+              <div className="flex min-w-52 flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Equipe
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={<Button variant="outline" className="justify-between font-normal" />}
+                    aria-label="Filtrar por equipe"
+                    disabled={equipes === null || equipes.length === 0}
+                  >
+                    <span className="truncate">{equipes === null ? "Carregando equipes…" : rotuloFiltroEquipe}</span>
+                    <ChevronDown data-icon="inline-end" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-80" align="start">
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Equipes da prefeitura</DropdownMenuLabel>
+                      {equipes?.map((equipe) => (
+                        <DropdownMenuCheckboxItem
+                          key={equipe.chave}
+                          checked={equipesSelecionadas.includes(equipe.chave)}
+                          closeOnClick={false}
+                          onCheckedChange={(checked) => alternarEquipe(equipe.chave, checked)}
+                        >
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate">
+                              {equipe.sem_equipe ? "Sem equipe" : equipe.nome ?? "Equipe sem nome"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {equipe.ine ? `INE ${equipe.ine}` : "Sem INE"} · {equipe.total_gestantes} gestante(s)
+                            </span>
+                          </span>
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
                 Parâmetro
                 <Select
@@ -472,6 +581,18 @@ export function GestantesPage() {
                 </TabsList>
               </Tabs>
             </div>
+            {equipesSelecionadas.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {equipesSelecionadas.map((chave) => {
+                  const equipe = equipes?.find((item) => item.chave === chave);
+                  const nome = equipe?.sem_equipe ? "Sem equipe" : equipe?.nome ?? chave;
+                  return <Badge key={chave} variant="outline">{nome}</Badge>;
+                })}
+                <Button type="button" variant="ghost" size="sm" onClick={() => atualizarEquipesSelecionadas([])}>
+                  Limpar equipes
+                </Button>
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-end gap-3">
               {presetColunas === "personalizado" ? (
                 <DropdownMenu>
