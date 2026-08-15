@@ -202,6 +202,21 @@ export interface UploadInstructionsOut {
 // Indicador C3 — gestante/puerpério (app/schemas/gestante.py)
 // ---------------------------------------------------------------------------
 
+export type AcaoCondicaoAutorreferida =
+  | "inserir"
+  | "remover"
+  | "nenhuma_acao"
+  | "revisar_cadastro";
+
+export type MotivoAcaoCondicao =
+  | "dados_legados_sem_avaliacao"
+  | "cadastro_coerente"
+  | "condicao_nao_marcada"
+  | "condicao_ainda_marcada"
+  | "cadastro_ausente_ou_nao_informado"
+  | "estado_esperado_indeterminado"
+  | "registro_historico";
+
 export interface GestanteAcompanhamentoOut {
   id: number;
   nome_cidadao: string;
@@ -224,6 +239,9 @@ export interface GestanteAcompanhamentoOut {
   pratica_i_consulta_puerperio: boolean;
   pratica_j_vd_puerperio: boolean;
   pontuacao_total: number;
+  condicao_gestante_acao: AcaoCondicaoAutorreferida;
+  condicao_gestante_motivo: MotivoAcaoCondicao;
+  condicao_gestante_data_referencia: string | null; // ISO date do dump
   created_at: string; // ISO datetime
 }
 

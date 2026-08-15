@@ -41,6 +41,9 @@ const GESTANTE: GestanteAcompanhamentoOut = {
   pratica_i_consulta_puerperio: false,
   pratica_j_vd_puerperio: false,
   pontuacao_total: 8,
+  condicao_gestante_acao: "inserir",
+  condicao_gestante_motivo: "condicao_nao_marcada",
+  condicao_gestante_data_referencia: "2026-08-15",
   created_at: "2026-01-01T00:00:00Z",
 };
 
@@ -54,6 +57,9 @@ describe("GestantesPage", () => {
     expect((await screen.findAllByText("Maria da Silva")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("ESF Centro").length).toBeGreaterThan(0);
     expect(screen.getAllByText("8").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Inserir condição Gestante").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/última ficha válida não marca/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Dump: 15/08/2026").length).toBeGreaterThan(0);
 
     await userEvent.click(screen.getByRole("tab", { name: "Todos os parâmetros" }));
 
@@ -68,6 +74,21 @@ describe("GestantesPage", () => {
     expect(within(legenda).getByText("Completa")).toBeInTheDocument();
     expect(within(legenda).getByText("Parcial")).toBeInTheDocument();
     expect(within(legenda).getByText("Pendente")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["remover", "condicao_ainda_marcada", "Remover condição Gestante"],
+    ["nenhuma_acao", "cadastro_coerente", "Nenhuma ação"],
+    ["revisar_cadastro", "cadastro_ausente_ou_nao_informado", "Revisar cadastro"],
+  ] as const)("exibe a ação %s recebida da API", async (acao, motivo, rotulo) => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([
+      { ...GESTANTE, condicao_gestante_acao: acao, condicao_gestante_motivo: motivo },
+    ]);
+
+    render(<GestantesPage />);
+
+    expect((await screen.findAllByText(rotulo)).length).toBeGreaterThan(0);
   });
 
   it("busca, filtra, ordena e alterna os presets da tabela", async () => {

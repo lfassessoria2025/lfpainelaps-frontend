@@ -34,6 +34,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/layout/page-header";
 import type { GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
+import { apresentarAcaoCondicao, explicarMotivoCondicao } from "@/lib/condicao-autorreferida";
 import { ApiError } from "@/lib/http";
 import {
   PRATICAS,
@@ -62,6 +63,22 @@ function formatDateTime(value: string): string {
   return new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
+function AcaoCondicaoGestante({ gestante }: { gestante: GestanteAcompanhamentoOut }) {
+  const apresentacao = apresentarAcaoCondicao(gestante.condicao_gestante_acao);
+
+  return (
+    <div className="flex min-w-52 flex-col items-start gap-1">
+      <Badge variant={apresentacao.variant}>{apresentacao.rotulo}</Badge>
+      <span className="whitespace-normal text-xs text-muted-foreground">
+        {explicarMotivoCondicao(gestante.condicao_gestante_motivo)}
+      </span>
+      <span className="text-xs text-muted-foreground">
+        Dump: {formatDate(gestante.condicao_gestante_data_referencia)}
+      </span>
+    </div>
+  );
+}
+
 type StatusFiltro = StatusPratica | "todos";
 type ParametroFiltro = "todos" | (typeof PRATICAS)[number]["letra"];
 type Ordenacao =
@@ -81,6 +98,7 @@ type ColunaId =
   | "fim-puerperio"
   | "elegibilidade"
   | "status"
+  | "condicao-gestante"
   | "pontuacao"
   | "atualizado"
   | `pratica-${string}`;
@@ -94,10 +112,16 @@ const COLUNAS_FIXAS: ReadonlyArray<{ id: ColunaId; rotulo: string }> = [
   { id: "fim-puerperio", rotulo: "Fim puerpério" },
   { id: "elegibilidade", rotulo: "Elegibilidade" },
   { id: "status", rotulo: "Status" },
+  { id: "condicao-gestante", rotulo: "Ação no Cadastro Individual" },
   { id: "pontuacao", rotulo: "Pontuação" },
   { id: "atualizado", rotulo: "Atualizado em" },
 ];
-const COLUNAS_ESSENCIAIS = new Set<ColunaId>(["equipe", "status", "pontuacao"]);
+const COLUNAS_ESSENCIAIS = new Set<ColunaId>([
+  "equipe",
+  "status",
+  "condicao-gestante",
+  "pontuacao",
+]);
 const COLUNAS_TODAS: ColunaId[] = [
   ...COLUNAS_FIXAS.map(({ id }) => id),
   ...PRATICAS.map(({ letra }) => `pratica-${letra}` as ColunaId),
@@ -545,6 +569,12 @@ export function GestantesPage() {
                     <span>Pontuação</span>
                     <Badge className="tabular-nums">{gestante.pontuacao_total}</Badge>
                   </div>
+                  <div className="flex flex-col gap-1 text-sm">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Ação no Cadastro Individual
+                    </span>
+                    <AcaoCondicaoGestante gestante={gestante} />
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -631,6 +661,9 @@ export function GestantesPage() {
                   {colunaVisivel("fim-puerperio") ? <TableHead>Fim puerpério</TableHead> : null}
                   {colunaVisivel("elegibilidade") ? <TableHead>Elegibilidade</TableHead> : null}
                   {colunaVisivel("status") ? <TableHead>Status</TableHead> : null}
+                  {colunaVisivel("condicao-gestante") ? (
+                    <TableHead>Ação no Cadastro Individual</TableHead>
+                  ) : null}
                   {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => (
                     <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
                       <Tooltip>
@@ -682,6 +715,9 @@ export function GestantesPage() {
                         {STATUS_PRATICA_ROTULO[statusGeral]}
                       </Badge>
                     </TableCell> : null}
+                    {colunaVisivel("condicao-gestante") ? (
+                      <TableCell><AcaoCondicaoGestante gestante={gestante} /></TableCell>
+                    ) : null}
                     {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => {
                       const { status, texto } = statusDaPratica(gestante, pratica);
                       return (
