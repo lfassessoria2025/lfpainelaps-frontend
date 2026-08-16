@@ -3,10 +3,12 @@ import type {
   AcceptInvitationRequest,
   ChangePasswordRequest,
   ForgotPasswordRequest,
+  InvitationTermRequest,
   LoginRequest,
   ResetPasswordRequest,
   UpdateProfileRequest,
   UserOut,
+  ResponsibilityTermOut,
 } from "@/lib/api-types";
 
 export const authService = {
@@ -16,6 +18,8 @@ export const authService = {
   me: (signal?: AbortSignal) => http.get<UserOut>("/auth/me", signal),
   acceptInvite: (payload: AcceptInvitationRequest) =>
     http.post<void>("/auth/accept-invite", payload),
+  invitationTerm: (payload: InvitationTermRequest, signal?: AbortSignal) =>
+    http.post<ResponsibilityTermOut>("/auth/invitation-term", payload, signal),
   forgotPassword: (payload: ForgotPasswordRequest) =>
     http.post<{ detail: string }>("/auth/esqueci-senha", payload),
   resetPassword: (payload: ResetPasswordRequest) =>

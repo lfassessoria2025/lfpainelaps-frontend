@@ -30,6 +30,8 @@ export interface UserSummaryOut {
   status: UserStatus;
   role_id: number | null;
   prefeitura_ids: number[];
+  current_term_version: string | null;
+  current_term_accepted_at: string | null;
 }
 
 export interface LoginRequest {
@@ -40,6 +42,13 @@ export interface LoginRequest {
 export interface AcceptInvitationRequest {
   token: string | null;
   senha: string;
+  term_id: number;
+  term_content_sha256: string;
+  term_acknowledged: true;
+}
+
+export interface InvitationTermRequest {
+  token: string | null;
 }
 
 export interface ForgotPasswordRequest {
@@ -127,6 +136,30 @@ export interface InvitationOut {
   user_id: number;
   token: string;
 }
+
+// ---------------------------------------------------------------------------
+// Termo de responsabilidade e sigilo
+// ---------------------------------------------------------------------------
+
+export interface ResponsibilityTermOut {
+  id: number;
+  version: string;
+  title: string;
+  content: string;
+  content_sha256: string;
+  effective_at: string;
+  accepted: boolean;
+}
+
+export interface ResponsibilityTermAcceptance {
+  term_id: number;
+  content_sha256: string;
+  acknowledged: true;
+}
+
+export type AcceptedResponsibilityTermCopyOut = Omit<ResponsibilityTermOut, "accepted"> & {
+  accepted_at: string;
+};
 
 // ---------------------------------------------------------------------------
 // Prefeituras (app/schemas/prefeituras.py)

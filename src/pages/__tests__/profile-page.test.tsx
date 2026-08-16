@@ -13,6 +13,9 @@ vi.mock("@/services/auth", () => ({
 vi.mock("@/contexts/auth-context", () => ({
   useAuth: vi.fn(),
 }));
+vi.mock("@/components/responsibility-terms/accepted-term-copy-card", () => ({
+  AcceptedTermCopyCard: () => <div>Cópia do termo</div>,
+}));
 
 const mockedUpdateProfile = vi.mocked(authService.updateProfile);
 const mockedChangePassword = vi.mocked(authService.changePassword);

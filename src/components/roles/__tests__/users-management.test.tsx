@@ -25,10 +25,10 @@ const mockedUsers = vi.mocked(usersService);
 const mockedPrefeituras = vi.mocked(prefeiturasService);
 const ROLES: RoleOut[] = [{ id: 7, name: "Enfermeira", permissions: ["relatorio.gestante.visualizar"] }];
 const USERS: UserSummaryOut[] = [
-  { id: 1, email: "gestora@example.test", name: "Gestora", is_admin: true, status: "ativo", role_id: null, prefeitura_ids: [10] },
-  { id: 2, email: "ativa@example.test", name: "Usuária Ativa", is_admin: false, status: "ativo", role_id: 7, prefeitura_ids: [10] },
-  { id: 3, email: "convite@example.test", name: null, is_admin: false, status: "convidado", role_id: 7, prefeitura_ids: [] },
-  { id: 4, email: "inativa@example.test", name: "Usuária Inativa", is_admin: false, status: "desativado", role_id: null, prefeitura_ids: [] },
+  { id: 1, email: "gestora@example.test", name: "Gestora", is_admin: true, status: "ativo", role_id: null, prefeitura_ids: [10], current_term_version: "1.0", current_term_accepted_at: "2026-08-15T12:00:00Z" },
+  { id: 2, email: "ativa@example.test", name: "Usuária Ativa", is_admin: false, status: "ativo", role_id: 7, prefeitura_ids: [10], current_term_version: "1.0", current_term_accepted_at: null },
+  { id: 3, email: "convite@example.test", name: null, is_admin: false, status: "convidado", role_id: 7, prefeitura_ids: [], current_term_version: "1.0", current_term_accepted_at: null },
+  { id: 4, email: "inativa@example.test", name: "Usuária Inativa", is_admin: false, status: "desativado", role_id: null, prefeitura_ids: [], current_term_version: null, current_term_accepted_at: null },
 ];
 
 beforeEach(() => {
@@ -47,6 +47,9 @@ describe("UsersManagement — FLO-55", () => {
 
     expect(await screen.findByText("Usuária Ativa")).toBeInTheDocument();
     expect(screen.getByText("Convite pendente")).toBeInTheDocument();
+    expect(screen.getAllByText("Versão 1.0 · pendente")).toHaveLength(2);
+    expect(screen.getByText("Versão 1.0 · 15/08/2026")).toBeInTheDocument();
+    expect(screen.getByText("Sem termo vigente")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar Gestora" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Desativar Gestora" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Desativar Usuária Ativa" })).toBeInTheDocument();

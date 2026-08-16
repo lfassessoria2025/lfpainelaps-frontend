@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/app-layout";
 import { ProtectedRoute } from "@/components/layout/protected-route";
+import { ResponsibilityTermRedirect } from "@/components/responsibility-terms/responsibility-term-redirect";
 import { Spinner } from "@/components/ui/spinner";
 
 // Cada página vira um chunk separado, carregado sob demanda ao navegar —
@@ -36,6 +37,9 @@ const AnalyticsPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import("@/pages/profile-page").then((m) => ({ default: m.ProfilePage })),
 );
+const ResponsibilityTermPage = lazy(() =>
+  import("@/pages/responsibility-term-page").then((m) => ({ default: m.ResponsibilityTermPage })),
+);
 const NotFoundPage = lazy(() =>
   import("@/pages/not-found-page").then((m) => ({ default: m.NotFoundPage })),
 );
@@ -51,6 +55,7 @@ function RouteFallback() {
 function App() {
   return (
     <Suspense fallback={<RouteFallback />}>
+      <ResponsibilityTermRedirect />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
@@ -66,6 +71,7 @@ function App() {
             <Route path="/gestantes" element={<GestantesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/perfil" element={<ProfilePage />} />
+            <Route path="/termo-responsabilidade" element={<ResponsibilityTermPage />} />
           </Route>
         </Route>
 

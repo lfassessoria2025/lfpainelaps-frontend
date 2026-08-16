@@ -7,6 +7,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { PageHeader } from "@/components/layout/page-header";
+import { AcceptedTermCopyCard } from "@/components/responsibility-terms/accepted-term-copy-card";
 import { useAuth } from "@/contexts/auth-context";
 import { authService } from "@/services/auth";
 import { ApiError } from "@/lib/http";
@@ -91,6 +92,7 @@ export function ProfilePage() {
       <PageHeader title="Editar perfil" description="Atualize seu nome e sua senha de acesso." />
 
       <div className="flex flex-col gap-6">
+        <AcceptedTermCopyCard />
         <Card>
           <CardHeader>
             <CardTitle>Nome</CardTitle>

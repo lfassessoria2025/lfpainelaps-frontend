@@ -28,6 +28,15 @@ const STATUS_COPY: Record<UserStatus, string> = {
   desativado: "Desativado",
 };
 
+function termStatus(user: UserSummaryOut) {
+  if (!user.current_term_version) return "Sem termo vigente";
+  if (!user.current_term_accepted_at) return `Versão ${user.current_term_version} · pendente`;
+  const acceptedAt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
+    new Date(user.current_term_accepted_at),
+  );
+  return `Versão ${user.current_term_version} · ${acceptedAt}`;
+}
+
 interface UsersManagementProps {
   currentUserId: number;
   currentUserIsAdmin: boolean;
@@ -124,6 +133,7 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
                 <TableHead>Cargo</TableHead>
                 <TableHead>Prefeituras</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Termo</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -143,6 +153,7 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
                     <TableCell>{managedUser.is_admin ? "Administrador" : role?.name ?? "Sem cargo"}</TableCell>
                     <TableCell>{managedUser.is_admin ? "Todas" : managedUser.prefeitura_ids.length}</TableCell>
                     <TableCell><Badge variant="secondary">{STATUS_COPY[managedUser.status]}</Badge></TableCell>
+                    <TableCell>{termStatus(managedUser)}</TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
                         {canManageTarget && !isSelf ? <Button
