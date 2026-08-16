@@ -24,6 +24,7 @@ const USUARIO: UserOut = {
   name: "Nome Antigo",
   is_admin: false,
   status: "ativo",
+  permissions: [],
 };
 
 beforeEach(() => {

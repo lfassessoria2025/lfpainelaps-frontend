@@ -9,7 +9,7 @@ vi.mock("@/contexts/auth-context", () => ({
 }));
 
 vi.mocked(useAuth).mockReturnValue({
-  user: { id: 1, email: "gestor@example.com", name: null, is_admin: true, status: "ativo" },
+  user: { id: 1, email: "gestor@example.com", name: null, is_admin: true, status: "ativo", permissions: [] },
   login: vi.fn(),
   logout: vi.fn(),
   refreshUser: vi.fn(),

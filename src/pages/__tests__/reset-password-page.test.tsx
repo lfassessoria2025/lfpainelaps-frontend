@@ -24,6 +24,7 @@ const USUARIO: UserOut = {
   name: null,
   is_admin: false,
   status: "ativo",
+  permissions: [],
 };
 
 function renderPage(token = "token-valido", setAuthenticatedUser = vi.fn()) {

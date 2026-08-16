@@ -16,6 +16,8 @@ export interface UserOut {
   name: string | null;
   is_admin: boolean;
   status: UserStatus;
+  /** Capacidades efetivas calculadas pelo backend; serve apenas para adaptar a UI. */
+  permissions: Permission[];
 }
 
 // app/schemas/users.py — usado na gestão de equipe (GET /users), nunca inclui
@@ -23,9 +25,11 @@ export interface UserOut {
 export interface UserSummaryOut {
   id: number;
   email: string;
+  name: string | null;
   is_admin: boolean;
   status: UserStatus;
   role_id: number | null;
+  prefeitura_ids: number[];
 }
 
 export interface LoginRequest {
@@ -101,6 +105,17 @@ export type RoleUpdate = RoleCreate;
 
 export interface RoleAssignment {
   role_id: number | null;
+}
+
+export interface UserManagementUpdate {
+  name?: string | null;
+  role_id?: number | null;
+  prefeitura_ids?: number[];
+  motivo: string;
+}
+
+export interface UserStatusChange {
+  motivo: string;
 }
 
 export interface InvitationCreate {

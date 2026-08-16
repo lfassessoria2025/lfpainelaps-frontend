@@ -14,7 +14,7 @@ const mockedUseAuth = vi.mocked(useAuth);
 
 function renderTopbar() {
   mockedUseAuth.mockReturnValue({
-    user: { id: 1, email: "gestor@example.com", name: "Gestora", is_admin: false, status: "ativo" },
+    user: { id: 1, email: "gestor@example.com", name: "Gestora", is_admin: false, status: "ativo", permissions: [] },
     login: vi.fn(),
     logout: vi.fn(),
     refreshUser: vi.fn(),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Plus, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -24,21 +24,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { InviteUserDialog } from "@/components/roles/invite-user-dialog";
 import { RoleFormDialog } from "@/components/roles/role-form-dialog";
+import { UsersManagement } from "@/components/roles/users-management";
 import { PageHeader } from "@/components/layout/page-header";
+import { useAuth } from "@/contexts/auth-context";
 import type { Permission, RoleOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { rolesService } from "@/services/roles";
 
 export function RolesPage() {
+  const { user } = useAuth();
   const [roles, setRoles] = useState<RoleOut[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleOut | null>(null);
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<RoleOut | null>(null);
+  const permissions = user?.permissions ?? [];
+  const canCreateRole = permissions.includes("cargo.criar");
+  const canEditRole = permissions.includes("cargo.editar");
+  const canDeleteRole = permissions.includes("cargo.excluir");
+  const canManageUsers = permissions.includes("equipe.gerenciar");
+  const canAssignPrefeituras = permissions.includes("prefeitura.atribuir");
 
   async function loadRoles() {
     try {
@@ -92,22 +99,16 @@ export function RolesPage() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Cargos e permissões"
         description="Gerencie cargos e o que cada um pode acessar."
-        actions={
-          <>
-            <Button variant="outline" onClick={() => setInviteOpen(true)}>
-              <UserPlus data-icon="inline-start" />
-              Convidar funcionário
-            </Button>
+        actions={canCreateRole ? (
             <Button onClick={openCreate}>
               <Plus data-icon="inline-start" />
               Novo cargo
             </Button>
-          </>
-        }
+        ) : undefined}
       />
 
       {roles === null && !loadError ? (
@@ -127,10 +128,10 @@ export function RolesPage() {
             <EmptyTitle>Nenhum cargo cadastrado</EmptyTitle>
             <EmptyDescription>Crie o primeiro cargo para organizar as permissões.</EmptyDescription>
           </EmptyHeader>
-          <Button onClick={openCreate}>
+          {canCreateRole ? <Button onClick={openCreate}>
             <Plus data-icon="inline-start" />
             Novo cargo
-          </Button>
+          </Button> : null}
         </Empty>
       ) : (
         <Card className="gap-0 border-border/60 py-0 shadow-sm">
@@ -151,22 +152,22 @@ export function RolesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button
+                      {canEditRole ? <Button
                         variant="ghost"
                         size="icon"
                         aria-label={`Editar ${role.name}`}
                         onClick={() => openEdit(role)}
                       >
                         <Pencil />
-                      </Button>
-                      <Button
+                      </Button> : null}
+                      {canDeleteRole ? <Button
                         variant="ghost"
                         size="icon"
                         aria-label={`Excluir ${role.name}`}
                         onClick={() => setRoleToDelete(role)}
                       >
                         <Trash2 />
-                      </Button>
+                      </Button> : null}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -176,14 +177,21 @@ export function RolesPage() {
         </Card>
       )}
 
+      {canManageUsers && user ? (
+        <UsersManagement
+          currentUserId={user.id}
+          currentUserIsAdmin={user.is_admin}
+          roles={roles ?? []}
+          canAssignPrefeituras={canAssignPrefeituras}
+        />
+      ) : null}
+
       <RoleFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
         role={editingRole}
         onSubmit={handleSubmit}
       />
-
-      <InviteUserDialog open={inviteOpen} onOpenChange={setInviteOpen} roles={roles ?? []} />
 
       <AlertDialog open={Boolean(roleToDelete)} onOpenChange={(open) => !open && setRoleToDelete(null)}>
         <AlertDialogContent>
