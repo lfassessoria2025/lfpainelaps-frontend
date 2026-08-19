@@ -13,8 +13,11 @@ export type UserStatus = "convidado" | "ativo" | "desativado";
 export interface UserOut {
   id: number;
   email: string;
+  name: string | null;
   is_admin: boolean;
   status: UserStatus;
+  /** Capacidades efetivas calculadas pelo backend; serve apenas para adaptar a UI. */
+  permissions: Permission[];
 }
 
 // app/schemas/users.py — usado na gestão de equipe (GET /users), nunca inclui
@@ -22,9 +25,13 @@ export interface UserOut {
 export interface UserSummaryOut {
   id: number;
   email: string;
+  name: string | null;
   is_admin: boolean;
   status: UserStatus;
   role_id: number | null;
+  prefeitura_ids: number[];
+  current_term_version: string | null;
+  current_term_accepted_at: string | null;
 }
 
 export interface LoginRequest {
@@ -35,6 +42,32 @@ export interface LoginRequest {
 export interface AcceptInvitationRequest {
   token: string | null;
   senha: string;
+  term_id: number;
+  term_content_sha256: string;
+  term_acknowledged: true;
+}
+
+export interface InvitationTermRequest {
+  token: string | null;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string | null;
+  senha: string;
+}
+
+// Edição do próprio perfil (PATCH /auth/me e POST /auth/me/trocar-senha).
+export interface UpdateProfileRequest {
+  name: string;
+}
+
+export interface ChangePasswordRequest {
+  senha_atual: string;
+  senha_nova: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +116,17 @@ export interface RoleAssignment {
   role_id: number | null;
 }
 
+export interface UserManagementUpdate {
+  name?: string | null;
+  role_id?: number | null;
+  prefeitura_ids?: number[];
+  motivo: string;
+}
+
+export interface UserStatusChange {
+  motivo: string;
+}
+
 export interface InvitationCreate {
   email: string;
   role_id: number | null;
@@ -92,6 +136,30 @@ export interface InvitationOut {
   user_id: number;
   token: string;
 }
+
+// ---------------------------------------------------------------------------
+// Termo de responsabilidade e sigilo
+// ---------------------------------------------------------------------------
+
+export interface ResponsibilityTermOut {
+  id: number;
+  version: string;
+  title: string;
+  content: string;
+  content_sha256: string;
+  effective_at: string;
+  accepted: boolean;
+}
+
+export interface ResponsibilityTermAcceptance {
+  term_id: number;
+  content_sha256: string;
+  acknowledged: true;
+}
+
+export type AcceptedResponsibilityTermCopyOut = Omit<ResponsibilityTermOut, "accepted"> & {
+  accepted_at: string;
+};
 
 // ---------------------------------------------------------------------------
 // Prefeituras (app/schemas/prefeituras.py)
@@ -182,6 +250,21 @@ export interface UploadInstructionsOut {
 // Indicador C3 — gestante/puerpério (app/schemas/gestante.py)
 // ---------------------------------------------------------------------------
 
+export type AcaoCondicaoAutorreferida =
+  | "inserir"
+  | "remover"
+  | "nenhuma_acao"
+  | "revisar_cadastro";
+
+export type MotivoAcaoCondicao =
+  | "dados_legados_sem_avaliacao"
+  | "cadastro_coerente"
+  | "condicao_nao_marcada"
+  | "condicao_ainda_marcada"
+  | "cadastro_ausente_ou_nao_informado"
+  | "estado_esperado_indeterminado"
+  | "registro_historico";
+
 export interface GestanteAcompanhamentoOut {
   id: number;
   nome_cidadao: string;
@@ -204,7 +287,18 @@ export interface GestanteAcompanhamentoOut {
   pratica_i_consulta_puerperio: boolean;
   pratica_j_vd_puerperio: boolean;
   pontuacao_total: number;
+  condicao_gestante_acao: AcaoCondicaoAutorreferida;
+  condicao_gestante_motivo: MotivoAcaoCondicao;
+  condicao_gestante_data_referencia: string | null; // ISO date do dump
   created_at: string; // ISO datetime
+}
+
+export interface EquipeGestanteOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_gestantes: number;
+  sem_equipe: boolean;
 }
 
 // Agregado sem dado nominal (app/schemas/gestante.py: MetricaPraticaOut/MetricasIndicadorOut)
@@ -222,6 +316,45 @@ export interface MetricasIndicadorOut {
   prefeitura_nome: string;
   total_gestantes: number;
   praticas: MetricaPraticaOut[];
+}
+
+export interface SerieHistoricaPontoOut {
+  importacao_id: number;
+  data_referencia: string;
+  total_gestantes: number;
+  praticas: MetricaPraticaOut[];
+}
+
+export type TipoParametroIndicador = "booleano" | "contagem";
+export type DimensaoComparacaoIndicador = "prefeitura" | "periodo" | "parametro";
+export type VisualizacaoIndicador = "barra" | "pizza" | "radar" | "ranking" | "evolucao";
+
+export interface ParametroIndicadorCatalogoOut {
+  codigo: string;
+  rotulo: string;
+  descricao: string;
+  tipo: TipoParametroIndicador;
+  meta: number | null;
+  filtravel: boolean;
+  ordenavel: boolean;
+}
+
+export interface IndicadorCatalogoOut {
+  codigo: string;
+  nome: string;
+  categoria: string;
+  descricao: string;
+  permissao: string;
+  parametros: ParametroIndicadorCatalogoOut[];
+  dimensoes_comparacao: DimensaoComparacaoIndicador[];
+  visualizacoes: VisualizacaoIndicador[];
+  possui_historico: boolean;
+  granularidade_historico: "importacao" | null;
+  possui_lista_nominal: boolean;
+}
+
+export interface IndicadoresCatalogoOut {
+  indicadores: IndicadorCatalogoOut[];
 }
 
 // ---------------------------------------------------------------------------

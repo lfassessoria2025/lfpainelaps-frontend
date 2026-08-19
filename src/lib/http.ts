@@ -1,4 +1,5 @@
 import type { ApiErrorBody } from "@/lib/api-types";
+import { notifyResponsibilityTermRequired } from "@/lib/responsibility-term-events";
 
 /**
  * Cliente HTTP fino. Sessão é por cookie httpOnly (`credentials: "include"`),
@@ -46,6 +47,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (!response.ok) {
     const detail =
       (data as ApiErrorBody | undefined)?.detail ?? `Erro inesperado (HTTP ${response.status}).`;
+    if (response.status === 428) notifyResponsibilityTermRequired();
     throw new ApiError(response.status, detail);
   }
 
@@ -70,6 +72,7 @@ async function getBlob(path: string, signal?: AbortSignal): Promise<DownloadResu
   if (!response.ok) {
     const isJson = response.headers.get("content-type")?.includes("application/json");
     const data = isJson ? ((await response.json()) as ApiErrorBody) : undefined;
+    if (response.status === 428) notifyResponsibilityTermRequired();
     throw new ApiError(response.status, data?.detail ?? `Erro inesperado (HTTP ${response.status}).`);
   }
 
@@ -85,6 +88,8 @@ export const http = {
     request<T>(path, { method: "POST", body, signal }),
   put: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
     request<T>(path, { method: "PUT", body, signal }),
+  patch: <T>(path: string, body?: unknown, signal?: AbortSignal) =>
+    request<T>(path, { method: "PATCH", body, signal }),
   delete: <T>(path: string, signal?: AbortSignal) =>
     request<T>(path, { method: "DELETE", signal }),
   getBlob,

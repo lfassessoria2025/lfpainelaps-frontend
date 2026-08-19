@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { AuthShell } from "@/components/layout/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -42,52 +43,55 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-8 shadow-sm">
-        <div className="mb-6 flex flex-col items-center gap-1 text-center">
-          <div className="mb-2 flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground font-semibold">
-            AP
-          </div>
-          <h1 className="text-lg font-semibold text-foreground">Painel APS</h1>
-          <p className="text-sm text-muted-foreground">
-            Entre com sua conta para acessar os dados das prefeituras.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} noValidate>
-          <FieldGroup>
-            <Field data-invalid={Boolean(error)}>
-              <FieldLabel htmlFor="email">E-mail</FieldLabel>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                aria-invalid={Boolean(error)}
-              />
-            </Field>
-            <Field data-invalid={Boolean(error)}>
-              <FieldLabel htmlFor="senha">Senha</FieldLabel>
-              <Input
-                id="senha"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={senha}
-                onChange={(event) => setSenha(event.target.value)}
-                aria-invalid={Boolean(error)}
-              />
-              {error ? <FieldError>{error}</FieldError> : null}
-            </Field>
-            <Button type="submit" disabled={isSubmitting} className="mt-2 w-full">
-              {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
-              Entrar
-            </Button>
-          </FieldGroup>
-        </form>
+    <AuthShell>
+      <div className="mb-6 flex flex-col items-center gap-1 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Bem-vindo de volta</h1>
+        <p className="text-sm text-muted-foreground">
+          Entre com sua conta para acessar os dados das prefeituras.
+        </p>
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} noValidate>
+        <FieldGroup>
+          <Field data-invalid={Boolean(error)}>
+            <FieldLabel htmlFor="email">E-mail</FieldLabel>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              aria-invalid={Boolean(error)}
+            />
+          </Field>
+          <Field data-invalid={Boolean(error)}>
+            <div className="flex items-center justify-between">
+              <FieldLabel htmlFor="senha">Senha</FieldLabel>
+              <Link
+                to="/esqueci-senha"
+                className="text-xs text-primary underline-offset-4 hover:underline"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+            <Input
+              id="senha"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              aria-invalid={Boolean(error)}
+            />
+            {error ? <FieldError>{error}</FieldError> : null}
+          </Field>
+          <Button type="submit" disabled={isSubmitting} className="mt-2 w-full">
+            {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+            Entrar
+          </Button>
+        </FieldGroup>
+      </form>
+    </AuthShell>
   );
 }

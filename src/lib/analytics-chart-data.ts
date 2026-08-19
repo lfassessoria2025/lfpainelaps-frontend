@@ -1,4 +1,4 @@
-import type { MetricasIndicadorOut } from "@/lib/api-types";
+import type { MetricasIndicadorOut, SerieHistoricaPontoOut } from "@/lib/api-types";
 
 // Chave por prefeitura_id (único de fato), nunca por nome — duas prefeituras
 // podem ter o mesmo `name` (só `ibge_code` é único no banco), e uma chave
@@ -37,4 +37,118 @@ export function montarLinhasDoGrafico(
     }
     return linha;
   });
+}
+
+export interface CumpridaSlice {
+  /** "cumprida" | "nao_cumprida" — chave estável pro <Cell>/paleta, não pro rótulo (esse é `nome`). */
+  chave: "cumprida" | "nao_cumprida";
+  nome: string;
+  valor: number;
+}
+
+/**
+ * Agregação "cumprida vs. não-cumprida" pro gráfico de pizza — soma
+ * total_cumprida e total_gestantes de TODAS as práticas de TODAS as
+ * prefeituras recebidas (v1: uma pizza única agregada; em modo comparação
+ * as prefeituras selecionadas entram na mesma soma, decisão simples pra não
+ * travar a v1 — o componente deixa "agregado" explícito no rótulo pra não
+ * passar a impressão de ser uma única prefeitura).
+ *
+ * Não existe pontuação por gestante no contrato da API (MetricaPraticaOut
+ * só tem agregado por prática), então "cumprida" aqui é soma de ocorrências
+ * de prática cumprida, não gestante cumprindo tudo.
+ *
+ * Guarda contra divisão por zero: prefeitura/prática sem gestante
+ * (total_gestantes = 0) simplesmente não soma nada, não gera NaN.
+ */
+export function montarFatiasCumprimento(dados: MetricasIndicadorOut[]): CumpridaSlice[] {
+  let totalCumprida = 0;
+  let totalOcorrencias = 0;
+
+  for (const prefeitura of dados) {
+    for (const pratica of prefeitura.praticas) {
+      totalCumprida += pratica.total_cumprida;
+      totalOcorrencias += pratica.total_gestantes;
+    }
+  }
+
+  if (totalOcorrencias === 0) return [];
+
+  const naoCumprida = totalOcorrencias - totalCumprida;
+
+  return [
+    { chave: "cumprida", nome: "Cumprida", valor: totalCumprida },
+    { chave: "nao_cumprida", nome: "Não cumprida", valor: naoCumprida },
+  ];
+}
+
+export interface RankingPrefeitura {
+  prefeitura_id: number;
+  prefeitura_nome: string;
+  percentual_cumprido: number;
+}
+
+/**
+ * Ranking geral ponderado: soma as práticas cumpridas e divide pelo total de
+ * ocorrências avaliadas. Não calcula média simples dos percentuais, pois isso
+ * daria o mesmo peso a práticas com populações diferentes.
+ */
+export function montarRankingPrefeituras(
+  dados: MetricasIndicadorOut[],
+): RankingPrefeitura[] {
+  return dados
+    .map((prefeitura) => {
+      let totalCumprida = 0;
+      let totalOcorrencias = 0;
+      for (const pratica of prefeitura.praticas) {
+        totalCumprida += pratica.total_cumprida;
+        totalOcorrencias += pratica.total_gestantes;
+      }
+      return {
+        prefeitura_id: prefeitura.prefeitura_id,
+        prefeitura_nome: prefeitura.prefeitura_nome,
+        percentual_cumprido:
+          totalOcorrencias === 0
+            ? 0
+            : Math.round((totalCumprida / totalOcorrencias) * 10000) / 100,
+      };
+    })
+    .toSorted(
+      (a, b) =>
+        b.percentual_cumprido - a.percentual_cumprido ||
+        a.prefeitura_nome.localeCompare(b.prefeitura_nome, "pt-BR") ||
+        a.prefeitura_id - b.prefeitura_id,
+    );
+}
+
+export interface SerieHistoricaPrefeitura {
+  prefeitura_id: number;
+  prefeitura_nome: string;
+  pontos: SerieHistoricaPontoOut[];
+}
+
+export function montarLinhasEvolucao(
+  series: SerieHistoricaPrefeitura[],
+): Record<string, string | number | null>[] {
+  const porData = new Map<string, Record<string, string | number | null>>();
+  for (const serie of series) {
+    for (const ponto of serie.pontos) {
+      const data = ponto.data_referencia;
+      const linha = porData.get(data) ?? { data, data_rotulo: formatarData(data) };
+      let cumpridas = 0;
+      let ocorrencias = 0;
+      for (const pratica of ponto.praticas) {
+        cumpridas += pratica.total_cumprida;
+        ocorrencias += pratica.total_gestantes;
+      }
+      linha[chaveDaSerie(serie.prefeitura_id)] =
+        ocorrencias === 0 ? 0 : Math.round((cumpridas / ocorrencias) * 10000) / 100;
+      porData.set(data, linha);
+    }
+  }
+  return [...porData.values()].toSorted((a, b) => String(a.data).localeCompare(String(b.data)));
+}
+
+function formatarData(valor: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(valor));
 }

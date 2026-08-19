@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/app-layout";
 import { ProtectedRoute } from "@/components/layout/protected-route";
+import { ResponsibilityTermRedirect } from "@/components/responsibility-terms/responsibility-term-redirect";
 import { Spinner } from "@/components/ui/spinner";
 
 // Cada página vira um chunk separado, carregado sob demanda ao navegar —
@@ -10,6 +11,12 @@ import { Spinner } from "@/components/ui/spinner";
 const LoginPage = lazy(() => import("@/pages/login-page").then((m) => ({ default: m.LoginPage })));
 const AcceptInvitePage = lazy(() =>
   import("@/pages/accept-invite-page").then((m) => ({ default: m.AcceptInvitePage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("@/pages/forgot-password-page").then((m) => ({ default: m.ForgotPasswordPage })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("@/pages/reset-password-page").then((m) => ({ default: m.ResetPasswordPage })),
 );
 const DashboardPage = lazy(() =>
   import("@/pages/dashboard-page").then((m) => ({ default: m.DashboardPage })),
@@ -27,6 +34,12 @@ const GestantesPage = lazy(() =>
 const AnalyticsPage = lazy(() =>
   import("@/pages/analytics-page").then((m) => ({ default: m.AnalyticsPage })),
 );
+const ProfilePage = lazy(() =>
+  import("@/pages/profile-page").then((m) => ({ default: m.ProfilePage })),
+);
+const ResponsibilityTermPage = lazy(() =>
+  import("@/pages/responsibility-term-page").then((m) => ({ default: m.ResponsibilityTermPage })),
+);
 const NotFoundPage = lazy(() =>
   import("@/pages/not-found-page").then((m) => ({ default: m.NotFoundPage })),
 );
@@ -42,9 +55,12 @@ function RouteFallback() {
 function App() {
   return (
     <Suspense fallback={<RouteFallback />}>
+      <ResponsibilityTermRedirect />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
+        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
@@ -54,6 +70,8 @@ function App() {
             <Route path="/importacoes" element={<ImportacoesPage />} />
             <Route path="/gestantes" element={<GestantesPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/perfil" element={<ProfilePage />} />
+            <Route path="/termo-responsabilidade" element={<ResponsibilityTermPage />} />
           </Route>
         </Route>
 

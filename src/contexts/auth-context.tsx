@@ -10,6 +10,9 @@ interface AuthContextValue {
   login: (payload: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  /** Usa o usuário já retornado por um endpoint que também emitiu cookies de
+   * sessão (ex. redefinição de senha) — evita um round-trip extra a /auth/me. */
+  setAuthenticatedUser: (user: UserOut) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -46,9 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const setAuthenticatedUser = useCallback((authenticatedUser: UserOut) => {
+    setUser(authenticatedUser);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, login, logout, refreshUser: bootstrap }),
-    [user, login, logout, bootstrap],
+    () => ({ user, login, logout, refreshUser: bootstrap, setAuthenticatedUser }),
+    [user, login, logout, bootstrap, setAuthenticatedUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

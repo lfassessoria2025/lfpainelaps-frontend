@@ -3,6 +3,7 @@ import { AlertTriangle, Plus, RefreshCw, UploadCloud } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
   Select,
@@ -154,43 +155,45 @@ export function ImportacoesPage() {
         </Empty>
       ) : (
         <div className="flex flex-col gap-3">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Criada em</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {imports.map((importacao) => {
-                const statusInfo = IMPORTACAO_STATUS_INFO[importacao.status];
-                const falha = explicarFalha(importacao.last_failure_code);
-                return (
-                  <TableRow key={importacao.id}>
-                    <TableCell className="font-medium">{importacao.display_name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Badge variant={statusInfo.variant} className="w-fit">
-                          {statusInfo.label}
-                        </Badge>
-                        {falha ? (
-                          <span className="flex items-start gap-1 text-xs text-destructive">
-                            <AlertTriangle className="mt-0.5 size-3 shrink-0" />
-                            {falha}
-                          </span>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(importacao.created_at).toLocaleString("pt-BR")}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <Alert>
+          <Card className="gap-0 border-border/60 py-0 shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Criada em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {imports.map((importacao) => {
+                  const statusInfo = IMPORTACAO_STATUS_INFO[importacao.status];
+                  const falha = explicarFalha(importacao.last_failure_code);
+                  return (
+                    <TableRow key={importacao.id}>
+                      <TableCell className="font-medium">{importacao.display_name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={statusInfo.variant} className="w-fit">
+                            {statusInfo.label}
+                          </Badge>
+                          {falha ? (
+                            <span className="flex items-start gap-1 text-xs text-destructive">
+                              <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                              {falha}
+                            </span>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(importacao.created_at).toLocaleString("pt-BR")}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
+          <Alert className="border-border/60 shadow-sm">
             <AlertTriangle />
             <AlertTitle>Substituição segura</AlertTitle>
             <AlertDescription>

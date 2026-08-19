@@ -3,6 +3,7 @@ import { Building2, Pencil, Plus, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -133,47 +134,49 @@ export function PrefeiturasPage() {
           </Button>
         </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Código IBGE</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-16 text-right">Editar</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {prefeituras.map((prefeitura) => (
-              <TableRow key={prefeitura.id}>
-                <TableCell className="font-medium">{prefeitura.name}</TableCell>
-                <TableCell className="text-muted-foreground">{prefeitura.ibge_code}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={prefeitura.active}
-                      disabled={pendingToggleId === prefeitura.id}
-                      onCheckedChange={(checked) => toggleActive(prefeitura, checked)}
-                      aria-label={`Ativar ou desativar ${prefeitura.name}`}
-                    />
-                    <Badge variant={prefeitura.active ? "default" : "secondary"}>
-                      {prefeitura.active ? "Ativa" : "Inativa"}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Editar ${prefeitura.name}`}
-                    onClick={() => openEdit(prefeitura)}
-                  >
-                    <Pencil />
-                  </Button>
-                </TableCell>
+        <Card className="gap-0 border-border/60 py-0 shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Código IBGE</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-16 text-right">Editar</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {prefeituras.map((prefeitura) => (
+                <TableRow key={prefeitura.id}>
+                  <TableCell className="font-medium">{prefeitura.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{prefeitura.ibge_code}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={prefeitura.active}
+                        disabled={pendingToggleId === prefeitura.id}
+                        onCheckedChange={(checked) => toggleActive(prefeitura, checked)}
+                        aria-label={`Ativar ou desativar ${prefeitura.name}`}
+                      />
+                      <Badge variant={prefeitura.active ? "default" : "secondary"}>
+                        {prefeitura.active ? "Ativa" : "Inativa"}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Editar ${prefeitura.name}`}
+                      onClick={() => openEdit(prefeitura)}
+                    >
+                      <Pencil />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <PrefeituraFormDialog
