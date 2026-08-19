@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/app-layout";
 import { ProtectedRoute } from "@/components/layout/protected-route";
+import { RouteErrorBoundary } from "@/components/layout/route-error-boundary";
 import { ResponsibilityTermRedirect } from "@/components/responsibility-terms/responsibility-term-redirect";
 import { ResponsibilityTermUnavailableRedirect } from "@/components/responsibility-terms/responsibility-term-unavailable-redirect";
 import { Spinner } from "@/components/ui/spinner";
@@ -60,33 +61,35 @@ function RouteFallback() {
 
 function App() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <ResponsibilityTermRedirect />
-      <ResponsibilityTermUnavailableRedirect />
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/accept-invite" element={<AcceptInvitePage />} />
-        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
-        <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+    <RouteErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
+        <ResponsibilityTermRedirect />
+        <ResponsibilityTermUnavailableRedirect />
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
+          <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+          <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
-        <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/cargos" element={<RolesPage />} />
-            <Route path="/prefeituras" element={<PrefeiturasPage />} />
-            <Route path="/importacoes" element={<ImportacoesPage />} />
-            <Route path="/gestantes" element={<GestantesPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/perfil" element={<ProfilePage />} />
-            <Route path="/termo-responsabilidade" element={<ResponsibilityTermPage />} />
-            <Route path="/termo-indisponivel" element={<ResponsibilityTermUnavailablePage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/cargos" element={<RolesPage />} />
+              <Route path="/prefeituras" element={<PrefeiturasPage />} />
+              <Route path="/importacoes" element={<ImportacoesPage />} />
+              <Route path="/gestantes" element={<GestantesPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/perfil" element={<ProfilePage />} />
+              <Route path="/termo-responsabilidade" element={<ResponsibilityTermPage />} />
+              <Route path="/termo-indisponivel" element={<ResponsibilityTermUnavailablePage />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route path="/404" element={<NotFoundPage />} />
-        <Route path="*" element={<Navigate to="/404" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="/404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
+        </Routes>
+      </Suspense>
+    </RouteErrorBoundary>
   );
 }
 
