@@ -1,5 +1,17 @@
 import type { ApiErrorBody } from "@/lib/api-types";
-import { notifyResponsibilityTermRequired } from "@/lib/responsibility-term-events";
+import {
+  notifyResponsibilityTermRequired,
+  notifyResponsibilityTermUnavailable,
+} from "@/lib/responsibility-term-events";
+
+/** Mensagem exata de `obter_usuario_com_aceite_de_saude` (app/routers/deps.py) quando
+ * nenhum termo está publicado — distingue de qualquer outro 503 genérico do backend. */
+const TERM_UNAVAILABLE_DETAIL = "Termo de responsabilidade indisponível.";
+
+function notifyIfTermGate(status: number, detail: string) {
+  if (status === 428) notifyResponsibilityTermRequired();
+  if (status === 503 && detail === TERM_UNAVAILABLE_DETAIL) notifyResponsibilityTermUnavailable();
+}
 
 /**
  * Cliente HTTP fino. Sessão é por cookie httpOnly (`credentials: "include"`),
@@ -47,7 +59,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (!response.ok) {
     const detail =
       (data as ApiErrorBody | undefined)?.detail ?? `Erro inesperado (HTTP ${response.status}).`;
-    if (response.status === 428) notifyResponsibilityTermRequired();
+    notifyIfTermGate(response.status, detail);
     throw new ApiError(response.status, detail);
   }
 
@@ -72,8 +84,9 @@ async function getBlob(path: string, signal?: AbortSignal): Promise<DownloadResu
   if (!response.ok) {
     const isJson = response.headers.get("content-type")?.includes("application/json");
     const data = isJson ? ((await response.json()) as ApiErrorBody) : undefined;
-    if (response.status === 428) notifyResponsibilityTermRequired();
-    throw new ApiError(response.status, data?.detail ?? `Erro inesperado (HTTP ${response.status}).`);
+    const detail = data?.detail ?? `Erro inesperado (HTTP ${response.status}).`;
+    notifyIfTermGate(response.status, detail);
+    throw new ApiError(response.status, detail);
   }
 
   const disposition = response.headers.get("content-disposition") ?? "";
