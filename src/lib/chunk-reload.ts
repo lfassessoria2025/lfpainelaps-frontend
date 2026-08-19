@@ -21,12 +21,23 @@ const RELOAD_GUARD_KEY = "chunk-reload-attempted";
 /**
  * Recarrega a página uma única vez por sessão de aba. Sem o guard, um chunk
  * genuinamente quebrado (não só cache velho) causaria loop infinito de reload.
+ *
+ * `sessionStorage` pode lançar (modos de navegação privada mais restritos,
+ * extensões que bloqueiam storage, políticas corporativas) — isto roda dentro
+ * de `getDerivedStateFromError`, que o React não envolve em try/catch, então
+ * uma exceção aqui escaparia do próprio Error Boundary. Falha de storage vira
+ * "não recarregar automaticamente" (degrada para o fallback manual) em vez de
+ * arriscar um crash pior que o original.
  */
 export function reloadOnceForChunkError(): boolean {
-  if (window.sessionStorage.getItem(RELOAD_GUARD_KEY) === "1") {
+  try {
+    if (window.sessionStorage.getItem(RELOAD_GUARD_KEY) === "1") {
+      return false;
+    }
+    window.sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
+  } catch {
     return false;
   }
-  window.sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
   window.location.reload();
   return true;
 }

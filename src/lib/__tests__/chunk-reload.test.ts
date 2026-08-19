@@ -1,7 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { isChunkLoadError, reloadOnceForChunkError } from "@/lib/chunk-reload";
 
-afterEach(() => window.sessionStorage.clear());
+afterEach(() => {
+  window.sessionStorage.clear();
+  vi.restoreAllMocks();
+});
 
 describe("isChunkLoadError", () => {
   it("reconhece as mensagens de falha de import dinâmico dos navegadores suportados", () => {
@@ -29,5 +32,19 @@ describe("reloadOnceForChunkError", () => {
 
     expect(reloadOnceForChunkError()).toBe(false);
     expect(reloadCalls).toBe(1);
+  });
+
+  it("não deixa exceção de sessionStorage escapar (ex.: navegação privada restritiva)", () => {
+    vi.spyOn(window.sessionStorage.__proto__, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+    let reloadCalls = 0;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...window.location, reload: () => { reloadCalls += 1; } },
+    });
+
+    expect(reloadOnceForChunkError()).toBe(false);
+    expect(reloadCalls).toBe(0);
   });
 });
