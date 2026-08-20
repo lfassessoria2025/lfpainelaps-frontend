@@ -33,7 +33,12 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/layout/page-header";
-import type { EquipeGestanteOut, GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
+import type {
+  EquipeGestanteOut,
+  GestanteAcompanhamentoOut,
+  MicroAreaGestanteOut,
+  PrefeituraOut,
+} from "@/lib/api-types";
 import { apresentarAcaoCondicao, explicarMotivoCondicao } from "@/lib/condicao-autorreferida";
 import { ApiError } from "@/lib/http";
 import {
@@ -91,6 +96,7 @@ type PresetColunas = "essenciais" | "personalizado" | "todos";
 type DensidadeTabela = "confortavel" | "compacta";
 type ColunaId =
   | "equipe"
+  | "micro-area"
   | "nascimento"
   | "ine"
   | "inicio-gestacao"
@@ -105,6 +111,7 @@ type ColunaId =
 
 const COLUNAS_FIXAS: ReadonlyArray<{ id: ColunaId; rotulo: string }> = [
   { id: "equipe", rotulo: "Equipe" },
+  { id: "micro-area", rotulo: "Micro-área" },
   { id: "nascimento", rotulo: "Nascimento" },
   { id: "ine", rotulo: "INE" },
   { id: "inicio-gestacao", rotulo: "Início gestação" },
@@ -135,6 +142,10 @@ export function GestantesPage() {
   const [equipes, setEquipes] = useState<EquipeGestanteOut[] | null>(null);
   const [equipesSelecionadas, setEquipesSelecionadas] = useState<string[]>(() =>
     [...new Set(new URLSearchParams(window.location.search).getAll("equipe"))].slice(0, 50),
+  );
+  const [microAreas, setMicroAreas] = useState<MicroAreaGestanteOut[] | null>(null);
+  const [microAreasSelecionadas, setMicroAreasSelecionadas] = useState<string[]>(() =>
+    [...new Set(new URLSearchParams(window.location.search).getAll("micro_area"))].slice(0, 50),
   );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
@@ -196,15 +207,26 @@ export function GestantesPage() {
     [],
   );
 
+  const atualizarMicroAreasSelecionadas = useCallback((proximas: string[]) => {
+    const normalizadas = [...new Set(proximas)].toSorted();
+    setMicroAreasSelecionadas(normalizadas);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("micro_area");
+    normalizadas.forEach((microArea) => url.searchParams.append("micro_area", microArea));
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
+
   const handleTrocarPrefeitura = useCallback(
     (value: string | null) => {
       if (!value) return;
       atualizarEquipesSelecionadas([]);
+      atualizarMicroAreasSelecionadas([]);
       setEquipes(null);
+      setMicroAreas(null);
       setGestantes(null);
       setSelectedId(Number(value));
     },
-    [atualizarEquipesSelecionadas],
+    [atualizarEquipesSelecionadas, atualizarMicroAreasSelecionadas],
   );
 
   const alternarEquipe = useCallback(
@@ -216,6 +238,17 @@ export function GestantesPage() {
       );
     },
     [atualizarEquipesSelecionadas, equipesSelecionadas],
+  );
+
+  const alternarMicroArea = useCallback(
+    (chave: string, selecionada: boolean) => {
+      atualizarMicroAreasSelecionadas(
+        selecionada
+          ? [...microAreasSelecionadas, chave]
+          : microAreasSelecionadas.filter((microArea) => microArea !== chave),
+      );
+    },
+    [atualizarMicroAreasSelecionadas, microAreasSelecionadas],
   );
 
   useEffect(() => {
@@ -235,6 +268,22 @@ export function GestantesPage() {
   }, [selectedId]);
 
   useEffect(() => {
+    if (selectedId === null) return;
+    const controller = new AbortController();
+    setMicroAreas(null);
+    gestanteService
+      .microAreas(selectedId, controller.signal)
+      .then((catalogo) => {
+        setMicroAreas(catalogo);
+      })
+      .catch((erro: unknown) => {
+        if (erro instanceof DOMException && erro.name === "AbortError") return;
+        setMicroAreas([]);
+      });
+    return () => controller.abort();
+  }, [selectedId]);
+
+  useEffect(() => {
     if (equipes === null) return;
     const chavesValidas = new Set(equipes.map((equipe) => equipe.chave));
     const selecoesValidas = equipesSelecionadas.filter((chave) => chavesValidas.has(chave));
@@ -243,10 +292,24 @@ export function GestantesPage() {
     }
   }, [atualizarEquipesSelecionadas, equipes, equipesSelecionadas]);
 
+  useEffect(() => {
+    if (microAreas === null) return;
+    const chavesValidas = new Set(microAreas.map((microArea) => microArea.chave));
+    const selecoesValidas = microAreasSelecionadas.filter((chave) => chavesValidas.has(chave));
+    if (selecoesValidas.length !== microAreasSelecionadas.length) {
+      atualizarMicroAreasSelecionadas(selecoesValidas);
+    }
+  }, [atualizarMicroAreasSelecionadas, microAreas, microAreasSelecionadas]);
+
   const loadGestantes = useCallback(async (signal?: AbortSignal) => {
     if (selectedId === null) return;
     try {
-      const data = await gestanteService.list(selectedId, equipesSelecionadas, signal);
+      const data = await gestanteService.list(
+        selectedId,
+        equipesSelecionadas,
+        microAreasSelecionadas,
+        signal,
+      );
       setGestantes(data);
       setLoadError(null);
       setForbidden(false);
@@ -263,7 +326,7 @@ export function GestantesPage() {
         err instanceof ApiError ? err.detail : "Não foi possível carregar os dados de gestantes.",
       );
     }
-  }, [equipesSelecionadas, selectedId]);
+  }, [equipesSelecionadas, microAreasSelecionadas, selectedId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -277,7 +340,11 @@ export function GestantesPage() {
     setExportando(true);
     setExportError(null);
     try {
-      const { blob, filename } = await gestanteService.exportar(selectedId, equipesSelecionadas);
+      const { blob, filename } = await gestanteService.exportar(
+        selectedId,
+        equipesSelecionadas,
+        microAreasSelecionadas,
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -291,7 +358,7 @@ export function GestantesPage() {
     } finally {
       setExportando(false);
     }
-  }, [equipesSelecionadas, selectedId]);
+  }, [equipesSelecionadas, microAreasSelecionadas, selectedId]);
 
   const rotuloFiltroEquipe =
     equipesSelecionadas.length === 0
@@ -301,6 +368,16 @@ export function GestantesPage() {
             ? "Sem equipe"
             : equipes?.find((equipe) => equipe.chave === equipesSelecionadas[0])?.nome ?? "1 equipe")
         : `${equipesSelecionadas.length} equipes`;
+
+  const rotuloFiltroMicroArea =
+    microAreasSelecionadas.length === 0
+      ? "Todas as micro-áreas"
+      : microAreasSelecionadas.length === 1
+        ? (microAreas?.find((item) => item.chave === microAreasSelecionadas[0])?.sem_micro_area
+            ? "Sem micro-área"
+            : microAreas?.find((item) => item.chave === microAreasSelecionadas[0])?.codigo ??
+              "1 micro-área")
+        : `${microAreasSelecionadas.length} micro-áreas`;
 
   const podeExportar = !forbidden && !loadError && gestantes !== null && gestantes.length > 0;
   const colunaVisivel = useCallback(
@@ -328,7 +405,8 @@ export function GestantesPage() {
         termo.length === 0 ||
         gestante.nome_cidadao.toLocaleLowerCase("pt-BR").includes(termo) ||
         (gestante.equipe_nome ?? "").toLocaleLowerCase("pt-BR").includes(termo) ||
-        (gestante.equipe_ine ?? "").toLocaleLowerCase("pt-BR").includes(termo);
+        (gestante.equipe_ine ?? "").toLocaleLowerCase("pt-BR").includes(termo) ||
+        (gestante.micro_area ?? "").toLocaleLowerCase("pt-BR").includes(termo);
       const praticaSelecionada = PRATICAS.find((pratica) => pratica.letra === parametroFiltro);
       const statusParaFiltro = praticaSelecionada
         ? statusDaPratica(gestante, praticaSelecionada).status
@@ -430,7 +508,9 @@ export function GestantesPage() {
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
         </div>
-      ) : gestantes.length === 0 && equipesSelecionadas.length === 0 ? (
+      ) : gestantes.length === 0 &&
+        equipesSelecionadas.length === 0 &&
+        microAreasSelecionadas.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -454,7 +534,7 @@ export function GestantesPage() {
                     type="search"
                     value={busca}
                     onChange={(event) => setBusca(event.target.value)}
-                    placeholder="Nome, equipe ou INE"
+                    placeholder="Nome, equipe, INE ou micro-área"
                     className="pl-8"
                   />
                 </div>
@@ -486,6 +566,43 @@ export function GestantesPage() {
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {equipe.ine ? `INE ${equipe.ine}` : "Sem INE"} · {equipe.total_gestantes} gestante(s)
+                            </span>
+                          </span>
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="flex min-w-52 flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Micro-área
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={<Button variant="outline" className="justify-between font-normal" />}
+                    aria-label="Filtrar por micro-área"
+                    disabled={microAreas === null || microAreas.length === 0}
+                  >
+                    <span className="truncate">
+                      {microAreas === null ? "Carregando micro-áreas…" : rotuloFiltroMicroArea}
+                    </span>
+                    <ChevronDown data-icon="inline-end" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-80" align="start">
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Micro-áreas da prefeitura</DropdownMenuLabel>
+                      {microAreas?.map((microArea) => (
+                        <DropdownMenuCheckboxItem
+                          key={microArea.chave}
+                          checked={microAreasSelecionadas.includes(microArea.chave)}
+                          closeOnClick={false}
+                          onCheckedChange={(checked) => alternarMicroArea(microArea.chave, checked)}
+                        >
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate">
+                              {microArea.sem_micro_area ? "Sem micro-área" : microArea.codigo}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {microArea.total_gestantes} gestante(s)
                             </span>
                           </span>
                         </DropdownMenuCheckboxItem>
@@ -590,6 +707,23 @@ export function GestantesPage() {
                 })}
                 <Button type="button" variant="ghost" size="sm" onClick={() => atualizarEquipesSelecionadas([])}>
                   Limpar equipes
+                </Button>
+              </div>
+            ) : null}
+            {microAreasSelecionadas.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {microAreasSelecionadas.map((chave) => {
+                  const microArea = microAreas?.find((item) => item.chave === chave);
+                  const nome = microArea?.sem_micro_area ? "Sem micro-área" : microArea?.codigo ?? chave;
+                  return <Badge key={chave} variant="outline">{nome}</Badge>;
+                })}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => atualizarMicroAreasSelecionadas([])}
+                >
+                  Limpar micro-áreas
                 </Button>
               </div>
             ) : null}
@@ -712,6 +846,7 @@ export function GestantesPage() {
                       <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                         <dt className="text-muted-foreground">Nascimento</dt><dd>{formatDate(gestante.data_nascimento)}</dd>
                         <dt className="text-muted-foreground">INE</dt><dd>{gestante.equipe_ine ?? "—"}</dd>
+                        <dt className="text-muted-foreground">Micro-área</dt><dd>{gestante.micro_area ?? "—"}</dd>
                         <dt className="text-muted-foreground">Início gestação</dt><dd>{formatDate(gestante.dt_inicio_gestacao)}</dd>
                         <dt className="text-muted-foreground">Fim gestação</dt><dd>{formatDate(gestante.dt_fim_gestacao)}</dd>
                         <dt className="text-muted-foreground">Fim puerpério</dt><dd>{formatDate(gestante.dt_fim_puerperio)}</dd>
@@ -775,6 +910,7 @@ export function GestantesPage() {
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="sticky left-0 z-[1] min-w-40 bg-muted/40">Gestante</TableHead>
                   {colunaVisivel("equipe") ? <TableHead>Equipe</TableHead> : null}
+                  {colunaVisivel("micro-area") ? <TableHead>Micro-área</TableHead> : null}
                   {colunaVisivel("nascimento") ? <TableHead>Nascimento</TableHead> : null}
                   {colunaVisivel("ine") ? <TableHead>INE</TableHead> : null}
                   {colunaVisivel("inicio-gestacao") ? <TableHead>Início gestação</TableHead> : null}
@@ -824,6 +960,9 @@ export function GestantesPage() {
                     </TableCell>
                     {colunaVisivel("equipe") ? <TableCell className="text-muted-foreground">
                       {gestante.equipe_nome ?? "—"}
+                    </TableCell> : null}
+                    {colunaVisivel("micro-area") ? <TableCell className="text-muted-foreground">
+                      {gestante.micro_area ?? "—"}
                     </TableCell> : null}
                     {colunaVisivel("nascimento") ? <TableCell>{formatDate(gestante.data_nascimento)}</TableCell> : null}
                     {colunaVisivel("ine") ? <TableCell className="font-mono text-xs">{gestante.equipe_ine ?? "—"}</TableCell> : null}

@@ -271,6 +271,7 @@ export interface GestanteAcompanhamentoOut {
   data_nascimento: string | null; // ISO date
   equipe_nome: string | null;
   equipe_ine: string | null;
+  micro_area: string | null;
   dt_inicio_gestacao: string; // ISO date
   dt_fim_gestacao: string; // ISO date
   dt_fim_puerperio: string; // ISO date
@@ -299,6 +300,13 @@ export interface EquipeGestanteOut {
   ine: string | null;
   total_gestantes: number;
   sem_equipe: boolean;
+}
+
+export interface MicroAreaGestanteOut {
+  chave: string;
+  codigo: string | null;
+  total_gestantes: number;
+  sem_micro_area: boolean;
 }
 
 // Agregado sem dado nominal (app/schemas/gestante.py: MetricaPraticaOut/MetricasIndicadorOut)
