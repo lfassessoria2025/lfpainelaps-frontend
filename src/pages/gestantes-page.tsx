@@ -11,6 +11,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
+import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -539,78 +541,38 @@ export function GestantesPage() {
                   />
                 </div>
               </label>
-              <div className="flex min-w-52 flex-col gap-1 text-xs font-medium text-muted-foreground">
-                Equipe
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={<Button variant="outline" className="justify-between font-normal" />}
-                    aria-label="Filtrar por equipe"
-                    disabled={equipes === null || equipes.length === 0}
-                  >
-                    <span className="truncate">{equipes === null ? "Carregando equipes…" : rotuloFiltroEquipe}</span>
-                    <ChevronDown data-icon="inline-end" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-80" align="start">
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Equipes da prefeitura</DropdownMenuLabel>
-                      {equipes?.map((equipe) => (
-                        <DropdownMenuCheckboxItem
-                          key={equipe.chave}
-                          checked={equipesSelecionadas.includes(equipe.chave)}
-                          closeOnClick={false}
-                          onCheckedChange={(checked) => alternarEquipe(equipe.chave, checked)}
-                        >
-                          <span className="flex min-w-0 flex-col">
-                            <span className="truncate">
-                              {equipe.sem_equipe ? "Sem equipe" : equipe.nome ?? "Equipe sem nome"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {equipe.ine ? `INE ${equipe.ine}` : "Sem INE"} · {equipe.total_gestantes} gestante(s)
-                            </span>
-                          </span>
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="flex min-w-52 flex-col gap-1 text-xs font-medium text-muted-foreground">
-                Micro-área
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={<Button variant="outline" className="justify-between font-normal" />}
-                    aria-label="Filtrar por micro-área"
-                    disabled={microAreas === null || microAreas.length === 0}
-                  >
-                    <span className="truncate">
-                      {microAreas === null ? "Carregando micro-áreas…" : rotuloFiltroMicroArea}
-                    </span>
-                    <ChevronDown data-icon="inline-end" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-80" align="start">
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Micro-áreas da prefeitura</DropdownMenuLabel>
-                      {microAreas?.map((microArea) => (
-                        <DropdownMenuCheckboxItem
-                          key={microArea.chave}
-                          checked={microAreasSelecionadas.includes(microArea.chave)}
-                          closeOnClick={false}
-                          onCheckedChange={(checked) => alternarMicroArea(microArea.chave, checked)}
-                        >
-                          <span className="flex min-w-0 flex-col">
-                            <span className="truncate">
-                              {microArea.sem_micro_area ? "Sem micro-área" : microArea.codigo}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {microArea.total_gestantes} gestante(s)
-                            </span>
-                          </span>
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <CatalogFilterDropdown
+                label="Equipe"
+                ariaLabel="Filtrar por equipe"
+                groupLabel="Equipes da prefeitura"
+                loadingLabel="Carregando equipes…"
+                summaryLabel={rotuloFiltroEquipe}
+                items={equipes}
+                selectedKeys={equipesSelecionadas}
+                getKey={(equipe) => equipe.chave}
+                getPrimaryLabel={(equipe) =>
+                  equipe.sem_equipe ? "Sem equipe" : equipe.nome ?? "Equipe sem nome"
+                }
+                getSecondaryLabel={(equipe) =>
+                  `${equipe.ine ? `INE ${equipe.ine}` : "Sem INE"} · ${equipe.total_gestantes} gestante(s)`
+                }
+                onToggle={alternarEquipe}
+              />
+              <CatalogFilterDropdown
+                label="Micro-área"
+                ariaLabel="Filtrar por micro-área"
+                groupLabel="Micro-áreas da prefeitura"
+                loadingLabel="Carregando micro-áreas…"
+                summaryLabel={rotuloFiltroMicroArea}
+                items={microAreas}
+                selectedKeys={microAreasSelecionadas}
+                getKey={(microArea) => microArea.chave}
+                getPrimaryLabel={(microArea) =>
+                  microArea.sem_micro_area ? "Sem micro-área" : microArea.codigo ?? ""
+                }
+                getSecondaryLabel={(microArea) => `${microArea.total_gestantes} gestante(s)`}
+                onToggle={alternarMicroArea}
+              />
               <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
                 Parâmetro
                 <Select
@@ -698,35 +660,24 @@ export function GestantesPage() {
                 </TabsList>
               </Tabs>
             </div>
-            {equipesSelecionadas.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {equipesSelecionadas.map((chave) => {
-                  const equipe = equipes?.find((item) => item.chave === chave);
-                  const nome = equipe?.sem_equipe ? "Sem equipe" : equipe?.nome ?? chave;
-                  return <Badge key={chave} variant="outline">{nome}</Badge>;
-                })}
-                <Button type="button" variant="ghost" size="sm" onClick={() => atualizarEquipesSelecionadas([])}>
-                  Limpar equipes
-                </Button>
-              </div>
-            ) : null}
-            {microAreasSelecionadas.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {microAreasSelecionadas.map((chave) => {
-                  const microArea = microAreas?.find((item) => item.chave === chave);
-                  const nome = microArea?.sem_micro_area ? "Sem micro-área" : microArea?.codigo ?? chave;
-                  return <Badge key={chave} variant="outline">{nome}</Badge>;
-                })}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => atualizarMicroAreasSelecionadas([])}
-                >
-                  Limpar micro-áreas
-                </Button>
-              </div>
-            ) : null}
+            <CatalogFilterChips
+              selectedKeys={equipesSelecionadas}
+              getLabel={(chave) => {
+                const equipe = equipes?.find((item) => item.chave === chave);
+                return equipe?.sem_equipe ? "Sem equipe" : equipe?.nome ?? chave;
+              }}
+              clearLabel="Limpar equipes"
+              onClear={() => atualizarEquipesSelecionadas([])}
+            />
+            <CatalogFilterChips
+              selectedKeys={microAreasSelecionadas}
+              getLabel={(chave) => {
+                const microArea = microAreas?.find((item) => item.chave === chave);
+                return microArea?.sem_micro_area ? "Sem micro-área" : microArea?.codigo ?? chave;
+              }}
+              clearLabel="Limpar micro-áreas"
+              onClear={() => atualizarMicroAreasSelecionadas([])}
+            />
             <div className="flex flex-wrap items-end gap-3">
               {presetColunas === "personalizado" ? (
                 <DropdownMenu>
