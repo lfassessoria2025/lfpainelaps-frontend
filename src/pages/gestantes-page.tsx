@@ -455,6 +455,7 @@ export function GestantesPage() {
           <Select
             value={selectedId ? String(selectedId) : undefined}
             onValueChange={handleTrocarPrefeitura}
+            disabled={prefeituras.length === 0}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione a prefeitura">
