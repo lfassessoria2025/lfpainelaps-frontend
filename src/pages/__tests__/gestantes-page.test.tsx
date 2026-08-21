@@ -5,10 +5,15 @@ import { GestantesPage } from "@/pages/gestantes-page";
 import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
-import type { EquipeGestanteOut, GestanteAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
+import type {
+  EquipeGestanteOut,
+  GestanteAcompanhamentoOut,
+  MicroAreaGestanteOut,
+  PrefeituraOut,
+} from "@/lib/api-types";
 
 vi.mock("@/services/gestante", () => ({
-  gestanteService: { list: vi.fn(), equipes: vi.fn(), exportar: vi.fn() },
+  gestanteService: { list: vi.fn(), equipes: vi.fn(), microAreas: vi.fn(), exportar: vi.fn() },
 }));
 vi.mock("@/services/prefeituras", () => ({
   prefeiturasService: { list: vi.fn() },
@@ -23,9 +28,14 @@ const EQUIPES: EquipeGestanteOut[] = [
   { chave: "nome:ESF Rural", nome: "ESF Rural", ine: null, total_gestantes: 1, sem_equipe: false },
   { chave: "sem-equipe", nome: null, ine: null, total_gestantes: 1, sem_equipe: true },
 ];
+const MICRO_AREAS: MicroAreaGestanteOut[] = [
+  { chave: "001", codigo: "001", total_gestantes: 1, sem_micro_area: false },
+  { chave: "sem-micro-area", codigo: null, total_gestantes: 1, sem_micro_area: true },
+];
 
 beforeEach(() => {
   mockedGestanteService.equipes.mockResolvedValue(EQUIPES);
+  mockedGestanteService.microAreas.mockResolvedValue(MICRO_AREAS);
 });
 
 afterEach(() => {
@@ -38,6 +48,7 @@ const GESTANTE: GestanteAcompanhamentoOut = {
   data_nascimento: "1995-04-10",
   equipe_nome: "ESF Centro",
   equipe_ine: "0001",
+  micro_area: "001",
   dt_inicio_gestacao: "2025-01-01",
   dt_fim_gestacao: "2025-10-01",
   dt_fim_puerperio: "2025-12-01",
@@ -186,6 +197,7 @@ describe("GestantesPage", () => {
       expect(mockedGestanteService.list).toHaveBeenLastCalledWith(
         PREFEITURA.id,
         ["ine:0001", "sem-equipe"],
+        [],
         expect.any(AbortSignal),
       );
     });
@@ -203,11 +215,50 @@ describe("GestantesPage", () => {
     const createObjectURL = vi.fn(() => "blob:equipes");
     vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
     await user.click(screen.getByRole("button", { name: /baixar planilha/i }));
-    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id, [
-      "ine:0001",
-      "sem-equipe",
-    ]);
+    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(
+      PREFEITURA.id,
+      ["ine:0001", "sem-equipe"],
+      [],
+    );
     vi.unstubAllGlobals();
+  });
+
+  it("filtra por múltiplas micro-áreas e mantém lista e URL no mesmo recorte", async () => {
+    const gestanteSemMicroArea = {
+      ...GESTANTE,
+      id: 13,
+      nome_cidadao: "Rita Sem Micro-área",
+      micro_area: null,
+    };
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockImplementation(async (_prefeituraId, _equipes = [], microAreas = []) =>
+      microAreas.includes("001") || microAreas.includes("sem-micro-area")
+        ? [GESTANTE, gestanteSemMicroArea]
+        : [GESTANTE],
+    );
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+
+    await user.click(screen.getByRole("button", { name: "Filtrar por micro-área" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: /^001/ }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: /Sem micro-área/i }));
+
+    await waitFor(() => {
+      expect(mockedGestanteService.list).toHaveBeenLastCalledWith(
+        PREFEITURA.id,
+        [],
+        ["001", "sem-micro-area"],
+        expect.any(AbortSignal),
+      );
+    });
+    expect(new URLSearchParams(window.location.search).getAll("micro_area")).toEqual([
+      "001",
+      "sem-micro-area",
+    ]);
+    expect(screen.getByText("2 micro-áreas")).toBeInTheDocument();
+    expect(screen.getAllByText("Rita Sem Micro-área").length).toBeGreaterThan(0);
   });
 
   it("limpa equipes ao trocar de prefeitura e carrega somente o novo catálogo", async () => {
@@ -237,7 +288,7 @@ describe("GestantesPage", () => {
 
     await waitFor(() => expect(mockedGestanteService.equipes).toHaveBeenLastCalledWith(2, expect.any(AbortSignal)));
     expect(window.location.search).toBe("");
-    expect(mockedGestanteService.list).toHaveBeenLastCalledWith(2, [], expect.any(AbortSignal));
+    expect(mockedGestanteService.list).toHaveBeenLastCalledWith(2, [], [], expect.any(AbortSignal));
   });
 
   it("filtra e ordena pelo parâmetro individual selecionado", async () => {
@@ -389,6 +440,7 @@ describe("GestantesPage", () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([]);
     mockedGestanteService.equipes.mockResolvedValue([]);
+    mockedGestanteService.microAreas.mockResolvedValue([]);
 
     render(<GestantesPage />);
 
@@ -433,7 +485,7 @@ describe("GestantesPage", () => {
 
     await userEvent.click(botao);
 
-    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id, []);
+    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id, [], []);
     expect(createObjectURL).toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
 
