@@ -227,7 +227,7 @@ export function AnalyticsPage() {
           <span className="text-sm font-medium">{comparandoPrefeituras ? "Prefeituras" : "Prefeitura"}</span>
           {prefeituras === null ? <Skeleton className="h-9 w-full" /> : comparandoPrefeituras ? <div className="grid max-h-32 gap-2 overflow-auto rounded-lg border p-3 sm:grid-cols-2">
             {prefeituras.map((item) => <label key={item.id} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={selectedIds.has(item.id)} onCheckedChange={(checked) => toggleSelecionada(item.id, checked === true)} />{item.name}</label>)}
-          </div> : <Select value={selectedId ? String(selectedId) : undefined} onValueChange={(value) => value && setSelectedId(Number(value))}>
+          </div> : <Select value={selectedId ? String(selectedId) : undefined} onValueChange={(value) => value && setSelectedId(Number(value))} disabled={prefeituras.length === 0}>
             <SelectTrigger className="w-full"><SelectValue placeholder="Selecione a prefeitura" /></SelectTrigger>
             <SelectContent><SelectGroup>{prefeituras.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}</SelectGroup></SelectContent>
           </Select>}

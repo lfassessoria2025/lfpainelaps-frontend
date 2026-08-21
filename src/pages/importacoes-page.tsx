@@ -104,6 +104,7 @@ export function ImportacoesPage() {
           <Select
             value={selectedId ? String(selectedId) : undefined}
             onValueChange={(value) => value && setSelectedId(Number(value))}
+            disabled={prefeituras.length === 0}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione a prefeitura">

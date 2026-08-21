@@ -447,6 +447,17 @@ describe("GestantesPage", () => {
     expect(await screen.findByText("Nenhuma gestante em acompanhamento")).toBeInTheDocument();
   });
 
+  it("desabilita o seletor de prefeitura quando não há nenhuma cadastrada", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([]);
+
+    render(<GestantesPage />);
+
+    expect(
+      await screen.findByText("Cadastre uma prefeitura para visualizar o indicador de gestantes."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toBeDisabled();
+  });
+
   it("mostra mensagem de acesso negado quando a API retorna 403", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockRejectedValue(
