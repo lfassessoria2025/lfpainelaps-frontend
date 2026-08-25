@@ -40,7 +40,35 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+// Access token dura só alguns minutos (ver access_token_ttl_minutes no
+// backend) — sem isto, qualquer tarefa mais longa que a validade (ex.: uma
+// sessão em que a pessoa demorou pra escolher o dump) derrubava a pessoa no
+// meio, mesmo com refresh token ainda válido por dias. O refresh usa cookie
+// HttpOnly próprio (path=/auth), então basta chamar o endpoint — nunca lemos
+// o token aqui.
+const CAMINHOS_SEM_RENOVACAO = new Set(["/auth/login", "/auth/refresh"]);
+let renovacaoEmAndamento: Promise<boolean> | null = null;
+
+function tentarRenovarSessao(): Promise<boolean> {
+  if (!renovacaoEmAndamento) {
+    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((resposta) => resposta.ok)
+      .catch(() => false)
+      .finally(() => {
+        renovacaoEmAndamento = null;
+      });
+  }
+  return renovacaoEmAndamento;
+}
+
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+  jaTentouRenovar = false,
+): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? "GET",
     credentials: "include",
@@ -51,6 +79,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (response.status === 204) {
     return undefined as T;
+  }
+
+  if (
+    response.status === 401 &&
+    !jaTentouRenovar &&
+    !CAMINHOS_SEM_RENOVACAO.has(path) &&
+    (await tentarRenovarSessao())
+  ) {
+    return request<T>(path, options, true);
   }
 
   const isJson = response.headers.get("content-type")?.includes("application/json");
@@ -74,12 +111,20 @@ interface DownloadResult {
 const CONTENT_DISPOSITION_FILENAME = /filename="?([^"]+)"?/;
 
 /** Download binário (ex.: exportação em planilha) — não passa pelo parser JSON de `request`. */
-async function getBlob(path: string, signal?: AbortSignal): Promise<DownloadResult> {
+async function getBlob(
+  path: string,
+  signal?: AbortSignal,
+  jaTentouRenovar = false,
+): Promise<DownloadResult> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "GET",
     credentials: "include",
     signal,
   });
+
+  if (response.status === 401 && !jaTentouRenovar && (await tentarRenovarSessao())) {
+    return getBlob(path, signal, true);
+  }
 
   if (!response.ok) {
     const isJson = response.headers.get("content-type")?.includes("application/json");
