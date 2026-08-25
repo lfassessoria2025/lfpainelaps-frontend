@@ -21,6 +21,14 @@ export const IMPORTACAO_STATUS_INFO: Record<
   expirado: { label: "Expirado", variant: "destructive" },
 };
 
+/** Espelha `_EXCLUIVEIS` em app/usecases/importacoes.py — nunca em
+ * processamento ativo nem concluído (tem gestante_acompanhamento dependente). */
+export const IMPORTACAO_STATUS_EXCLUIVEL = new Set<ImportacaoStatus>([
+  "aguardando_upload",
+  "falhou",
+  "expirado",
+]);
+
 /**
  * Explicação legível dos códigos de falha (`last_failure_code`), espelhando a
  * constraint `ck_importacao_failure_code` de `app/models/importacao.py`.

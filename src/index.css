@@ -145,3 +145,17 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Barra de progresso de upload (NewImportDialog) — desloca o degradê do
+   preenchimento continuamente enquanto o status é "indeterminate" (fase de
+   confirmação, sem bytes contáveis), reforçando "ainda trabalhando" sem
+   depender só do texto. Ignorada por completo com prefers-reduced-motion,
+   já coberto pela regra global acima. */
+@keyframes progress-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
