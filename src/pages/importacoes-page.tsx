@@ -1,10 +1,30 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Plus, RefreshCw, UploadCloud } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, RefreshCw, Trash2, UploadCloud } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -14,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -22,9 +43,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NewImportDialog } from "@/components/importacoes/new-import-dialog";
 import { PageHeader } from "@/components/layout/page-header";
-import { IMPORTACAO_STATUS_INFO, explicarFalha } from "@/lib/importacao-status";
+import {
+  IMPORTACAO_STATUS_EXCLUIVEL,
+  IMPORTACAO_STATUS_INFO,
+  explicarFalha,
+} from "@/lib/importacao-status";
 import { IMPORTACAO_STATUS_EM_ANDAMENTO } from "@/lib/api-types";
 import type { ImportacaoOut, PrefeituraOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
@@ -33,6 +59,125 @@ import { prefeiturasService } from "@/services/prefeituras";
 
 const POLL_INTERVAL_MS = 5000;
 
+// ImportacaoOut não carrega o id da prefeitura (é implícito na URL) — a tela
+// precisa dele para montar as chamadas de renomear/excluir/continuar.
+type ImportacaoComPrefeitura = ImportacaoOut & { prefeituraId: number };
+
+function RenameImportDialog({
+  importacao,
+  onOpenChange,
+  onRenamed,
+}: {
+  importacao: ImportacaoComPrefeitura;
+  onOpenChange: (open: boolean) => void;
+  onRenamed: () => void;
+}) {
+  const [nome, setNome] = useState(importacao.display_name);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleConfirm() {
+    if (!nome.trim()) {
+      setError("Informe um nome.");
+      return;
+    }
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await importacoesService.rename(importacao.prefeituraId, importacao.id, nome.trim());
+      onRenamed();
+      onOpenChange(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.detail : "Não foi possível renomear.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Renomear importação</DialogTitle>
+          <DialogDescription>Só o rótulo muda; o processamento não é afetado.</DialogDescription>
+        </DialogHeader>
+        <Field data-invalid={Boolean(error)}>
+          <FieldLabel htmlFor="rename-import">Nome</FieldLabel>
+          <Input
+            id="rename-import"
+            value={nome}
+            onChange={(event) => setNome(event.target.value)}
+            aria-invalid={Boolean(error)}
+            autoFocus
+          />
+          {error ? <FieldError>{error}</FieldError> : null}
+        </Field>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirm} disabled={isSubmitting}>
+            {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteImportDialog({
+  importacao,
+  onOpenChange,
+  onDeleted,
+}: {
+  importacao: ImportacaoComPrefeitura;
+  onOpenChange: (open: boolean) => void;
+  onDeleted: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleConfirm() {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await importacoesService.remove(importacao.prefeituraId, importacao.id);
+      onDeleted();
+      onOpenChange(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.detail : "Não foi possível excluir.");
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <AlertDialog open onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir importação</AlertDialogTitle>
+          <AlertDialogDescription>
+            "{importacao.display_name}" vai sumir da lista. Se ela estava bloqueando novos envios
+            para esta prefeitura, o bloqueio é liberado. Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {error ? (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isSubmitting}>Voltar</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" onClick={handleConfirm} disabled={isSubmitting}>
+            {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export function ImportacoesPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -40,6 +185,9 @@ export function ImportacoesPage() {
   const [imports, setImports] = useState<ImportacaoOut[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [newImportOpen, setNewImportOpen] = useState(false);
+  const [resumeTarget, setResumeTarget] = useState<ImportacaoComPrefeitura | null>(null);
+  const [renameTarget, setRenameTarget] = useState<ImportacaoComPrefeitura | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ImportacaoComPrefeitura | null>(null);
 
   useEffect(() => {
     prefeiturasService
@@ -163,12 +311,19 @@ export function ImportacoesPage() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Criada em</TableHead>
+                  <TableHead className="w-0">
+                    <span className="sr-only">Ações</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {imports.map((importacao) => {
                   const statusInfo = IMPORTACAO_STATUS_INFO[importacao.status];
                   const falha = explicarFalha(importacao.last_failure_code);
+                  const comPrefeitura: ImportacaoComPrefeitura | null =
+                    selectedId === null ? null : { ...importacao, prefeituraId: selectedId };
+                  const podeExcluir = IMPORTACAO_STATUS_EXCLUIVEL.has(importacao.status);
+                  const podeContinuar = importacao.status === "aguardando_upload";
                   return (
                     <TableRow key={importacao.id}>
                       <TableCell className="font-medium">{importacao.display_name}</TableCell>
@@ -187,6 +342,55 @@ export function ImportacoesPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(importacao.created_at).toLocaleString("pt-BR")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          {podeContinuar && comPrefeitura ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setResumeTarget(comPrefeitura)}
+                            >
+                              Continuar envio
+                            </Button>
+                          ) : null}
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Renomear ${importacao.display_name}`}
+                                  disabled={!comPrefeitura}
+                                  onClick={() => comPrefeitura && setRenameTarget(comPrefeitura)}
+                                />
+                              }
+                            >
+                              <Pencil />
+                            </TooltipTrigger>
+                            <TooltipContent>Renomear</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Excluir ${importacao.display_name}`}
+                                  disabled={!podeExcluir || !comPrefeitura}
+                                  onClick={() => comPrefeitura && setDeleteTarget(comPrefeitura)}
+                                />
+                              }
+                            >
+                              <Trash2 className={podeExcluir ? "text-destructive" : undefined} />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {podeExcluir
+                                ? "Excluir"
+                                : "Só é possível excluir enquanto aguarda envio, com falha ou expirada"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -211,6 +415,35 @@ export function ImportacoesPage() {
           onOpenChange={setNewImportOpen}
           prefeituraId={selectedId}
           onCompleted={() => void loadImports()}
+        />
+      ) : null}
+
+      {resumeTarget ? (
+        <NewImportDialog
+          open
+          onOpenChange={(open) => !open && setResumeTarget(null)}
+          prefeituraId={resumeTarget.prefeituraId}
+          resumeImport={resumeTarget}
+          onCompleted={() => {
+            setResumeTarget(null);
+            void loadImports();
+          }}
+        />
+      ) : null}
+
+      {renameTarget ? (
+        <RenameImportDialog
+          importacao={renameTarget}
+          onOpenChange={(open) => !open && setRenameTarget(null)}
+          onRenamed={() => void loadImports()}
+        />
+      ) : null}
+
+      {deleteTarget ? (
+        <DeleteImportDialog
+          importacao={deleteTarget}
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          onDeleted={() => void loadImports()}
         />
       ) : null}
     </div>

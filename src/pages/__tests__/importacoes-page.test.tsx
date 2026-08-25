@@ -1,0 +1,128 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ImportacoesPage } from "@/pages/importacoes-page";
+import { importacoesService } from "@/services/importacoes";
+import { prefeiturasService } from "@/services/prefeituras";
+import type { ImportacaoOut, PrefeituraOut } from "@/lib/api-types";
+
+vi.mock("@/services/importacoes", () => ({
+  importacoesService: {
+    list: vi.fn(),
+    get: vi.fn(),
+    start: vi.fn(),
+    uploadInstructions: vi.fn(),
+    confirmUpload: vi.fn(),
+    uploadFile: vi.fn(),
+    rename: vi.fn(),
+    remove: vi.fn(),
+  },
+}));
+vi.mock("@/services/prefeituras", () => ({
+  prefeiturasService: { list: vi.fn() },
+}));
+
+const mockedImportacoesService = vi.mocked(importacoesService);
+const mockedPrefeiturasService = vi.mocked(prefeiturasService);
+
+const PREFEITURA: PrefeituraOut = { id: 1, ibge_code: "3500000", name: "Jeriquara", active: true };
+
+function importacao(overrides: Partial<ImportacaoOut> = {}): ImportacaoOut {
+  return {
+    id: "aaaaaaaa-0000-0000-0000-000000000001",
+    status: "falhou",
+    display_name: "backup semana 32",
+    expected_size_bytes: 1024,
+    created_at: "2026-08-25T00:00:00Z",
+    last_failure_code: "object_absent",
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+});
+
+describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
+  it("renomeia uma importação e recarrega a lista", async () => {
+    mockedImportacoesService.list.mockResolvedValue([importacao()]);
+    mockedImportacoesService.rename.mockResolvedValue(importacao({ display_name: "novo nome" }));
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+    await screen.findByText("backup semana 32");
+
+    await user.click(screen.getByRole("button", { name: /renomear backup semana 32/i }));
+    const campo = await screen.findByLabelText("Nome");
+    await user.clear(campo);
+    await user.type(campo, "novo nome");
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => {
+      expect(mockedImportacoesService.rename).toHaveBeenCalledWith(
+        PREFEITURA.id,
+        importacao().id,
+        "novo nome",
+      );
+    });
+    expect(mockedImportacoesService.list).toHaveBeenCalledTimes(2);
+  });
+
+  it("exclui uma importação com falha após confirmação", async () => {
+    mockedImportacoesService.list.mockResolvedValue([importacao()]);
+    mockedImportacoesService.remove.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+    await screen.findByText("backup semana 32");
+
+    await user.click(screen.getByRole("button", { name: /excluir backup semana 32/i }));
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Excluir" }));
+
+    await waitFor(() => {
+      expect(mockedImportacoesService.remove).toHaveBeenCalledWith(PREFEITURA.id, importacao().id);
+    });
+  });
+
+  it("desabilita o botão de excluir para importação concluída", async () => {
+    mockedImportacoesService.list.mockResolvedValue([importacao({ status: "concluido", last_failure_code: null })]);
+
+    render(<ImportacoesPage />);
+    await screen.findByText("backup semana 32");
+
+    expect(screen.getByRole("button", { name: /excluir backup semana 32/i })).toBeDisabled();
+  });
+
+  it("mostra 'Continuar envio' só para importação aguardando upload e reaproveita o mesmo id", async () => {
+    const travada = importacao({ status: "aguardando_upload", last_failure_code: null });
+    mockedImportacoesService.list.mockResolvedValue([travada]);
+    mockedImportacoesService.uploadInstructions.mockResolvedValue({
+      url: "https://r2.example.test/upload",
+      method: "PUT",
+      headers: {},
+      expires_at: "2026-08-25T01:00:00Z",
+    });
+    mockedImportacoesService.uploadFile.mockResolvedValue(undefined);
+    mockedImportacoesService.confirmUpload.mockResolvedValue(importacao({ status: "recebido" }));
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+    await screen.findByText("backup semana 32");
+
+    await user.click(screen.getByRole("button", { name: "Continuar envio" }));
+    expect(await screen.findByText(/retomar o envio/i)).toBeInTheDocument();
+
+    const arquivo = new File(["conteudo"], "backup.dump", { type: "application/octet-stream" });
+    await user.upload(screen.getByLabelText("Arquivo do dump"), arquivo);
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await waitFor(() => {
+      expect(mockedImportacoesService.uploadInstructions).toHaveBeenCalledWith(
+        PREFEITURA.id,
+        travada.id,
+      );
+    });
+    expect(mockedImportacoesService.start).not.toHaveBeenCalled();
+  });
+});
