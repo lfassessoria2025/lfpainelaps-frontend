@@ -232,6 +232,11 @@ export interface ImportacaoOut {
   expected_size_bytes: number;
   created_at: string; // ISO datetime
   last_failure_code: string | null;
+  /** Metadados opcionais de acompanhamento. Versões anteriores da API não os
+   * retornam; a interface continua mostrando apenas o que consegue afirmar. */
+  updated_at?: string; // ISO datetime da última transição persistida
+  processing_heartbeat_at?: string | null; // ISO datetime do último sinal do worker
+  restoration_attempts?: number;
 }
 
 export interface ImportacaoCreate {

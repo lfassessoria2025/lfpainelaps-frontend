@@ -21,6 +21,7 @@ vi.mock("@/services/importacoes", () => ({
     completeMultipart: vi.fn(),
     abortMultipart: vi.fn(),
     rename: vi.fn(),
+    retry: vi.fn(),
     remove: vi.fn(),
   },
 }));
@@ -66,7 +67,8 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
     expect(within(etapas).getByText("Extração e publicação")).toBeInTheDocument();
     expect(within(etapas).getByText("Concluída")).toBeInTheDocument();
     expect(within(etapas).getByText("em andamento")).toBeInTheDocument();
-    expect(within(etapas).getByText(/informações atualizadas às/i)).toBeInTheDocument();
+    expect(within(etapas).getByText(/em processamento há/i)).toBeInTheDocument();
+    expect(within(etapas).getByText(/tela consultada às/i)).toBeInTheDocument();
     expect(within(etapas).queryByText(/%/)).not.toBeInTheDocument();
   });
 
@@ -77,6 +79,22 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
 
     expect(await screen.findByText("O arquivo enviado não foi encontrado no armazenamento.")).toBeInTheDocument();
     expect(screen.getByText(/processamento interrompido; consulte a mensagem de falha abaixo/i)).toBeInTheDocument();
+  });
+
+  it("permite retomar uma falha sem pedir novo arquivo", async () => {
+    const falha = importacao({ last_failure_code: "extracao_transient" });
+    mockedImportacoesService.list.mockResolvedValue([falha]);
+    mockedImportacoesService.retry.mockResolvedValue(importacao({ status: "staging_restaurado", last_failure_code: null }));
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+    await screen.findByText("backup semana 32");
+    await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    await waitFor(() => {
+      expect(mockedImportacoesService.retry).toHaveBeenCalledWith(PREFEITURA.id, falha.id);
+    });
+    expect(mockedImportacoesService.list).toHaveBeenCalledTimes(2);
   });
 
   it("renomeia uma importação e recarrega a lista", async () => {

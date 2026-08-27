@@ -50,14 +50,35 @@ function rotuloDoEstado(estado: EtapaEstado): string {
   return "aguardando";
 }
 
+function tempoDecorrido(desde: Date, agora: Date): string {
+  const segundos = Math.max(0, Math.floor((agora.getTime() - desde.getTime()) / 1000));
+  if (segundos < 60) return "menos de 1 minuto";
+  const minutos = Math.floor(segundos / 60);
+  if (minutos < 60) return `${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  const minutosRestantes = minutos % 60;
+  return minutosRestantes > 0 ? `${horas} h ${minutosRestantes} min` : `${horas} h`;
+}
+
 export function ImportProcessingTimeline({
   status,
-  updatedAt,
+  createdAt,
+  processUpdatedAt,
+  heartbeatAt,
+  attempts,
+  observedAt,
 }: {
   status: ImportacaoStatus;
-  updatedAt: Date | null;
+  createdAt: Date;
+  processUpdatedAt?: Date | null;
+  heartbeatAt?: Date | null;
+  attempts?: number;
+  /** Horário da última consulta da tela, não confundir com progresso do worker. */
+  observedAt: Date | null;
 }) {
   const interrompida = status === "falhou" || status === "expirado";
+  const emAndamento = !interrompida && status !== "concluido";
+  const referenciaDoProcesso = heartbeatAt ?? processUpdatedAt ?? createdAt;
 
   return (
     <section aria-label="Etapas do processamento" className="flex flex-col gap-2">
@@ -101,9 +122,19 @@ export function ImportProcessingTimeline({
         </p>
       ) : null}
 
-      {updatedAt ? (
-        <p className="text-xs text-muted-foreground" aria-live="polite">
-          Informações atualizadas às {updatedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.
+      {emAndamento ? (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" aria-live="polite">
+          <span>Em processamento há {tempoDecorrido(createdAt, observedAt ?? new Date())}.</span>
+          {attempts && attempts > 0 ? <span>Tentativa do worker: {attempts}.</span> : null}
+          <span>
+            {heartbeatAt ? "Último sinal do worker" : "Última alteração registrada"} há {tempoDecorrido(referenciaDoProcesso, observedAt ?? new Date())}.
+          </span>
+        </div>
+      ) : null}
+
+      {observedAt ? (
+        <p className="text-xs text-muted-foreground">
+          Tela consultada às {observedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}; atualização automática a cada 5 segundos.
         </p>
       ) : null}
     </section>

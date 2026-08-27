@@ -426,7 +426,14 @@ export function ImportacoesPage() {
                       </TableRow>
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={4} className="bg-muted/20 py-3">
-                          <ImportProcessingTimeline status={importacao.status} updatedAt={importsUpdatedAt} />
+                          <ImportProcessingTimeline
+                            status={importacao.status}
+                            createdAt={new Date(importacao.created_at)}
+                            processUpdatedAt={importacao.updated_at ? new Date(importacao.updated_at) : null}
+                            heartbeatAt={importacao.processing_heartbeat_at ? new Date(importacao.processing_heartbeat_at) : null}
+                            attempts={importacao.restoration_attempts}
+                            observedAt={importsUpdatedAt}
+                          />
                         </TableCell>
                       </TableRow>
                     </Fragment>
