@@ -40,10 +40,38 @@ function importacao(overrides: Partial<ImportacaoOut> = {}): ImportacaoOut {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
 });
 
 describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
+  it("mostra as fases reais sem porcentagem para uma importação em validação", async () => {
+    mockedImportacoesService.list.mockResolvedValue([
+      importacao({ status: "validando", last_failure_code: null }),
+    ]);
+
+    render(<ImportacoesPage />);
+
+    const etapas = await screen.findByRole("region", { name: "Etapas do processamento" });
+    expect(within(etapas).getByText("Envio")).toBeInTheDocument();
+    expect(within(etapas).getByText("Validação")).toBeInTheDocument();
+    expect(within(etapas).getByText("Restauração")).toBeInTheDocument();
+    expect(within(etapas).getByText("Extração e publicação")).toBeInTheDocument();
+    expect(within(etapas).getByText("Concluída")).toBeInTheDocument();
+    expect(within(etapas).getByText("em andamento")).toBeInTheDocument();
+    expect(within(etapas).getByText(/informações atualizadas às/i)).toBeInTheDocument();
+    expect(within(etapas).queryByText(/%/)).not.toBeInTheDocument();
+  });
+
+  it("explica uma falha com mensagem segura sem afirmar uma etapa incorreta", async () => {
+    mockedImportacoesService.list.mockResolvedValue([importacao({ status: "falhou" })]);
+
+    render(<ImportacoesPage />);
+
+    expect(await screen.findByText("O arquivo enviado não foi encontrado no armazenamento.")).toBeInTheDocument();
+    expect(screen.getByText(/processamento interrompido; consulte a mensagem de falha abaixo/i)).toBeInTheDocument();
+  });
+
   it("renomeia uma importação e recarrega a lista", async () => {
     mockedImportacoesService.list.mockResolvedValue([importacao()]);
     mockedImportacoesService.rename.mockResolvedValue(importacao({ display_name: "novo nome" }));

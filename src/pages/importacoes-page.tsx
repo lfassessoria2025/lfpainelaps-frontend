@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Pencil, Plus, RefreshCw, Trash2, UploadCloud } from "lucide-react";
 import {
   AlertDialog,
@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NewImportDialog } from "@/components/importacoes/new-import-dialog";
+import { ImportProcessingTimeline } from "@/components/importacoes/import-processing-timeline";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   IMPORTACAO_STATUS_EXCLUIVEL,
@@ -183,6 +184,7 @@ export function ImportacoesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [imports, setImports] = useState<ImportacaoOut[] | null>(null);
+  const [importsUpdatedAt, setImportsUpdatedAt] = useState<Date | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [newImportOpen, setNewImportOpen] = useState(false);
   const [resumeTarget, setResumeTarget] = useState<ImportacaoComPrefeitura | null>(null);
@@ -205,6 +207,7 @@ export function ImportacoesPage() {
     try {
       const data = await importacoesService.list(selectedId);
       setImports(data);
+      setImportsUpdatedAt(new Date());
       setLoadError(null);
     } catch (err) {
       setLoadError(
@@ -215,6 +218,7 @@ export function ImportacoesPage() {
 
   useEffect(() => {
     setImports(null);
+    setImportsUpdatedAt(null);
     void loadImports();
   }, [loadImports]);
 
@@ -325,74 +329,81 @@ export function ImportacoesPage() {
                   const podeExcluir = IMPORTACAO_STATUS_EXCLUIVEL.has(importacao.status);
                   const podeContinuar = importacao.status === "aguardando_upload";
                   return (
-                    <TableRow key={importacao.id}>
-                      <TableCell className="font-medium">{importacao.display_name}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge variant={statusInfo.variant} className="w-fit">
-                            {statusInfo.label}
-                          </Badge>
-                          {falha ? (
-                            <span className="flex items-start gap-1 text-xs text-destructive">
-                              <AlertTriangle className="mt-0.5 size-3 shrink-0" />
-                              {falha}
-                            </span>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(importacao.created_at).toLocaleString("pt-BR")}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          {podeContinuar && comPrefeitura ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setResumeTarget(comPrefeitura)}
-                            >
-                              Continuar envio
-                            </Button>
-                          ) : null}
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={`Renomear ${importacao.display_name}`}
-                                  disabled={!comPrefeitura}
-                                  onClick={() => comPrefeitura && setRenameTarget(comPrefeitura)}
-                                />
-                              }
-                            >
-                              <Pencil />
-                            </TooltipTrigger>
-                            <TooltipContent>Renomear</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={`Excluir ${importacao.display_name}`}
-                                  disabled={!podeExcluir || !comPrefeitura}
-                                  onClick={() => comPrefeitura && setDeleteTarget(comPrefeitura)}
-                                />
-                              }
-                            >
-                              <Trash2 className={podeExcluir ? "text-destructive" : undefined} />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {podeExcluir
-                                ? "Excluir"
-                                : "Só é possível excluir enquanto aguarda envio, com falha ou expirada"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <Fragment key={importacao.id}>
+                      <TableRow>
+                        <TableCell className="font-medium">{importacao.display_name}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={statusInfo.variant} className="w-fit">
+                              {statusInfo.label}
+                            </Badge>
+                            {falha ? (
+                              <span className="flex items-start gap-1 text-xs text-destructive">
+                                <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                                {falha}
+                              </span>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(importacao.created_at).toLocaleString("pt-BR")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            {podeContinuar && comPrefeitura ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setResumeTarget(comPrefeitura)}
+                              >
+                                Continuar envio
+                              </Button>
+                            ) : null}
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={`Renomear ${importacao.display_name}`}
+                                    disabled={!comPrefeitura}
+                                    onClick={() => comPrefeitura && setRenameTarget(comPrefeitura)}
+                                  />
+                                }
+                              >
+                                <Pencil />
+                              </TooltipTrigger>
+                              <TooltipContent>Renomear</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={`Excluir ${importacao.display_name}`}
+                                    disabled={!podeExcluir || !comPrefeitura}
+                                    onClick={() => comPrefeitura && setDeleteTarget(comPrefeitura)}
+                                  />
+                                }
+                              >
+                                <Trash2 className={podeExcluir ? "text-destructive" : undefined} />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {podeExcluir
+                                  ? "Excluir"
+                                  : "Só é possível excluir enquanto aguarda envio, com falha ou expirada"}
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={4} className="bg-muted/20 py-3">
+                          <ImportProcessingTimeline status={importacao.status} updatedAt={importsUpdatedAt} />
+                        </TableCell>
+                      </TableRow>
+                    </Fragment>
                   );
                 })}
               </TableBody>
