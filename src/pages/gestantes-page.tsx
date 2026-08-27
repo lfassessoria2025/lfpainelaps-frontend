@@ -855,11 +855,6 @@ export function GestantesPage() {
               <span className="size-2.5 rounded-full bg-muted-foreground/40" /> Pendente
             </span>
           </div>
-          <PaginacaoGestantes
-            paginaAtual={paginaAtual}
-            totalPaginas={totalPaginas}
-            onChange={trocarPagina}
-          />
           {/* Coluna "Gestante" sticky usa z-[1], não z-10: o Sidebar
               (position: fixed) também usa z-10 — no mesmo nível, a ordem do
               DOM decide, e a tabela (renderizada depois) pintava por cima da
