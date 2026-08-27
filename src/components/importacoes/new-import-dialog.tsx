@@ -14,6 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Progress, ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { ApiError } from "@/lib/http";
+import {
+  clearMultipartUploadState,
+  loadMultipartUploadState,
+  saveMultipartUploadState,
+} from "@/lib/multipart-upload-state";
 import { cn } from "@/lib/utils";
 import type { ImportacaoOut } from "@/lib/api-types";
 import { importacoesService } from "@/services/importacoes";
@@ -38,8 +43,15 @@ const STEP_LABEL: Record<Exclude<Step, "form">, string> = {
   confirming: "Confirmando upload…",
 };
 
+const MULTIPART_CONCURRENCY = 3;
+
 function formatMegabytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function partBounds(partNumber: number, partSize: number, fileSize: number) {
+  const start = (partNumber - 1) * partSize;
+  return { start, end: Math.min(start + partSize, fileSize) };
 }
 
 export function NewImportDialog({
@@ -74,6 +86,11 @@ export function NewImportDialog({
       setError("Selecione o arquivo de backup (dump).");
       return;
     }
+    const selectedFile = file;
+    if (resumeImport && selectedFile.size !== resumeImport.expected_size_bytes) {
+      setError("O arquivo selecionado tem tamanho diferente do backup que estava sendo enviado.");
+      return;
+    }
     setError(null);
     setProgresso(0);
 
@@ -84,17 +101,78 @@ export function NewImportDialog({
             setStep("starting");
             const importacao = await importacoesService.start(prefeituraId, {
               display_name: displayName,
-              expected_size_bytes: file.size,
+              expected_size_bytes: selectedFile.size,
             });
             return importacao.id;
           })();
 
       setStep("uploading");
-      const instructions = await importacoesService.uploadInstructions(prefeituraId, importId);
-      await importacoesService.uploadFile(instructions, file, setProgresso);
+      const session = await importacoesService.startMultipart(prefeituraId, importId);
+      if (!session.part_size_bytes || !session.total_parts) {
+        throw new Error("A sessão de envio retornou dados inválidos.");
+      }
+
+      const saved = loadMultipartUploadState(prefeituraId, importId);
+      const etags = new Map<number, string>();
+      if (saved && saved.fileSize === selectedFile.size && saved.fileName === selectedFile.name) {
+        for (const part of saved.parts) etags.set(part.part_number, part.etag);
+      }
+
+      // O backend/R2 determina quais partes existem. Só ignoramos uma parte se
+      // também temos o ETag técnico dela para completar a sessão com segurança.
+      const uploaded = new Set(session.uploaded_parts.filter((part) => etags.has(part)));
+      let bytesSent = 0;
+      for (const partNumber of uploaded) {
+        const bounds = partBounds(partNumber, session.part_size_bytes, selectedFile.size);
+        bytesSent += bounds.end - bounds.start;
+      }
+      setProgresso(bytesSent / selectedFile.size);
+
+      const pending: number[] = [];
+      for (let partNumber = 1; partNumber <= session.total_parts; partNumber += 1) {
+        if (!uploaded.has(partNumber)) pending.push(partNumber);
+      }
+      let next = 0;
+      async function uploadNextPart() {
+        while (next < pending.length) {
+          const partNumber = pending[next++];
+          const { start, end } = partBounds(partNumber, session.part_size_bytes, selectedFile.size);
+          const size = end - start;
+          let loaded = 0;
+          const instructions = await importacoesService.uploadPartInstructions(
+            prefeituraId,
+            importId,
+            partNumber,
+          );
+          const etag = await importacoesService.uploadPart(instructions, selectedFile.slice(start, end), (current) => {
+            bytesSent += current - loaded;
+            loaded = current;
+            setProgresso(Math.min(1, bytesSent / selectedFile.size));
+          });
+          // Alguns navegadores não enviam o evento final de progresso.
+          bytesSent += size - loaded;
+          setProgresso(Math.min(1, bytesSent / selectedFile.size));
+          etags.set(partNumber, etag);
+          saveMultipartUploadState({
+            prefeituraId,
+            importId,
+            fileName: selectedFile.name,
+            fileSize: selectedFile.size,
+            parts: [...etags.entries()].map(([part_number, etag]) => ({ part_number, etag })),
+          });
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(MULTIPART_CONCURRENCY, pending.length) }, uploadNextPart));
 
       setStep("confirming");
-      await importacoesService.confirmUpload(prefeituraId, importId);
+      await importacoesService.completeMultipart(
+        prefeituraId,
+        importId,
+        [...etags.entries()]
+          .map(([part_number, etag]) => ({ part_number, etag }))
+          .sort((left, right) => left.part_number - right.part_number),
+      );
+      clearMultipartUploadState(prefeituraId, importId);
 
       onOpenChange(false);
       onCompleted();

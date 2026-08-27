@@ -246,6 +246,23 @@ export interface UploadInstructionsOut {
   expires_at: string; // ISO datetime
 }
 
+/** Contrato de upload multipart. O servidor é a fonte de verdade para as
+ * partes concluídas; o navegador nunca persiste URLs pré-assinadas. */
+export interface MultipartSessionOut {
+  part_size_bytes: number;
+  total_parts: number;
+  uploaded_parts: number[];
+}
+
+export interface MultipartPartOut extends UploadInstructionsOut {
+  part_number: number;
+}
+
+export interface MultipartCompletePart {
+  part_number: number;
+  etag: string;
+}
+
 // ---------------------------------------------------------------------------
 // Indicador C3 — gestante/puerpério (app/schemas/gestante.py)
 // ---------------------------------------------------------------------------

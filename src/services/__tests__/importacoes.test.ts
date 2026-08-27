@@ -19,6 +19,7 @@ class XhrFalso {
   onerror: (() => void) | null = null;
   onabort: (() => void) | null = null;
   private headers: Record<string, string> = {};
+  private responseHeaders: Record<string, string> = {};
   private enviado = false;
 
   open(_method: string, _url: string) {
@@ -40,11 +41,42 @@ class XhrFalso {
   get headersEnviados() {
     return this.headers;
   }
+
+  getResponseHeader(nome: string) {
+    return this.responseHeaders[nome] ?? null;
+  }
+
+  setResponseHeader(nome: string, valor: string) {
+    this.responseHeaders[nome] = valor;
+  }
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
   XhrFalso.ultima = null;
+});
+
+describe("importacoesService.uploadPart", () => {
+  it("devolve o ETag confirmado pelo R2 e não requer guardar a URL", async () => {
+    vi.stubGlobal("XMLHttpRequest", XhrFalso as unknown as typeof XMLHttpRequest);
+    const promise = importacoesService.uploadPart(INSTRUCOES, new Blob(["parte"]));
+    const xhr = XhrFalso.ultima!;
+    xhr.setResponseHeader("ETag", '"parte-confirmada"');
+    xhr.status = 200;
+    xhr.onload?.();
+
+    await expect(promise).resolves.toBe('"parte-confirmada"');
+  });
+
+  it("rejeita sucesso sem ETag para não completar objeto sem integridade", async () => {
+    vi.stubGlobal("XMLHttpRequest", XhrFalso as unknown as typeof XMLHttpRequest);
+    const promise = importacoesService.uploadPart(INSTRUCOES, new Blob(["parte"]));
+    const xhr = XhrFalso.ultima!;
+    xhr.status = 200;
+    xhr.onload?.();
+
+    await expect(promise).rejects.toThrow(/não confirmou a parte/i);
+  });
 });
 
 describe("importacoesService.uploadFile", () => {

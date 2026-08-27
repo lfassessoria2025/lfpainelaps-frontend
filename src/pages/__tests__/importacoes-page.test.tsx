@@ -14,6 +14,12 @@ vi.mock("@/services/importacoes", () => ({
     uploadInstructions: vi.fn(),
     confirmUpload: vi.fn(),
     uploadFile: vi.fn(),
+    startMultipart: vi.fn(),
+    getMultipart: vi.fn(),
+    uploadPartInstructions: vi.fn(),
+    uploadPart: vi.fn(),
+    completeMultipart: vi.fn(),
+    abortMultipart: vi.fn(),
     rename: vi.fn(),
     remove: vi.fn(),
   },
@@ -123,16 +129,14 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
   });
 
   it("mostra 'Continuar envio' só para importação aguardando upload e reaproveita o mesmo id", async () => {
-    const travada = importacao({ status: "aguardando_upload", last_failure_code: null });
+    const travada = importacao({ status: "aguardando_upload", last_failure_code: null, expected_size_bytes: 8 });
     mockedImportacoesService.list.mockResolvedValue([travada]);
-    mockedImportacoesService.uploadInstructions.mockResolvedValue({
-      url: "https://r2.example.test/upload",
-      method: "PUT",
-      headers: {},
-      expires_at: "2026-08-25T01:00:00Z",
+    mockedImportacoesService.startMultipart.mockResolvedValue({ part_size_bytes: 5, total_parts: 1, uploaded_parts: [] });
+    mockedImportacoesService.uploadPartInstructions.mockResolvedValue({
+      part_number: 1, url: "https://r2.example.test/upload", method: "PUT", headers: {}, expires_at: "2026-08-25T01:00:00Z",
     });
-    mockedImportacoesService.uploadFile.mockResolvedValue(undefined);
-    mockedImportacoesService.confirmUpload.mockResolvedValue(importacao({ status: "recebido" }));
+    mockedImportacoesService.uploadPart.mockResolvedValue('"etag"');
+    mockedImportacoesService.completeMultipart.mockResolvedValue(importacao({ status: "recebido" }));
     const user = userEvent.setup();
 
     render(<ImportacoesPage />);
@@ -146,7 +150,7 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
     await user.click(screen.getByRole("button", { name: "Enviar" }));
 
     await waitFor(() => {
-      expect(mockedImportacoesService.uploadInstructions).toHaveBeenCalledWith(
+      expect(mockedImportacoesService.startMultipart).toHaveBeenCalledWith(
         PREFEITURA.id,
         travada.id,
       );
