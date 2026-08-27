@@ -1,5 +1,16 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Baby, ChevronDown, Download, Loader2, Lock, Search, Settings2, ShieldAlert } from "lucide-react";
+import {
+  Baby,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Loader2,
+  Lock,
+  Search,
+  Settings2,
+  ShieldAlert,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -135,6 +146,79 @@ const COLUNAS_TODAS: ColunaId[] = [
   ...COLUNAS_FIXAS.map(({ id }) => id),
   ...PRATICAS.map(({ letra }) => `pratica-${letra}` as ColunaId),
 ];
+const ITENS_POR_PAGINA = 20;
+
+function paginasProximas(paginaAtual: number, totalPaginas: number): Array<number | "ellipsis"> {
+  if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, indice) => indice + 1);
+  if (paginaAtual <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPaginas];
+  if (paginaAtual >= totalPaginas - 3) {
+    return [1, "ellipsis", totalPaginas - 4, totalPaginas - 3, totalPaginas - 2, totalPaginas - 1, totalPaginas];
+  }
+  return [1, "ellipsis", paginaAtual - 1, paginaAtual, paginaAtual + 1, "ellipsis", totalPaginas];
+}
+
+function PaginacaoGestantes({
+  paginaAtual,
+  totalPaginas,
+  onChange,
+}: {
+  paginaAtual: number;
+  totalPaginas: number;
+  onChange: (pagina: number) => void;
+}) {
+  if (totalPaginas <= 1) return null;
+  return (
+    <nav
+      className="flex flex-wrap items-center justify-center gap-1 border-t pt-3"
+      aria-label="Paginação de gestantes"
+    >
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => onChange(paginaAtual - 1)}
+        disabled={paginaAtual === 1}
+        aria-label="Página anterior"
+      >
+        <ChevronLeft />
+        <span className="hidden sm:inline">Anterior</span>
+      </Button>
+      <div className="flex items-center gap-1" aria-label={`Página ${paginaAtual} de ${totalPaginas}`}>
+        {paginasProximas(paginaAtual, totalPaginas).map((pagina, indice) =>
+          pagina === "ellipsis" ? (
+            <span key={`ellipsis-${indice}`} className="px-1 text-sm text-muted-foreground" aria-hidden>
+              …
+            </span>
+          ) : (
+            <Button
+              key={pagina}
+              type="button"
+              variant={pagina === paginaAtual ? "default" : "ghost"}
+              size="sm"
+              className="min-w-8 px-2 tabular-nums"
+              onClick={() => onChange(pagina)}
+              aria-current={pagina === paginaAtual ? "page" : undefined}
+              aria-label={`Página ${pagina}`}
+            >
+              {pagina}
+            </Button>
+          ),
+        )}
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => onChange(paginaAtual + 1)}
+        disabled={paginaAtual === totalPaginas}
+        aria-label="Próxima página"
+      >
+        <span className="hidden sm:inline">Próxima</span>
+        <ChevronRight />
+      </Button>
+    </nav>
+  );
+}
 
 export function GestantesPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
@@ -165,6 +249,7 @@ export function GestantesPage() {
   ]);
   const [densidade, setDensidade] = useState<DensidadeTabela>("confortavel");
   const [cardsExpandidos, setCardsExpandidos] = useState<number[]>([]);
+  const [pagina, setPagina] = useState(1);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollAffordance, setScrollAffordance] = useState<ScrollAffordanceState>({
@@ -431,6 +516,23 @@ export function GestantesPage() {
       return a.nome_cidadao.localeCompare(b.nome_cidadao, "pt-BR");
     });
   }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro]);
+  const totalPaginas = Math.max(1, Math.ceil(gestantesFiltradas.length / ITENS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicioDaPagina = (paginaAtual - 1) * ITENS_POR_PAGINA;
+  const gestantesDaPagina = useMemo(
+    () => gestantesFiltradas.slice(inicioDaPagina, inicioDaPagina + ITENS_POR_PAGINA),
+    [gestantesFiltradas, inicioDaPagina],
+  );
+
+  useEffect(() => {
+    setPagina(1);
+    setCardsExpandidos([]);
+  }, [buscaDeferred, equipesSelecionadas, gestantes, microAreasSelecionadas, ordenacao, parametroFiltro, selectedId, statusFiltro]);
+
+  const trocarPagina = useCallback((proximaPagina: number) => {
+    setPagina(proximaPagina);
+    setCardsExpandidos([]);
+  }, []);
 
   return (
     <div className="min-w-0">
@@ -648,7 +750,8 @@ export function GestantesPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground" aria-live="polite">
                 <strong className="font-semibold text-foreground">{gestantesFiltradas.length}</strong>{" "}
-                de {gestantes.length} gestantes
+                de {gestantes.length} gestantes · Exibindo {gestantesFiltradas.length === 0 ? 0 : inicioDaPagina + 1}–
+                {Math.min(inicioDaPagina + ITENS_POR_PAGINA, gestantesFiltradas.length)}
               </p>
               <Tabs
                 value={presetColunas}
@@ -752,13 +855,18 @@ export function GestantesPage() {
               <span className="size-2.5 rounded-full bg-muted-foreground/40" /> Pendente
             </span>
           </div>
+          <PaginacaoGestantes
+            paginaAtual={paginaAtual}
+            totalPaginas={totalPaginas}
+            onChange={trocarPagina}
+          />
           {/* Coluna "Gestante" sticky usa z-[1], não z-10: o Sidebar
               (position: fixed) também usa z-10 — no mesmo nível, a ordem do
               DOM decide, e a tabela (renderizada depois) pintava por cima da
               sidebar durante o scroll horizontal (FLO-40). z-[1] fica acima
               das outras células da tabela, mas abaixo da sidebar. */}
           <div className="flex flex-col gap-3 md:hidden" aria-label="Gestantes encontradas">
-            {gestantesFiltradas.map((gestante) => {
+            {gestantesDaPagina.map((gestante) => {
               const statusGeral = statusGeralDaGestante(gestante);
               const expandido = cardsExpandidos.includes(gestante.id);
               return (
@@ -893,7 +1001,7 @@ export function GestantesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {gestantesFiltradas.map((gestante) => {
+            {gestantesDaPagina.map((gestante) => {
                   const statusGeral = statusGeralDaGestante(gestante);
                   return (
                   <TableRow key={gestante.id}>
@@ -968,6 +1076,11 @@ export function GestantesPage() {
             </Table>
             </Card>
           </div>
+          <PaginacaoGestantes
+            paginaAtual={paginaAtual}
+            totalPaginas={totalPaginas}
+            onChange={trocarPagina}
+          />
         </>
       )}
     </div>

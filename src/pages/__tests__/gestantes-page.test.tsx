@@ -170,6 +170,33 @@ describe("GestantesPage", () => {
     expect(within(linhas[2]).getByText("Ana Souza")).toBeInTheDocument();
   });
 
+  it("pagina a lista e retorna à primeira página ao aplicar uma busca", async () => {
+    const muitasGestantes = Array.from({ length: 21 }, (_, indice) => ({
+      ...GESTANTE,
+      id: indice + 1,
+      nome_cidadao: `Gestante ${String(indice + 1).padStart(2, "0")}`,
+    }));
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue(muitasGestantes);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+
+    expect(await screen.findByText(/Exibindo 1–20/)).toBeInTheDocument();
+    expect(screen.queryByText("Gestante 21")).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("button", { name: "Próxima página" })[0]);
+    expect((await screen.findAllByText("Gestante 21")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Exibindo 21–21/).length).toBeGreaterThan(0);
+
+    await user.type(
+      screen.getByRole("searchbox", { name: /buscar gestante ou equipe/i }),
+      "Gestante 01",
+    );
+    expect(await screen.findByText(/Exibindo 1–1/)).toBeInTheDocument();
+    expect(screen.getAllByText("Gestante 01").length).toBeGreaterThan(0);
+  });
+
   it("filtra por múltiplas equipes e mantém lista e URL no mesmo recorte", async () => {
     const gestanteSemEquipe = {
       ...GESTANTE,
