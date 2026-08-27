@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Pencil, Plus, RefreshCw, Trash2, UploadCloud } from "lucide-react";
 import {
   AlertDialog,
@@ -35,14 +35,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { NewImportDialog } from "@/components/importacoes/new-import-dialog";
 import { ImportProcessingTimeline } from "@/components/importacoes/import-processing-timeline";
@@ -55,6 +47,7 @@ import {
 import { IMPORTACAO_STATUS_EM_ANDAMENTO } from "@/lib/api-types";
 import type { ImportacaoOut, PrefeituraOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
+import { cn } from "@/lib/utils";
 import { importacoesService } from "@/services/importacoes";
 import { prefeiturasService } from "@/services/prefeituras";
 
@@ -322,49 +315,49 @@ export function ImportacoesPage() {
         </Empty>
       ) : (
         <div className="flex flex-col gap-3">
-          <Card className="gap-0 border-border/60 py-0 shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Criada em</TableHead>
-                  <TableHead className="w-0">
-                    <span className="sr-only">Ações</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {imports.map((importacao) => {
-                  const statusInfo = IMPORTACAO_STATUS_INFO[importacao.status];
-                  const falha = explicarFalha(importacao.last_failure_code);
-                  const comPrefeitura: ImportacaoComPrefeitura | null =
-                    selectedId === null ? null : { ...importacao, prefeituraId: selectedId };
-                  const podeExcluir = IMPORTACAO_STATUS_EXCLUIVEL.has(importacao.status);
-                  const podeContinuar = importacao.status === "aguardando_upload";
-                  const podeRepetir = importacao.status === "falhou";
-                  return (
-                    <Fragment key={importacao.id}>
-                      <TableRow>
-                        <TableCell className="font-medium">{importacao.display_name}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge variant={statusInfo.variant} className="w-fit">
-                              {statusInfo.label}
-                            </Badge>
-                            {falha ? (
-                              <span className="flex items-start gap-1 text-xs text-destructive">
-                                <AlertTriangle className="mt-0.5 size-3 shrink-0" />
-                                {falha}
-                              </span>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(importacao.created_at).toLocaleString("pt-BR")}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-1">
+          {imports.map((importacao) => {
+            const statusInfo = IMPORTACAO_STATUS_INFO[importacao.status];
+            const falha = explicarFalha(importacao.last_failure_code);
+            const comPrefeitura: ImportacaoComPrefeitura | null =
+              selectedId === null ? null : { ...importacao, prefeituraId: selectedId };
+            const podeExcluir = IMPORTACAO_STATUS_EXCLUIVEL.has(importacao.status);
+            const podeContinuar = importacao.status === "aguardando_upload";
+            const podeRepetir = importacao.status === "falhou";
+            const emAndamento = IMPORTACAO_STATUS_EM_ANDAMENTO.has(importacao.status);
+            return (
+              <Card
+                key={importacao.id}
+                aria-label={`Importação ${importacao.display_name}`}
+                className={cn(
+                  "gap-0 overflow-hidden border-border/60 py-0 shadow-sm transition-shadow",
+                  emAndamento && "border-primary/30 shadow-primary/5 motion-safe:shadow-md",
+                )}
+              >
+                <div className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,1.5fr)_auto_auto] sm:items-start">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Nome</p>
+                    <h2 className="truncate font-medium">{importacao.display_name}</h2>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <div className="flex items-center gap-2">
+                      {emAndamento ? <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-primary motion-safe:animate-pulse" /> : null}
+                      <Badge variant={statusInfo.variant} className="w-fit">
+                        {statusInfo.label}
+                      </Badge>
+                    </div>
+                    {falha ? (
+                      <span className="flex items-start gap-1 text-xs text-destructive" role="status">
+                        <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                        {falha}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <p className="text-xs">Criada em</p>
+                    <time dateTime={importacao.created_at}>{new Date(importacao.created_at).toLocaleString("pt-BR")}</time>
+                  </div>
+                  <div className="flex items-center justify-end gap-1">
                             {podeContinuar && comPrefeitura ? (
                               <Button
                                 variant="outline"
@@ -421,27 +414,21 @@ export function ImportacoesPage() {
                                   : "Só é possível excluir enquanto aguarda envio, com falha ou expirada"}
                               </TooltipContent>
                             </Tooltip>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={4} className="bg-muted/20 py-3">
-                          <ImportProcessingTimeline
-                            status={importacao.status}
-                            createdAt={new Date(importacao.created_at)}
-                            processUpdatedAt={importacao.updated_at ? new Date(importacao.updated_at) : null}
-                            heartbeatAt={importacao.processing_heartbeat_at ? new Date(importacao.processing_heartbeat_at) : null}
-                            attempts={importacao.restoration_attempts}
-                            observedAt={importsUpdatedAt}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    </Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Card>
+                  </div>
+                </div>
+                <div className="border-t bg-muted/20 px-4 py-3">
+                  <ImportProcessingTimeline
+                    status={importacao.status}
+                    createdAt={new Date(importacao.created_at)}
+                    processUpdatedAt={importacao.updated_at ? new Date(importacao.updated_at) : null}
+                    heartbeatAt={importacao.processing_heartbeat_at ? new Date(importacao.processing_heartbeat_at) : null}
+                    attempts={importacao.restoration_attempts}
+                    observedAt={importsUpdatedAt}
+                  />
+                </div>
+              </Card>
+            );
+          })}
           <Alert className="border-border/60 shadow-sm">
             <AlertTriangle />
             <AlertTitle>Substituição segura</AlertTitle>

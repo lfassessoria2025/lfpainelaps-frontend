@@ -1,4 +1,4 @@
-import { CheckIcon, CircleAlertIcon, Clock3Icon } from "lucide-react";
+import { CheckIcon, Clock3Icon } from "lucide-react";
 import type { ImportacaoStatus } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
 
@@ -114,13 +114,6 @@ export function ImportProcessingTimeline({
           );
         })}
       </ol>
-
-      {interrompida ? (
-        <p className="flex items-center gap-1 text-xs text-destructive" role="status">
-          <CircleAlertIcon className="size-3.5" />
-          Processamento interrompido; consulte a mensagem de falha abaixo.
-        </p>
-      ) : null}
 
       {emAndamento ? (
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" aria-live="polite">

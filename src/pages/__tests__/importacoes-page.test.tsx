@@ -72,13 +72,13 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
     expect(within(etapas).queryByText(/%/)).not.toBeInTheDocument();
   });
 
-  it("explica uma falha com mensagem segura sem afirmar uma etapa incorreta", async () => {
+  it("explica uma falha uma única vez, no status da importação", async () => {
     mockedImportacoesService.list.mockResolvedValue([importacao({ status: "falhou" })]);
 
     render(<ImportacoesPage />);
 
     expect(await screen.findByText("O arquivo enviado não foi encontrado no armazenamento.")).toBeInTheDocument();
-    expect(screen.getByText(/processamento interrompido; consulte a mensagem de falha abaixo/i)).toBeInTheDocument();
+    expect(screen.queryByText(/processamento interrompido/i)).not.toBeInTheDocument();
   });
 
   it("permite retomar uma falha sem pedir novo arquivo", async () => {
