@@ -251,7 +251,10 @@ export interface UploadInstructionsOut {
 export interface MultipartSessionOut {
   part_size_bytes: number;
   total_parts: number;
+  /** Mantido enquanto houver clientes anteriores. Para retomar/completar, use
+   * accepted_parts, que inclui o ETag confirmado pelo armazenamento. */
   uploaded_parts: number[];
+  accepted_parts: MultipartCompletePart[];
 }
 
 export interface MultipartPartOut extends UploadInstructionsOut {

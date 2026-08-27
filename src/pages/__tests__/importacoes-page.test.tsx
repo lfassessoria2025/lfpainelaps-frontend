@@ -47,6 +47,7 @@ function importacao(overrides: Partial<ImportacaoOut> = {}): ImportacaoOut {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
 });
 
@@ -128,14 +129,19 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
     expect(screen.getByRole("button", { name: /excluir backup semana 32/i })).toBeDisabled();
   });
 
-  it("mostra 'Continuar envio' só para importação aguardando upload e reaproveita o mesmo id", async () => {
+  it("retoma após refresh sem reenviar partes já aceitas e completa com todos os ETags", async () => {
     const travada = importacao({ status: "aguardando_upload", last_failure_code: null, expected_size_bytes: 8 });
     mockedImportacoesService.list.mockResolvedValue([travada]);
-    mockedImportacoesService.startMultipart.mockResolvedValue({ part_size_bytes: 5, total_parts: 1, uploaded_parts: [] });
+    mockedImportacoesService.getMultipart.mockResolvedValue({
+      part_size_bytes: 5,
+      total_parts: 2,
+      uploaded_parts: [1],
+      accepted_parts: [{ part_number: 1, etag: '"etag-ja-confirmado"' }],
+    });
     mockedImportacoesService.uploadPartInstructions.mockResolvedValue({
       part_number: 1, url: "https://r2.example.test/upload", method: "PUT", headers: {}, expires_at: "2026-08-25T01:00:00Z",
     });
-    mockedImportacoesService.uploadPart.mockResolvedValue('"etag"');
+    mockedImportacoesService.uploadPart.mockResolvedValue('"etag-parte-2"');
     mockedImportacoesService.completeMultipart.mockResolvedValue(importacao({ status: "recebido" }));
     const user = userEvent.setup();
 
@@ -150,11 +156,28 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
     await user.click(screen.getByRole("button", { name: "Enviar" }));
 
     await waitFor(() => {
-      expect(mockedImportacoesService.startMultipart).toHaveBeenCalledWith(
+      expect(mockedImportacoesService.getMultipart).toHaveBeenCalledWith(
         PREFEITURA.id,
         travada.id,
       );
     });
+    expect(mockedImportacoesService.startMultipart).not.toHaveBeenCalled();
     expect(mockedImportacoesService.start).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockedImportacoesService.uploadPartInstructions).toHaveBeenCalledTimes(1);
+      expect(mockedImportacoesService.uploadPartInstructions).toHaveBeenCalledWith(
+        PREFEITURA.id,
+        travada.id,
+        2,
+      );
+      expect(mockedImportacoesService.completeMultipart).toHaveBeenCalledWith(
+        PREFEITURA.id,
+        travada.id,
+        [
+          { part_number: 1, etag: '"etag-ja-confirmado"' },
+          { part_number: 2, etag: '"etag-parte-2"' },
+        ],
+      );
+    });
   });
 });

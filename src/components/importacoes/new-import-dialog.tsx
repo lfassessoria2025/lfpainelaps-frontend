@@ -14,11 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Progress, ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { ApiError } from "@/lib/http";
-import {
-  clearMultipartUploadState,
-  loadMultipartUploadState,
-  saveMultipartUploadState,
-} from "@/lib/multipart-upload-state";
 import { cn } from "@/lib/utils";
 import type { ImportacaoOut } from "@/lib/api-types";
 import { importacoesService } from "@/services/importacoes";
@@ -107,20 +102,22 @@ export function NewImportDialog({
           })();
 
       setStep("uploading");
-      const session = await importacoesService.startMultipart(prefeituraId, importId);
+      const session = resumeImport
+        ? await importacoesService.getMultipart(prefeituraId, importId)
+        : await importacoesService.startMultipart(prefeituraId, importId);
       if (!session.part_size_bytes || !session.total_parts) {
         throw new Error("A sessão de envio retornou dados inválidos.");
       }
 
-      const saved = loadMultipartUploadState(prefeituraId, importId);
-      const etags = new Map<number, string>();
-      if (saved && saved.fileSize === selectedFile.size && saved.fileName === selectedFile.name) {
-        for (const part of saved.parts) etags.set(part.part_number, part.etag);
-      }
+      // Depois de refresh, não dependemos de estado no navegador.
+      // A sessão no backend/R2 é a fonte de verdade: cada accepted_part já vem
+      // com o ETag necessário para completar sem reenviar esta parte. URLs
+      // pré-assinadas e identificadores da sessão opaca nunca são persistidos.
+      const etags = new Map(
+        session.accepted_parts.map(({ part_number, etag }) => [part_number, etag]),
+      );
 
-      // O backend/R2 determina quais partes existem. Só ignoramos uma parte se
-      // também temos o ETag técnico dela para completar a sessão com segurança.
-      const uploaded = new Set(session.uploaded_parts.filter((part) => etags.has(part)));
+      const uploaded = new Set(etags.keys());
       let bytesSent = 0;
       for (const partNumber of uploaded) {
         const bounds = partBounds(partNumber, session.part_size_bytes, selectedFile.size);
@@ -153,13 +150,6 @@ export function NewImportDialog({
           bytesSent += size - loaded;
           setProgresso(Math.min(1, bytesSent / selectedFile.size));
           etags.set(partNumber, etag);
-          saveMultipartUploadState({
-            prefeituraId,
-            importId,
-            fileName: selectedFile.name,
-            fileSize: selectedFile.size,
-            parts: [...etags.entries()].map(([part_number, etag]) => ({ part_number, etag })),
-          });
         }
       }
       await Promise.all(Array.from({ length: Math.min(MULTIPART_CONCURRENCY, pending.length) }, uploadNextPart));
@@ -172,7 +162,6 @@ export function NewImportDialog({
           .map(([part_number, etag]) => ({ part_number, etag }))
           .sort((left, right) => left.part_number - right.part_number),
       );
-      clearMultipartUploadState(prefeituraId, importId);
 
       onOpenChange(false);
       onCompleted();
