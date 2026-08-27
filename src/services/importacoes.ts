@@ -39,6 +39,8 @@ export const importacoesService = {
     http.patch<ImportacaoOut>(`/prefeituras/${prefeituraId}/imports/${publicId}`, {
       display_name: displayName,
     }),
+  retry: (prefeituraId: number, publicId: string) =>
+    http.post<ImportacaoOut>(`/prefeituras/${prefeituraId}/imports/${publicId}/retry`),
   remove: (prefeituraId: number, publicId: string) =>
     http.delete<void>(`/prefeituras/${prefeituraId}/imports/${publicId}`),
   /**

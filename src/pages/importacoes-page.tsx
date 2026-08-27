@@ -190,6 +190,7 @@ export function ImportacoesPage() {
   const [resumeTarget, setResumeTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [renameTarget, setRenameTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImportacaoComPrefeitura | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   useEffect(() => {
     prefeiturasService
@@ -230,6 +231,19 @@ export function ImportacoesPage() {
     const interval = setInterval(() => void loadImports(), POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [imports, loadImports]);
+
+  async function retryImport(importacao: ImportacaoComPrefeitura) {
+    setRetryingId(importacao.id);
+    setLoadError(null);
+    try {
+      await importacoesService.retry(importacao.prefeituraId, importacao.id);
+      await loadImports();
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.detail : "Não foi possível retomar a importação.");
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   return (
     <div>
@@ -328,6 +342,7 @@ export function ImportacoesPage() {
                     selectedId === null ? null : { ...importacao, prefeituraId: selectedId };
                   const podeExcluir = IMPORTACAO_STATUS_EXCLUIVEL.has(importacao.status);
                   const podeContinuar = importacao.status === "aguardando_upload";
+                  const podeRepetir = importacao.status === "falhou";
                   return (
                     <Fragment key={importacao.id}>
                       <TableRow>
@@ -357,6 +372,17 @@ export function ImportacoesPage() {
                                 onClick={() => setResumeTarget(comPrefeitura)}
                               >
                                 Continuar envio
+                              </Button>
+                            ) : null}
+                            {podeRepetir && comPrefeitura ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={retryingId === importacao.id}
+                                onClick={() => void retryImport(comPrefeitura)}
+                              >
+                                {retryingId === importacao.id ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
+                                Tentar novamente
                               </Button>
                             ) : null}
                             <Tooltip>

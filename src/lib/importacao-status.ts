@@ -51,6 +51,8 @@ export function explicarFalha(code: string | null): string | null {
     pg_restore_failed: "A restauração do dump falhou.",
     staging_restore_transient: "Falha temporária ao restaurar o arquivo. Tente novamente.",
     staging_busy: "O ambiente de restauração está ocupado com outra importação.",
+    extracao_transient: "A leitura do ambiente de restauração oscilou. O sistema tentará novamente automaticamente.",
+    extracao_falhou: "A extração não foi concluída. Você pode tentar novamente sem reenviar o arquivo.",
   };
   return explicacoes[code] ?? `Falha técnica (código: ${code}). Contate o suporte.`;
 }
