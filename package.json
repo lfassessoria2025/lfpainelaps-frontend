@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && VITE_API_BASE_URL=${VITE_API_BASE_URL:-https://api.lfpainelaps.com.br} vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
