@@ -445,6 +445,7 @@ export function ImportacoesPage() {
           open={newImportOpen}
           onOpenChange={setNewImportOpen}
           prefeituraId={selectedId}
+          prefeitura={prefeituras?.find((prefeitura) => prefeitura.id === selectedId) ?? { name: "Prefeitura selecionada", ibge_code: "" }}
           onCompleted={() => void loadImports()}
         />
       ) : null}
@@ -454,6 +455,7 @@ export function ImportacoesPage() {
           open
           onOpenChange={(open) => !open && setResumeTarget(null)}
           prefeituraId={resumeTarget.prefeituraId}
+          prefeitura={prefeituras?.find((prefeitura) => prefeitura.id === resumeTarget.prefeituraId) ?? { name: "Prefeitura selecionada", ibge_code: "" }}
           resumeImport={resumeTarget}
           onCompleted={() => {
             setResumeTarget(null);

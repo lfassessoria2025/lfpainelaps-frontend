@@ -53,6 +53,56 @@ beforeEach(() => {
 });
 
 describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
+  it("exige revisão explícita da prefeitura antes de liberar um novo upload", async () => {
+    mockedImportacoesService.list.mockResolvedValue([]);
+    mockedImportacoesService.start.mockResolvedValue(importacao({ id: "bbbbbbbb-0000-0000-0000-000000000001" }));
+    mockedImportacoesService.startMultipart.mockResolvedValue({
+      part_size_bytes: 8,
+      total_parts: 1,
+      uploaded_parts: [],
+      accepted_parts: [],
+    });
+    mockedImportacoesService.uploadPartInstructions.mockResolvedValue({
+      part_number: 1,
+      url: "https://r2.example.test/upload",
+      method: "PUT",
+      headers: {},
+      expires_at: "2026-08-25T01:00:00Z",
+    });
+    mockedImportacoesService.uploadPart.mockResolvedValue('"etag"');
+    mockedImportacoesService.completeMultipart.mockResolvedValue(importacao({ status: "recebido" }));
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Nova importação" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Destino do backup")).toBeInTheDocument();
+    expect(within(dialog).getByText("Jeriquara")).toBeInTheDocument();
+    expect(within(dialog).getByText("3500000")).toBeInTheDocument();
+
+    const enviar = within(dialog).getByRole("button", { name: "Enviar" });
+    expect(enviar).toBeDisabled();
+
+    await user.upload(
+      within(dialog).getByLabelText("Arquivo do dump"),
+      new File(["conteudo"], "backup.dump", { type: "application/octet-stream" }),
+    );
+    await user.type(within(dialog).getByLabelText("Nome da importação"), "Backup semanal");
+    await user.type(within(dialog).getByLabelText("Confirme o código IBGE"), PREFEITURA.ibge_code);
+    await user.click(within(dialog).getByRole("checkbox", { name: /confirmo que este backup pertence/i }));
+
+    expect(enviar).toBeEnabled();
+    await user.click(enviar);
+    await waitFor(() => {
+      expect(mockedImportacoesService.start).toHaveBeenCalledWith(PREFEITURA.id, {
+        display_name: "Backup semanal",
+        expected_size_bytes: 8,
+        destination_confirmation_ibge_code: PREFEITURA.ibge_code,
+      });
+    });
+  });
+
   it("mostra as fases reais sem porcentagem para uma importação em validação", async () => {
     mockedImportacoesService.list.mockResolvedValue([
       importacao({ status: "validando", last_failure_code: null }),

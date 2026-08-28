@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CloudUpload, FileCheck2 } from "lucide-react";
+import { CloudUpload, FileCheck2, MapPin, ShieldCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,19 +9,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Progress, ProgressIndicator, ProgressTrack } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { ApiError } from "@/lib/http";
 import { cn } from "@/lib/utils";
-import type { ImportacaoOut } from "@/lib/api-types";
+import type { ImportacaoOut, PrefeituraOut } from "@/lib/api-types";
 import { importacoesService } from "@/services/importacoes";
 
 interface NewImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   prefeituraId: number;
+  prefeitura: Pick<PrefeituraOut, "name" | "ibge_code">;
   onCompleted: () => void;
   /** Quando presente, reenvia o arquivo para uma importação já registrada e
    * travada em "aguardando envio" (ex.: aba fechada no meio do upload),
@@ -53,6 +55,7 @@ export function NewImportDialog({
   open,
   onOpenChange,
   prefeituraId,
+  prefeitura,
   onCompleted,
   resumeImport = null,
 }: NewImportDialogProps) {
@@ -61,6 +64,8 @@ export function NewImportDialog({
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("form");
   const [progresso, setProgresso] = useState(0);
+  const [destinationConfirmed, setDestinationConfirmed] = useState(false);
+  const [confirmationIbgeCode, setConfirmationIbgeCode] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -69,6 +74,8 @@ export function NewImportDialog({
       setError(null);
       setStep("form");
       setProgresso(0);
+      setDestinationConfirmed(false);
+      setConfirmationIbgeCode("");
     }
   }, [open, resumeImport]);
 
@@ -79,6 +86,14 @@ export function NewImportDialog({
     }
     if (!file) {
       setError("Selecione o arquivo de backup (dump).");
+      return;
+    }
+    if (!resumeImport && !destinationConfirmed) {
+      setError("Confirme que o backup pertence à prefeitura indicada.");
+      return;
+    }
+    if (!resumeImport && confirmationIbgeCode !== prefeitura.ibge_code) {
+      setError("Digite exatamente o código IBGE da prefeitura indicada.");
       return;
     }
     const selectedFile = file;
@@ -97,6 +112,7 @@ export function NewImportDialog({
             const importacao = await importacoesService.start(prefeituraId, {
               display_name: displayName,
               expected_size_bytes: selectedFile.size,
+              destination_confirmation_ibge_code: confirmationIbgeCode,
             });
             return importacao.id;
           })();
@@ -177,6 +193,8 @@ export function NewImportDialog({
   // rápidos e indeterminados — a barra assume 100% com o brilho animado em
   // vez de ficar parada num número que não significa nada ali.
   const indeterminado = step === "starting" || step === "confirming";
+  const destinationIsConfirmed =
+    destinationConfirmed && confirmationIbgeCode === prefeitura.ibge_code;
 
   return (
     <Dialog open={open} onOpenChange={(next) => !isBusy && onOpenChange(next)}>
@@ -235,16 +253,54 @@ export function NewImportDialog({
         ) : (
           <FieldGroup>
             {resumeImport ? null : (
-              <Field data-invalid={Boolean(error)}>
-                <FieldLabel htmlFor="import-name">Nome da importação</FieldLabel>
-                <Input
-                  id="import-name"
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  placeholder="ex.: Backup semana 32"
-                  aria-invalid={Boolean(error)}
-                />
-              </Field>
+              <>
+                <div className="rounded-lg border border-primary/25 bg-primary/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <MapPin className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Destino do backup</p>
+                      <p className="mt-1 text-base font-semibold text-foreground">{prefeitura.name}</p>
+                      <p className="text-sm text-muted-foreground">Código IBGE: <span className="font-mono font-medium text-foreground">{prefeitura.ibge_code}</span></p>
+                    </div>
+                  </div>
+                </div>
+                <Field data-invalid={Boolean(error)}>
+                  <FieldLabel htmlFor="import-name">Nome da importação</FieldLabel>
+                  <Input
+                    id="import-name"
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder="ex.: Backup semana 32"
+                    aria-invalid={Boolean(error)}
+                  />
+                </Field>
+                <Field data-invalid={Boolean(error)}>
+                  <FieldLabel htmlFor="destination-confirmation-ibge">Confirme o código IBGE</FieldLabel>
+                  <Input
+                    id="destination-confirmation-ibge"
+                    value={confirmationIbgeCode}
+                    onChange={(event) => setConfirmationIbgeCode(event.target.value.replace(/\D/g, "").slice(0, 7))}
+                    inputMode="numeric"
+                    maxLength={7}
+                    placeholder="Digite os 7 dígitos"
+                    aria-invalid={Boolean(error) && confirmationIbgeCode !== prefeitura.ibge_code}
+                  />
+                  <FieldDescription>Digite o código exibido acima para liberar o envio.</FieldDescription>
+                </Field>
+                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border/70 p-3 text-sm">
+                  <Checkbox
+                    checked={destinationConfirmed}
+                    onCheckedChange={(checked) => setDestinationConfirmed(checked === true)}
+                    aria-label={`Confirmo que este backup pertence a ${prefeitura.name}`}
+                  />
+                  <span>
+                    <span className="flex items-center gap-1 font-medium"><ShieldCheck className="size-4 text-primary" /> Confirmo o destino</span>
+                    <span className="mt-1 block text-muted-foreground">Este backup será associado a {prefeitura.name}.</span>
+                  </span>
+                </label>
+              </>
             )}
             <Field data-invalid={Boolean(error)}>
               <FieldLabel htmlFor="import-file">Arquivo do dump</FieldLabel>
@@ -265,7 +321,7 @@ export function NewImportDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isBusy}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isBusy}>
+          <Button onClick={handleSubmit} disabled={isBusy || (!resumeImport && !destinationIsConfirmed)}>
             {isBusy ? <Spinner data-icon="inline-start" /> : null}
             {isBusy ? "Enviando…" : "Enviar"}
           </Button>

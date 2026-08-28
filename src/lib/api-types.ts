@@ -242,6 +242,9 @@ export interface ImportacaoOut {
 export interface ImportacaoCreate {
   display_name: string;
   expected_size_bytes: number;
+  /** Confirmação digitada pelo operador. O backend compara com a prefeitura
+   * da rota e registra a decisão antes de aceitar o upload. */
+  destination_confirmation_ibge_code: string;
 }
 
 export interface UploadInstructionsOut {
