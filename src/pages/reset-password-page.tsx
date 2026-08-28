@@ -20,19 +20,23 @@ export function ResetPasswordPage() {
 
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [senhaError, setSenhaError] = useState<string | null>(null);
+  const [confirmacaoError, setConfirmacaoError] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setError(null);
+    setSenhaError(null);
+    setConfirmacaoError(null);
+    setRequestError(null);
 
     if (senha.length < SENHA_MINIMA) {
-      setError(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
+      setSenhaError(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
       return;
     }
     if (senha !== confirmacao) {
-      setError("As senhas não coincidem.");
+      setConfirmacaoError("As senhas não coincidem.");
       return;
     }
 
@@ -44,7 +48,7 @@ export function ResetPasswordPage() {
       setAuthenticatedUser(usuario);
       navigate("/", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : "Não foi possível redefinir a senha.");
+      setRequestError(err instanceof ApiError ? err.detail : "Não foi possível redefinir a senha.");
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +70,7 @@ export function ResetPasswordPage() {
       ) : (
         <form onSubmit={handleSubmit} noValidate>
           <FieldGroup>
-            <Field data-invalid={Boolean(error)}>
+            <Field data-invalid={Boolean(senhaError)}>
               <FieldLabel htmlFor="senha">Nova senha</FieldLabel>
               <Input
                 id="senha"
@@ -74,12 +78,17 @@ export function ResetPasswordPage() {
                 autoComplete="new-password"
                 required
                 value={senha}
-                onChange={(event) => setSenha(event.target.value)}
-                aria-invalid={Boolean(error)}
+                onChange={(event) => {
+                  setSenha(event.target.value);
+                  setSenhaError(null);
+                }}
+                aria-invalid={Boolean(senhaError)}
+                aria-describedby={senhaError ? "senha-description senha-error" : "senha-description"}
               />
-              <FieldDescription>Mínimo de {SENHA_MINIMA} caracteres.</FieldDescription>
+              <FieldDescription id="senha-description">Mínimo de {SENHA_MINIMA} caracteres.</FieldDescription>
+              {senhaError ? <FieldError id="senha-error">{senhaError}</FieldError> : null}
             </Field>
-            <Field data-invalid={Boolean(error)}>
+            <Field data-invalid={Boolean(confirmacaoError || requestError)}>
               <FieldLabel htmlFor="confirmacao">Confirmar senha</FieldLabel>
               <Input
                 id="confirmacao"
@@ -87,10 +96,14 @@ export function ResetPasswordPage() {
                 autoComplete="new-password"
                 required
                 value={confirmacao}
-                onChange={(event) => setConfirmacao(event.target.value)}
-                aria-invalid={Boolean(error)}
+                onChange={(event) => {
+                  setConfirmacao(event.target.value);
+                  setConfirmacaoError(null);
+                }}
+                aria-invalid={Boolean(confirmacaoError || requestError)}
+                aria-describedby={confirmacaoError || requestError ? "confirmacao-error" : undefined}
               />
-              {error ? <FieldError>{error}</FieldError> : null}
+              {confirmacaoError || requestError ? <FieldError id="confirmacao-error">{confirmacaoError ?? requestError}</FieldError> : null}
             </Field>
             <Button type="submit" disabled={isSubmitting} className="mt-2 w-full">
               {isSubmitting ? <Spinner data-icon="inline-start" /> : null}

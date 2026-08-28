@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ResetPasswordPage } from "@/pages/reset-password-page";
@@ -57,6 +57,11 @@ describe("ResetPasswordPage — validação client-side", () => {
     expect(
       await screen.findByText("A senha precisa ter pelo menos 8 caracteres."),
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Nova senha").closest('[data-slot="field"]')!).getByText(
+        "A senha precisa ter pelo menos 8 caracteres.",
+      ),
+    ).toBeInTheDocument();
     expect(mockedResetPassword).not.toHaveBeenCalled();
   });
 
@@ -69,6 +74,11 @@ describe("ResetPasswordPage — validação client-side", () => {
     await user.click(screen.getByRole("button", { name: "Redefinir senha e entrar" }));
 
     expect(await screen.findByText("As senhas não coincidem.")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Confirmar senha").closest('[data-slot="field"]')!).getByText(
+        "As senhas não coincidem.",
+      ),
+    ).toBeInTheDocument();
     expect(mockedResetPassword).not.toHaveBeenCalled();
   });
 

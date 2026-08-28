@@ -6,7 +6,7 @@ import { AuthShell } from "@/components/layout/auth-shell";
 import { ResponsibilityTermDocument } from "@/components/responsibility-terms/responsibility-term-document";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -26,6 +26,9 @@ export function AcceptInvitePage() {
   const [inviteInvalid, setInviteInvalid] = useState(false);
   const [senha, setSenha] = useState("");
   const [confirmacao, setConfirmacao] = useState("");
+  const [acknowledgementError, setAcknowledgementError] = useState<string | null>(null);
+  const [senhaError, setSenhaError] = useState<string | null>(null);
+  const [confirmacaoError, setConfirmacaoError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -62,16 +65,19 @@ export function AcceptInvitePage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setAcknowledgementError(null);
+    setSenhaError(null);
+    setConfirmacaoError(null);
     if (!term || !acknowledged) {
-      setError("Leia o termo e marque a declaração de responsabilidade para continuar.");
+      setAcknowledgementError("Leia o termo e marque a declaração de responsabilidade para continuar.");
       return;
     }
     if (senha.length < SENHA_MINIMA) {
-      setError(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
+      setSenhaError(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
       return;
     }
     if (senha !== confirmacao) {
-      setError("As senhas não coincidem.");
+      setConfirmacaoError("As senhas não coincidem.");
       return;
     }
 
@@ -124,28 +130,58 @@ export function AcceptInvitePage() {
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
           {error ? <Alert variant="destructive"><AlertTitle>Não foi possível continuar</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
           <ResponsibilityTermDocument term={term} />
-          <Field data-invalid={Boolean(error)}>
+          <Field data-invalid={Boolean(acknowledgementError)}>
             <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm">
               <Checkbox
                 checked={acknowledged}
-                onCheckedChange={(checked) => setAcknowledged(checked === true)}
-                aria-describedby="invite-term-acknowledgement"
+                onCheckedChange={(checked) => {
+                  setAcknowledged(checked === true);
+                  setAcknowledgementError(null);
+                }}
+                aria-describedby={acknowledgementError ? "invite-term-acknowledgement invite-term-error" : "invite-term-acknowledgement"}
               />
               <span id="invite-term-acknowledgement">
                 Declaro que li e assumo a responsabilidade de manter o sigilo e usar os dados somente para as finalidades autorizadas.
               </span>
             </label>
             <FieldDescription>Esta opção nunca é marcada automaticamente.</FieldDescription>
+            {acknowledgementError ? <FieldError id="invite-term-error">{acknowledgementError}</FieldError> : null}
           </Field>
           <FieldGroup>
-            <Field data-invalid={Boolean(error)}>
+            <Field data-invalid={Boolean(senhaError)}>
               <FieldLabel htmlFor="senha">Nova senha</FieldLabel>
-              <Input id="senha" type="password" autoComplete="new-password" required value={senha} onChange={(event) => setSenha(event.target.value)} aria-invalid={Boolean(error)} />
-              <FieldDescription>Mínimo de {SENHA_MINIMA} caracteres.</FieldDescription>
+              <Input
+                id="senha"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={senha}
+                onChange={(event) => {
+                  setSenha(event.target.value);
+                  setSenhaError(null);
+                }}
+                aria-invalid={Boolean(senhaError)}
+                aria-describedby={senhaError ? "senha-description senha-error" : "senha-description"}
+              />
+              <FieldDescription id="senha-description">Mínimo de {SENHA_MINIMA} caracteres.</FieldDescription>
+              {senhaError ? <FieldError id="senha-error">{senhaError}</FieldError> : null}
             </Field>
-            <Field data-invalid={Boolean(error)}>
+            <Field data-invalid={Boolean(confirmacaoError)}>
               <FieldLabel htmlFor="confirmacao">Confirmar senha</FieldLabel>
-              <Input id="confirmacao" type="password" autoComplete="new-password" required value={confirmacao} onChange={(event) => setConfirmacao(event.target.value)} aria-invalid={Boolean(error)} />
+              <Input
+                id="confirmacao"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={confirmacao}
+                onChange={(event) => {
+                  setConfirmacao(event.target.value);
+                  setConfirmacaoError(null);
+                }}
+                aria-invalid={Boolean(confirmacaoError)}
+                aria-describedby={confirmacaoError ? "confirmacao-error" : undefined}
+              />
+              {confirmacaoError ? <FieldError id="confirmacao-error">{confirmacaoError}</FieldError> : null}
             </Field>
             <Button type="submit" disabled={isSubmitting || !acknowledged} className="w-full">
               {isSubmitting ? <Spinner data-icon="inline-start" /> : null}

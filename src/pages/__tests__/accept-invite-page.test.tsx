@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { AcceptInvitePage } from "@/pages/accept-invite-page";
@@ -63,6 +63,27 @@ describe("AcceptInvitePage — termo e ativação", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar responsabilidade e ativar conta" }));
 
     expect(await screen.findByText("A senha precisa ter pelo menos 8 caracteres.")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Nova senha").closest('[data-slot="field"]')!).getByText(
+        "A senha precisa ter pelo menos 8 caracteres.",
+      ),
+    ).toBeInTheDocument();
+    expect(mockedAcceptInvite).not.toHaveBeenCalled();
+  });
+
+  it("mostra o erro de confirmação junto ao campo correspondente", async () => {
+    const user = userEvent.setup();
+    renderAcceptInvitePage();
+    await acknowledge(user);
+    await user.type(screen.getByLabelText("Nova senha"), "senha-valida-1");
+    await user.type(screen.getByLabelText("Confirmar senha"), "senha-diferente");
+    await user.click(screen.getByRole("button", { name: "Confirmar responsabilidade e ativar conta" }));
+
+    expect(
+      within(screen.getByLabelText("Confirmar senha").closest('[data-slot="field"]')!).getByText(
+        "As senhas não coincidem.",
+      ),
+    ).toBeInTheDocument();
     expect(mockedAcceptInvite).not.toHaveBeenCalled();
   });
 
