@@ -168,8 +168,7 @@ describe("AnalyticsPage", () => {
     await screen.findByText("Analytics");
 
     await compararPor("Prefeitura");
-    await screen.findByText("Pedregulho");
-    await userEvent.click(screen.getByRole("checkbox", { name: "Pedregulho" }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: "Pedregulho" }));
 
     await waitFor(() =>
       expect(mockedGestanteService.comparar).toHaveBeenCalledWith(

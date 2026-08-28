@@ -67,11 +67,13 @@
     --border: oklch(0.9 0.01 250);
     --input: oklch(0.9 0.01 250);
     --ring: oklch(0.623 0.188 259.8);
-    --chart-1: oklch(0.424 0.181 265.6);
-    --chart-2: oklch(0.623 0.188 259.8);
-    --chart-3: oklch(0.769 0.165 70.1);
-    --chart-4: oklch(0.379 0.138 265.5);
-    --chart-5: oklch(0.556 0 0);
+    /* Paleta categórica: azul, laranja, verde-água, violeta e vermelho.
+       Evita tons de azul sucessivos nas comparações entre prefeituras. */
+    --chart-1: oklch(0.48 0.19 260);
+    --chart-2: oklch(0.64 0.18 48);
+    --chart-3: oklch(0.53 0.14 165);
+    --chart-4: oklch(0.49 0.18 310);
+    --chart-5: oklch(0.54 0.19 24);
     --radius: 0.5rem;
     --sidebar: oklch(0.208 0.040 265.8);
     --sidebar-foreground: oklch(0.984 0.003 247.9);
@@ -102,11 +104,11 @@
     --border: oklch(1 0 0 / 12%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.623 0.188 259.8);
-    --chart-1: oklch(0.623 0.188 259.8);
-    --chart-2: oklch(0.769 0.165 70.1);
-    --chart-3: oklch(0.556 0 0);
-    --chart-4: oklch(0.439 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --chart-1: oklch(0.72 0.16 260);
+    --chart-2: oklch(0.78 0.15 65);
+    --chart-3: oklch(0.72 0.13 165);
+    --chart-4: oklch(0.71 0.16 310);
+    --chart-5: oklch(0.71 0.17 24);
     --sidebar: oklch(0.14 0.02 265.6);
     --sidebar-foreground: oklch(0.95 0.006 247.9);
     --sidebar-primary: oklch(0.623 0.188 259.8);

@@ -2,7 +2,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -10,7 +9,8 @@ import {
 } from "recharts";
 import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
-import { CORES_COMPARACAO } from "@/components/analytics/chart-colors";
+import { ChartLegend } from "@/components/analytics/chart-legend";
+import { corDaSerie } from "@/components/analytics/chart-colors";
 
 /**
  * Gráfico genérico de % cumprido por prática — consome o mesmo shape
@@ -34,41 +34,43 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
   const altura = Math.max(360, linhas.length * alturaPorLinha);
 
   return (
-    <ResponsiveContainer width="100%" height={altura}>
-      <BarChart
-        data={linhas}
-        layout="vertical"
-        margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
-        barCategoryGap={dados.length > 1 ? 12 : 6}
-      >
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
-        <XAxis
-          type="number"
-          domain={[0, 100]}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value: number) => `${value}%`}
-        />
-        <YAxis
-          type="category"
-          dataKey="rotulo"
-          tickLine={false}
-          axisLine={false}
-          width={260}
-          tick={{ fontSize: 12 }}
-        />
-        <Tooltip formatter={(value) => (value === null ? "sem dado" : `${value}%`)} />
-        {dados.length > 1 ? <Legend /> : null}
-        {dados.map((prefeitura, indice) => (
-          <Bar
-            key={prefeitura.prefeitura_id}
-            dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
-            name={prefeitura.prefeitura_nome}
-            fill={CORES_COMPARACAO[indice % CORES_COMPARACAO.length]}
-            radius={[0, 4, 4, 0]}
+    <>
+      <ChartLegend items={dados.map((prefeitura) => ({ id: prefeitura.prefeitura_id, label: prefeitura.prefeitura_nome }))} />
+      <ResponsiveContainer width="100%" height={altura}>
+        <BarChart
+          data={linhas}
+          layout="vertical"
+          margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+          barCategoryGap={dados.length > 1 ? 12 : 6}
+        >
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
+          <XAxis
+            type="number"
+            domain={[0, 100]}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value: number) => `${value}%`}
           />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+          <YAxis
+            type="category"
+            dataKey="rotulo"
+            tickLine={false}
+            axisLine={false}
+            width={260}
+            tick={{ fontSize: 12 }}
+          />
+          <Tooltip formatter={(value) => (value === null ? "sem dado" : `${value}%`)} />
+          {dados.map((prefeitura, indice) => (
+            <Bar
+              key={prefeitura.prefeitura_id}
+              dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
+              name={prefeitura.prefeitura_nome}
+              fill={corDaSerie(indice)}
+              radius={[0, 4, 4, 0]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </>
   );
 }

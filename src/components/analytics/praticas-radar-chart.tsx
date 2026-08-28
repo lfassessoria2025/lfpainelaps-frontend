@@ -1,5 +1,4 @@
 import {
-  Legend,
   PolarAngleAxis,
   PolarGrid,
   PolarRadiusAxis,
@@ -10,7 +9,8 @@ import {
 } from "recharts";
 import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
-import { CORES_COMPARACAO } from "@/components/analytics/chart-colors";
+import { ChartLegend } from "@/components/analytics/chart-legend";
+import { corDaSerie } from "@/components/analytics/chart-colors";
 
 /**
  * Radar de comparação entre prefeituras — um eixo por prática, uma série
@@ -36,27 +36,29 @@ export function PraticasRadarChart({ dados }: PraticasRadarChartProps) {
   const linhas = montarLinhasDoGrafico(dados);
 
   return (
-    <ResponsiveContainer width="100%" height={420}>
-      <RadarChart data={linhas} outerRadius="70%">
-        <PolarGrid className="stroke-border" />
-        <PolarAngleAxis dataKey="pratica" tick={{ fontSize: 12 }} />
-        <PolarRadiusAxis angle={90} domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} />
-        <Tooltip
-          formatter={(value) => (value === null ? "sem dado" : `${value}%`)}
-          labelFormatter={(_, payload) => (payload?.[0]?.payload as { rotulo?: string })?.rotulo}
-        />
-        <Legend />
-        {dados.map((prefeitura, indice) => (
-          <Radar
-            key={prefeitura.prefeitura_id}
-            dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
-            name={prefeitura.prefeitura_nome}
-            stroke={CORES_COMPARACAO[indice % CORES_COMPARACAO.length]}
-            fill={CORES_COMPARACAO[indice % CORES_COMPARACAO.length]}
-            fillOpacity={0.2}
+    <>
+      <ChartLegend items={dados.map((prefeitura) => ({ id: prefeitura.prefeitura_id, label: prefeitura.prefeitura_nome }))} />
+      <ResponsiveContainer width="100%" height={420}>
+        <RadarChart data={linhas} outerRadius="70%">
+          <PolarGrid className="stroke-border" />
+          <PolarAngleAxis dataKey="pratica" tick={{ fontSize: 12 }} />
+          <PolarRadiusAxis angle={90} domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} />
+          <Tooltip
+            formatter={(value) => (value === null ? "sem dado" : `${value}%`)}
+            labelFormatter={(_, payload) => (payload?.[0]?.payload as { rotulo?: string })?.rotulo}
           />
-        ))}
-      </RadarChart>
-    </ResponsiveContainer>
+          {dados.map((prefeitura, indice) => (
+            <Radar
+              key={prefeitura.prefeitura_id}
+              dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
+              name={prefeitura.prefeitura_nome}
+              stroke={corDaSerie(indice)}
+              fill={corDaSerie(indice)}
+              fillOpacity={0.2}
+            />
+          ))}
+        </RadarChart>
+      </ResponsiveContainer>
+    </>
   );
 }
