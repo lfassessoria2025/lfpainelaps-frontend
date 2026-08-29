@@ -100,7 +100,7 @@ describe("importacoesService.uploadFile", () => {
     expect(progresso).toEqual([0.5, 1]);
   });
 
-  it("rejeita com o status e o corpo da resposta em falha (não mensagem genérica)", async () => {
+  it("rejeita com status seguro, sem expor o corpo do armazenamento", async () => {
     vi.stubGlobal("XMLHttpRequest", XhrFalso as unknown as typeof XMLHttpRequest);
     const arquivo = new File(["x"], "dump.backup");
 
@@ -111,7 +111,8 @@ describe("importacoesService.uploadFile", () => {
     xhr.responseText = "<Error><Code>AccessDenied</Code></Error>";
     xhr.onload?.();
 
-    await expect(promessa).rejects.toThrow(/HTTP 403.*AccessDenied/s);
+    await expect(promessa).rejects.toThrow(/HTTP 403.*tente continuar o envio/i);
+    await expect(promessa).rejects.not.toThrow(/AccessDenied/i);
   });
 
   it("rejeita com mensagem de rede quando a requisição falha antes de responder", async () => {

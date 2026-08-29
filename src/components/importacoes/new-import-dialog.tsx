@@ -37,7 +37,7 @@ type Step = "form" | "starting" | "uploading" | "confirming";
 const STEP_LABEL: Record<Exclude<Step, "form">, string> = {
   starting: "Registrando importação…",
   uploading: "Enviando arquivo…",
-  confirming: "Confirmando upload…",
+  confirming: "Confirmando integridade do envio…",
 };
 
 const MULTIPART_CONCURRENCY = 3;
@@ -226,7 +226,7 @@ export function NewImportDialog({
               </div>
             </div>
 
-            <div className="flex w-full flex-col items-center gap-1">
+            <div className="flex w-full flex-col items-center gap-1" aria-live="polite">
               <p className="text-sm font-medium text-foreground">{STEP_LABEL[step]}</p>
               {step === "uploading" && file ? (
                 <p className="text-xs text-muted-foreground">
@@ -234,7 +234,7 @@ export function NewImportDialog({
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Isso pode levar alguns minutos — não feche esta janela.
+                  O arquivo ainda não foi aceito para processamento — não feche esta janela.
                 </p>
               )}
             </div>
@@ -323,7 +323,7 @@ export function NewImportDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={isBusy || (!resumeImport && !destinationIsConfirmed)}>
             {isBusy ? <Spinner data-icon="inline-start" /> : null}
-            {isBusy ? "Enviando…" : "Enviar"}
+            {isBusy ? "Processando…" : "Enviar"}
           </Button>
         </DialogFooter>
       </DialogContent>

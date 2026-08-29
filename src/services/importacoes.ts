@@ -73,8 +73,11 @@ export const importacoesService = {
           resolve();
           return;
         }
-        const corpo = xhr.responseText ? `: ${xhr.responseText.slice(0, 300)}` : "";
-        reject(new Error(`Falha no upload do arquivo (HTTP ${xhr.status})${corpo}`));
+        // A resposta do armazenamento pode carregar detalhes de infraestrutura
+        // (bucket, chave ou assinatura). Ela não é uma mensagem segura para a
+        // pessoa usuária; o código HTTP basta para suporte sem vazar a URL
+        // pré-assinada ou outros metadados internos.
+        reject(new Error(`Falha no upload do arquivo (HTTP ${xhr.status}). Verifique a conexão e tente continuar o envio.`));
       };
       xhr.onerror = () => reject(new Error("Falha de rede durante o envio do arquivo."));
       xhr.onabort = () => reject(new Error("Envio cancelado."));
@@ -104,8 +107,10 @@ export const importacoesService = {
           reject(new Error("O armazenamento não confirmou a parte enviada. Tente novamente."));
           return;
         }
-        const corpo = xhr.responseText ? `: ${xhr.responseText.slice(0, 300)}` : "";
-        reject(new Error(`Falha no upload da parte (HTTP ${xhr.status})${corpo}`));
+        // Não propagar o corpo bruto do R2 para a interface. A sessão no
+        // servidor registra as partes confirmadas, portanto a ação segura é
+        // tentar continuar o envio sem revelar detalhes técnicos.
+        reject(new Error(`Falha no upload da parte (HTTP ${xhr.status}). Verifique a conexão e tente continuar o envio.`));
       };
       xhr.onerror = () => reject(new Error("Falha de rede durante o envio."));
       xhr.onabort = () => reject(new Error("Envio cancelado."));

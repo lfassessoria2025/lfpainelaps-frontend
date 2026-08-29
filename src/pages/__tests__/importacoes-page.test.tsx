@@ -122,6 +122,20 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
     expect(within(etapas).queryByText(/%/)).not.toBeInTheDocument();
   });
 
+  it("mostra restauração como etapa real, sem sugerir uma porcentagem inexistente", async () => {
+    mockedImportacoesService.list.mockResolvedValue([
+      importacao({ status: "restaurando_arquivo", last_failure_code: null }),
+    ]);
+
+    render(<ImportacoesPage />);
+
+    const etapas = await screen.findByRole("region", { name: "Etapas do processamento" });
+    const restauracao = within(etapas).getByText("Restauração").closest("li");
+    expect(restauracao).toHaveAttribute("aria-current", "step");
+    expect(within(etapas).getByText("Envio").closest("li")).not.toHaveAttribute("aria-current");
+    expect(within(etapas).queryByText(/%/)).not.toBeInTheDocument();
+  });
+
   it("explica uma falha uma única vez, no status da importação", async () => {
     mockedImportacoesService.list.mockResolvedValue([importacao({ status: "falhou" })]);
 
