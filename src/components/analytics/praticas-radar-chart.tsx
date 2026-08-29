@@ -10,6 +10,7 @@ import {
 import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
 import { ChartLegend } from "@/components/analytics/chart-legend";
+import { ChartDataSummary } from "@/components/analytics/chart-data-summary";
 import { corDaSerie } from "@/components/analytics/chart-colors";
 
 /**
@@ -38,10 +39,10 @@ export function PraticasRadarChart({ dados }: PraticasRadarChartProps) {
   return (
     <>
       <ChartLegend items={dados.map((prefeitura) => ({ id: prefeitura.prefeitura_id, label: prefeitura.prefeitura_nome }))} />
-      <ResponsiveContainer width="100%" height={420}>
-        <RadarChart data={linhas} outerRadius="70%">
+      <ResponsiveContainer width="100%" height={360} minWidth={0}>
+        <RadarChart data={linhas} outerRadius="62%">
           <PolarGrid className="stroke-border" />
-          <PolarAngleAxis dataKey="pratica" tick={{ fontSize: 12 }} />
+          <PolarAngleAxis dataKey="pratica" tick={{ fontSize: 11 }} />
           <PolarRadiusAxis angle={90} domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} />
           <Tooltip
             formatter={(value) => (value === null ? "sem dado" : `${value}%`)}
@@ -59,6 +60,7 @@ export function PraticasRadarChart({ dados }: PraticasRadarChartProps) {
           ))}
         </RadarChart>
       </ResponsiveContainer>
+      <ChartDataSummary dados={dados} />
     </>
   );
 }

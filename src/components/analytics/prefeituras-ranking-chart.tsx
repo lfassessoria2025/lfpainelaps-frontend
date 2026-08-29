@@ -25,7 +25,7 @@ export function PrefeiturasRankingChart({ dados }: PrefeiturasRankingChartProps)
       <p className="text-xs text-muted-foreground">
         Percentual ponderado de práticas cumpridas por prefeitura selecionada.
       </p>
-      <ResponsiveContainer width="100%" height={altura}>
+      <ResponsiveContainer width="100%" height={altura} minWidth={0}>
         <BarChart
           data={ranking}
           layout="vertical"
@@ -44,8 +44,9 @@ export function PrefeiturasRankingChart({ dados }: PrefeiturasRankingChartProps)
             dataKey="prefeitura_nome"
             tickLine={false}
             axisLine={false}
-            width={140}
+            width={96}
             tick={{ fontSize: 12 }}
+            tickFormatter={(value: string) => String(value).length > 14 ? `${String(value).slice(0, 13)}…` : value}
           />
           <Tooltip formatter={(value) => `${value}%`} />
           <Bar dataKey="percentual_cumprido" name="Cumprimento geral" fill="var(--color-primary)" radius={[0, 4, 4, 0]}>

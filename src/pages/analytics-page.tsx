@@ -253,6 +253,8 @@ export function AnalyticsPage() {
 
     {indicador ? <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h2 className="text-xl font-semibold">{indicador.nome}</h2><Badge variant="secondary">{indicador.codigo.toUpperCase()}</Badge></div><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{indicador.descricao}</p></div><Badge variant="outline">{indicador.categoria}</Badge></div> : null}
 
+    {indicador?.codigo === "c3" ? <div className="rounded-lg border border-primary/20 bg-primary/[0.03] p-3 text-sm"><p className="font-medium text-foreground">Acompanhamento operacional da última extração</p><p className="mt-1 text-muted-foreground">Estes gráficos mostram recortes agregados do dump importado. O resultado oficial C3 mensal por competência, INE e denominador aplicável não é inferido aqui. Sem dados validados não significa desempenho zero.</p></div> : null}
+
     <Tabs value={secao} onValueChange={(value) => setSecao(value as Secao)}><TabsList variant="line" className="w-full justify-start overflow-x-auto"><TabsTrigger value="visao-geral"><ChartNoAxesCombined data-icon="inline-start" />Visão geral</TabsTrigger><TabsTrigger value="visualizacoes"><BarChart3 data-icon="inline-start" />Visualizações</TabsTrigger><TabsTrigger value="tabela"><TableProperties data-icon="inline-start" />Tabela</TabsTrigger></TabsList></Tabs>
 
     {prefeituras !== null && prefeituras.length === 0 ? <p className="text-sm text-muted-foreground">Cadastre uma prefeitura para visualizar o Analytics.</p>

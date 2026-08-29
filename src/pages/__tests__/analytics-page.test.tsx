@@ -107,6 +107,8 @@ describe("AnalyticsPage", () => {
     render(<AnalyticsPage />);
 
     expect(await screen.findByText("Analytics")).toBeInTheDocument();
+    expect(await screen.findByText("Acompanhamento operacional da última extração")).toBeInTheDocument();
+    expect(screen.getByText(/sem dados validados não significa desempenho zero/i)).toBeInTheDocument();
     await waitFor(() =>
       expect(mockedGestanteService.metricas).toHaveBeenCalledWith(PREFEITURA.id),
     );

@@ -10,6 +10,7 @@ import {
 import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
 import { ChartLegend } from "@/components/analytics/chart-legend";
+import { ChartDataSummary } from "@/components/analytics/chart-data-summary";
 import { corDaSerie } from "@/components/analytics/chart-colors";
 
 /**
@@ -36,7 +37,7 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
   return (
     <>
       <ChartLegend items={dados.map((prefeitura) => ({ id: prefeitura.prefeitura_id, label: prefeitura.prefeitura_nome }))} />
-      <ResponsiveContainer width="100%" height={altura}>
+      <ResponsiveContainer width="100%" height={altura} minWidth={0}>
         <BarChart
           data={linhas}
           layout="vertical"
@@ -56,8 +57,9 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
             dataKey="rotulo"
             tickLine={false}
             axisLine={false}
-            width={260}
+            width={42}
             tick={{ fontSize: 12 }}
+            tickFormatter={(value: string) => String(value).split(" · ")[0] ?? value}
           />
           <Tooltip formatter={(value) => (value === null ? "sem dado" : `${value}%`)} />
           {dados.map((prefeitura, indice) => (
@@ -71,6 +73,8 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
           ))}
         </BarChart>
       </ResponsiveContainer>
+      <p className="mt-2 text-xs text-muted-foreground">Os eixos usam A–K para caber na tela; o tooltip e a tabela trazem o nome completo.</p>
+      <ChartDataSummary dados={dados} />
     </>
   );
 }

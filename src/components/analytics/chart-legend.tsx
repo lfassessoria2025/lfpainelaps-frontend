@@ -13,15 +13,15 @@ export function ChartLegend({ items }: { items: ChartLegendItem[] }) {
   if (items.length < 2) return null;
 
   return (
-    <ul aria-label="Legenda das prefeituras comparadas" className="mb-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground">
+    <ul aria-label="Legenda das prefeituras comparadas" className="mb-3 grid gap-2 text-xs text-foreground sm:grid-cols-2 xl:grid-cols-3">
       {items.map((item, indice) => (
-        <li key={item.id} className="flex items-center gap-2">
+        <li key={item.id} className="flex min-w-0 items-start gap-2">
           <span
             aria-hidden="true"
             className="size-3 shrink-0 rounded-sm ring-1 ring-foreground/15"
             style={{ backgroundColor: corDaSerie(indice) }}
           />
-          <span>{item.label}</span>
+          <span className="min-w-0 break-words">{item.label}</span>
         </li>
       ))}
     </ul>
