@@ -84,19 +84,37 @@ function formatDateTime(value: string): string {
   return new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
-function AcaoCondicaoGestante({ gestante }: { gestante: GestanteAcompanhamentoOut }) {
+function AcaoCondicaoGestante({
+  gestante,
+  compact = false,
+}: {
+  gestante: GestanteAcompanhamentoOut;
+  compact?: boolean;
+}) {
   const apresentacao = apresentarAcaoCondicao(gestante.condicao_gestante_acao);
+  const requerRevisao = gestante.condicao_gestante_acao !== "nenhuma_acao";
 
   return (
-    <div className="flex min-w-52 flex-col items-start gap-1">
+    <section
+      aria-label={requerRevisao ? "Pendência de cadastro: condição Gestante" : "Situação cadastral: condição Gestante"}
+      className="flex min-w-52 flex-col items-start gap-1"
+    >
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Cadastro Individual · condição autorreferida
+      </span>
       <Badge variant={apresentacao.variant}>{apresentacao.rotulo}</Badge>
       <span className="whitespace-normal text-xs text-muted-foreground">
         {explicarMotivoCondicao(gestante.condicao_gestante_motivo)}
       </span>
-      <span className="text-xs text-muted-foreground">
-        Dump: {formatDate(gestante.condicao_gestante_data_referencia)}
-      </span>
-    </div>
+      {compact ? null : <>
+        <span className="text-xs text-muted-foreground">
+          Referência do dump: {formatDate(gestante.condicao_gestante_data_referencia)}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          Esta é uma ação cadastral para conferência. Não altera a pontuação nem a pendência clínica do C3.
+        </span>
+      </>}
+    </section>
   );
 }
 
@@ -936,7 +954,7 @@ export function GestantesPage() {
             </div>
           </div>
           <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Legenda:</span>
+            <span className="font-medium text-foreground">Situação clínica de acompanhamento C3:</span>
             <span className="inline-flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-emerald-500" /> Completa
             </span>
@@ -1124,7 +1142,7 @@ export function GestantesPage() {
                       </Badge>
                     </TableCell> : null}
                     {colunaVisivel("condicao-gestante") ? (
-                      <TableCell><AcaoCondicaoGestante gestante={gestante} /></TableCell>
+                      <TableCell><AcaoCondicaoGestante gestante={gestante} compact /></TableCell>
                     ) : null}
                     {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => {
                       const { status, texto } = statusDaPratica(gestante, pratica);

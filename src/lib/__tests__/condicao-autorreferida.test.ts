@@ -3,10 +3,10 @@ import { apresentarAcaoCondicao, explicarMotivoCondicao } from "@/lib/condicao-a
 
 describe("apresentação da condição autorreferida", () => {
   it.each([
-    ["inserir", "Inserir condição Gestante"],
-    ["remover", "Remover condição Gestante"],
+    ["inserir", "Inserir em condição de saúde Gestante"],
+    ["remover", "Remover condição de saúde Gestante"],
     ["nenhuma_acao", "Nenhuma ação"],
-    ["revisar_cadastro", "Revisar cadastro"],
+    ["revisar_cadastro", "Revisar cadastro da condição Gestante"],
   ] as const)("traduz a ação %s sem recalcular a decisão", (acao, rotulo) => {
     expect(apresentarAcaoCondicao(acao).rotulo).toBe(rotulo);
   });

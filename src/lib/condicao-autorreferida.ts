@@ -1,5 +1,9 @@
 import type { AcaoCondicaoAutorreferida, MotivoAcaoCondicao } from "@/lib/api-types";
 
+/** Tipos que a interface sabe apresentar. Cada um terá fonte/regra própria
+ * definida pelo backend; compartilhar o componente não compartilha regra. */
+export type TipoCondicaoAutorreferida = "gestante";
+
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
 
 interface ApresentacaoAcaoCondicao {
@@ -7,11 +11,19 @@ interface ApresentacaoAcaoCondicao {
   variant: BadgeVariant;
 }
 
-const APRESENTACAO_ACAO: Record<AcaoCondicaoAutorreferida, ApresentacaoAcaoCondicao> = {
-  inserir: { rotulo: "Inserir condição Gestante", variant: "secondary" },
-  remover: { rotulo: "Remover condição Gestante", variant: "destructive" },
+type DefinicaoAcaoCondicao =
+  | { verbo: string; variant: BadgeVariant }
+  | { rotulo: string; variant: BadgeVariant };
+
+const NOME_CONDICAO: Record<TipoCondicaoAutorreferida, string> = {
+  gestante: "Gestante",
+};
+
+const APRESENTACAO_ACAO: Record<AcaoCondicaoAutorreferida, DefinicaoAcaoCondicao> = {
+  inserir: { verbo: "Inserir em condição de saúde", variant: "secondary" },
+  remover: { verbo: "Remover condição de saúde", variant: "destructive" },
   nenhuma_acao: { rotulo: "Nenhuma ação", variant: "outline" },
-  revisar_cadastro: { rotulo: "Revisar cadastro", variant: "secondary" },
+  revisar_cadastro: { verbo: "Revisar cadastro da condição", variant: "secondary" },
 };
 
 const MOTIVO_ROTULO: Record<MotivoAcaoCondicao, string> = {
@@ -24,8 +36,13 @@ const MOTIVO_ROTULO: Record<MotivoAcaoCondicao, string> = {
   registro_historico: "Registro histórico; a orientação está na gestação mais recente.",
 };
 
-export function apresentarAcaoCondicao(acao: AcaoCondicaoAutorreferida): ApresentacaoAcaoCondicao {
-  return APRESENTACAO_ACAO[acao];
+export function apresentarAcaoCondicao(
+  acao: AcaoCondicaoAutorreferida,
+  tipo: TipoCondicaoAutorreferida = "gestante",
+): ApresentacaoAcaoCondicao {
+  const apresentacao = APRESENTACAO_ACAO[acao];
+  if ("rotulo" in apresentacao) return apresentacao;
+  return { rotulo: `${apresentacao.verbo} ${NOME_CONDICAO[tipo]}`, variant: apresentacao.variant };
 }
 
 export function explicarMotivoCondicao(motivo: MotivoAcaoCondicao): string {

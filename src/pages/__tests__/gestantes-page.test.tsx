@@ -100,9 +100,9 @@ describe("GestantesPage", () => {
     expect((await screen.findAllByText("Maria da Silva")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("ESF Centro").length).toBeGreaterThan(0);
     expect(screen.getAllByText("8").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Inserir condição Gestante").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Inserir em condição de saúde Gestante").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/última ficha válida não marca/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Dump: 15/08/2026").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Referência do dump: 15/08/2026").length).toBeGreaterThan(0);
     expect(await screen.findByText("Acompanhamento operacional da última extração")).toBeInTheDocument();
     expect(screen.getByText(/não substitui o resultado oficial c3 da competência mensal/i)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Escopos de leitura do C3" })).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe("GestantesPage", () => {
     expect(screen.getByText("Fim puerpério")).toBeInTheDocument();
 
     // Legenda de cor (completa/parcial/pendente) presente na tela.
-    const legenda = screen.getByText("Legenda:").closest("div")!;
+    const legenda = screen.getByText("Situação clínica de acompanhamento C3:").closest("div")!;
     expect(within(legenda).getByText("Completa")).toBeInTheDocument();
     expect(within(legenda).getByText("Parcial")).toBeInTheDocument();
     expect(within(legenda).getByText("Pendente")).toBeInTheDocument();
@@ -147,9 +147,9 @@ describe("GestantesPage", () => {
   });
 
   it.each([
-    ["remover", "condicao_ainda_marcada", "Remover condição Gestante"],
+    ["remover", "condicao_ainda_marcada", "Remover condição de saúde Gestante"],
     ["nenhuma_acao", "cadastro_coerente", "Nenhuma ação"],
-    ["revisar_cadastro", "cadastro_ausente_ou_nao_informado", "Revisar cadastro"],
+    ["revisar_cadastro", "cadastro_ausente_ou_nao_informado", "Revisar cadastro da condição Gestante"],
   ] as const)("exibe a ação %s recebida da API", async (acao, motivo, rotulo) => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([
@@ -159,6 +159,17 @@ describe("GestantesPage", () => {
     render(<GestantesPage />);
 
     expect((await screen.findAllByText(rotulo)).length).toBeGreaterThan(0);
+  });
+
+  it("separa orientação cadastral da pendência clínica C3", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+
+    render(<GestantesPage />);
+
+    expect((await screen.findAllByRole("region", { name: "Pendência de cadastro: condição Gestante" })).length).toBeGreaterThan(0);
+    expect(screen.getByText("Situação clínica de acompanhamento C3:")).toBeInTheDocument();
+    expect(screen.getAllByText(/não altera a pontuação nem a pendência clínica do c3/i).length).toBeGreaterThan(0);
   });
 
   it("busca, filtra, ordena e alterna os presets da tabela", async () => {
