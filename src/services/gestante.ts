@@ -1,5 +1,6 @@
 import { http } from "@/lib/http";
 import type {
+  DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
   MetricasIndicadorOut,
@@ -54,6 +55,11 @@ export const gestanteService = {
   ) =>
     http.get<MetricasIndicadorOut>(
       `/prefeituras/${prefeituraId}/indicadores/gestantes/metricas${queryFiltros(equipes, microAreas)}`,
+      signal,
+    ),
+  diagnostico: (prefeituraId: number, signal?: AbortSignal) =>
+    http.get<DiagnosticoC3Out>(
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/diagnostico`,
       signal,
     ),
   serieHistorica: (prefeituraId: number, signal?: AbortSignal) =>

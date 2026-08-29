@@ -354,6 +354,40 @@ export interface MetricasIndicadorOut {
   praticas: MetricaPraticaOut[];
 }
 
+// Diagnóstico agregado da última leva C3. Não inclui nome, datas de
+// nascimento, chaves do e-SUS ou qualquer identificador individual.
+export type EstadoCoberturaPraticaC3 = "resultado_calculado_sem_rastreio_da_fonte";
+export type EstadoDuplicatasC3 = "nao_observavel_no_resultado_publicado";
+
+export interface CoberturaPraticaC3Out {
+  pratica: string;
+  titulo: string;
+  total_registros: number;
+  total_cumprida: number;
+  total_nao_cumprida: number;
+  estado_cobertura: EstadoCoberturaPraticaC3;
+}
+
+export interface CoorteDiagnosticoC3Out {
+  ativas: number;
+  puerperas: number;
+  historicas: number;
+  excluidas_por_aborto: number;
+  referencia_indisponivel: number;
+  conflitos_sinalizados: number;
+  duplicatas_consolidadas: number | null;
+  estado_duplicatas: EstadoDuplicatasC3;
+}
+
+export interface DiagnosticoC3Out {
+  prefeitura_id: number;
+  importacao_id: number | null;
+  data_referencia: string | null; // ISO date da última leva
+  total_registros: number;
+  coorte: CoorteDiagnosticoC3Out;
+  cobertura_praticas: CoberturaPraticaC3Out[];
+}
+
 export interface SerieHistoricaPontoOut {
   importacao_id: number;
   data_referencia: string;

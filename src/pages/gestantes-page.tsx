@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   Baby,
+  CircleAlert,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -47,6 +48,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/layout/page-header";
 import type {
+  DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
   MicroAreaGestanteOut,
@@ -94,6 +96,55 @@ function AcaoCondicaoGestante({ gestante }: { gestante: GestanteAcompanhamentoOu
         Dump: {formatDate(gestante.condicao_gestante_data_referencia)}
       </span>
     </div>
+  );
+}
+
+function ResumoCoorteC3({ diagnostico }: { diagnostico: DiagnosticoC3Out }) {
+  const { coorte } = diagnostico;
+  const haInconsistencias =
+    coorte.historicas > 0 ||
+    coorte.excluidas_por_aborto > 0 ||
+    coorte.referencia_indisponivel > 0 ||
+    coorte.conflitos_sinalizados > 0;
+
+  return (
+    <Card className="mb-4 overflow-hidden border-primary/20 bg-primary/[0.03] shadow-sm">
+      <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Coorte vigente da última extração</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Referência: {formatDate(diagnostico.data_referencia)}. A lista nominal abaixo reúne gestantes
+            em acompanhamento e puérperas desse recorte.
+          </p>
+        </div>
+        <dl className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:gap-6">
+          <div>
+            <dt className="text-xs text-muted-foreground">Gestantes ativas</dt>
+            <dd className="text-2xl font-semibold text-foreground">{coorte.ativas}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Puérperas</dt>
+            <dd className="text-2xl font-semibold text-foreground">{coorte.puerperas}</dd>
+          </div>
+        </dl>
+      </div>
+      {haInconsistencias ? (
+        <div className="border-t border-primary/15 bg-background/60 px-4 py-3">
+          <div className="flex items-start gap-2 text-sm" role="status">
+            <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+            <div className="space-y-1 text-muted-foreground">
+              <p className="font-medium text-foreground">Atenção à qualidade desta leva</p>
+              <ul className="list-disc space-y-0.5 pl-4">
+                {coorte.historicas > 0 ? <li>{coorte.historicas} registro(s) histórico(s) fora do acompanhamento vigente.</li> : null}
+                {coorte.excluidas_por_aborto > 0 ? <li>{coorte.excluidas_por_aborto} registro(s) excluído(s) por aborto.</li> : null}
+                {coorte.referencia_indisponivel > 0 ? <li>{coorte.referencia_indisponivel} registro(s) sem data de referência.</li> : null}
+                {coorte.conflitos_sinalizados > 0 ? <li>{coorte.conflitos_sinalizados} caso(s) sinalizado(s) para revisão cadastral.</li> : null}
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </Card>
   );
 }
 
@@ -225,6 +276,7 @@ export function GestantesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [gestantes, setGestantes] = useState<GestanteAcompanhamentoOut[] | null>(null);
+  const [diagnostico, setDiagnostico] = useState<DiagnosticoC3Out | null>(null);
   const [equipes, setEquipes] = useState<EquipeGestanteOut[] | null>(null);
   const [equipesSelecionadas, setEquipesSelecionadas] = useState<string[]>(() =>
     [...new Set(new URLSearchParams(window.location.search).getAll("equipe"))].slice(0, 50),
@@ -311,6 +363,7 @@ export function GestantesPage() {
       setEquipes(null);
       setMicroAreas(null);
       setGestantes(null);
+      setDiagnostico(null);
       setSelectedId(Number(value));
     },
     [atualizarEquipesSelecionadas, atualizarMicroAreasSelecionadas],
@@ -421,6 +474,22 @@ export function GestantesPage() {
     void loadGestantes(controller.signal);
     return () => controller.abort();
   }, [loadGestantes]);
+
+  useEffect(() => {
+    if (selectedId === null) return;
+    const controller = new AbortController();
+    setDiagnostico(null);
+    gestanteService
+      .diagnostico(selectedId, controller.signal)
+      .then(setDiagnostico)
+      .catch((erro: unknown) => {
+        // O resumo é complementar: uma indisponibilidade dele não pode esconder
+        // a lista nominal já autorizada nem apresentar um erro técnico ao usuário.
+        if (erro instanceof DOMException && erro.name === "AbortError") return;
+        setDiagnostico(null);
+      });
+    return () => controller.abort();
+  }, [selectedId]);
 
   const handleExportar = useCallback(async () => {
     if (selectedId === null) return;
@@ -629,6 +698,7 @@ export function GestantesPage() {
         </Empty>
       ) : (
         <>
+          {diagnostico ? <ResumoCoorteC3 diagnostico={diagnostico} /> : null}
           <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
               <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs font-medium text-muted-foreground">

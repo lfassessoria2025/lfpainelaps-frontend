@@ -6,6 +6,7 @@ import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
 import type {
+  DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
   MicroAreaGestanteOut,
@@ -13,7 +14,7 @@ import type {
 } from "@/lib/api-types";
 
 vi.mock("@/services/gestante", () => ({
-  gestanteService: { list: vi.fn(), equipes: vi.fn(), microAreas: vi.fn(), exportar: vi.fn() },
+  gestanteService: { list: vi.fn(), equipes: vi.fn(), microAreas: vi.fn(), exportar: vi.fn(), diagnostico: vi.fn() },
 }));
 vi.mock("@/services/prefeituras", () => ({
   prefeiturasService: { list: vi.fn() },
@@ -32,10 +33,28 @@ const MICRO_AREAS: MicroAreaGestanteOut[] = [
   { chave: "001", codigo: "001", total_gestantes: 1, sem_micro_area: false },
   { chave: "sem-micro-area", codigo: null, total_gestantes: 1, sem_micro_area: true },
 ];
+const DIAGNOSTICO: DiagnosticoC3Out = {
+  prefeitura_id: 1,
+  importacao_id: 99,
+  data_referencia: "2026-08-15",
+  total_registros: 1,
+  coorte: {
+    ativas: 1,
+    puerperas: 0,
+    historicas: 0,
+    excluidas_por_aborto: 0,
+    referencia_indisponivel: 0,
+    conflitos_sinalizados: 0,
+    duplicatas_consolidadas: null,
+    estado_duplicatas: "nao_observavel_no_resultado_publicado",
+  },
+  cobertura_praticas: [],
+};
 
 beforeEach(() => {
   mockedGestanteService.equipes.mockResolvedValue(EQUIPES);
   mockedGestanteService.microAreas.mockResolvedValue(MICRO_AREAS);
+  mockedGestanteService.diagnostico.mockResolvedValue(DIAGNOSTICO);
 });
 
 afterEach(() => {
@@ -84,6 +103,9 @@ describe("GestantesPage", () => {
     expect(screen.getAllByText("Inserir condição Gestante").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/última ficha válida não marca/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Dump: 15/08/2026").length).toBeGreaterThan(0);
+    expect(await screen.findByText("Coorte vigente da última extração")).toBeInTheDocument();
+    expect(screen.getByText("Gestantes ativas")).toBeInTheDocument();
+    expect(screen.getByText("Puérperas")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("tab", { name: "Todos os parâmetros" }));
 
@@ -98,6 +120,26 @@ describe("GestantesPage", () => {
     expect(within(legenda).getByText("Completa")).toBeInTheDocument();
     expect(within(legenda).getByText("Parcial")).toBeInTheDocument();
     expect(within(legenda).getByText("Pendente")).toBeInTheDocument();
+  });
+
+  it("comunica inconsistências da coorte apenas de forma agregada", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    mockedGestanteService.diagnostico.mockResolvedValue({
+      ...DIAGNOSTICO,
+      coorte: {
+        ...DIAGNOSTICO.coorte,
+        historicas: 2,
+        excluidas_por_aborto: 1,
+        conflitos_sinalizados: 3,
+      },
+    });
+
+    render(<GestantesPage />);
+
+    expect(await screen.findByText("Atenção à qualidade desta leva")).toBeInTheDocument();
+    expect(screen.getByText(/2 registro\(s\) histórico/)).toBeInTheDocument();
+    expect(screen.getByText(/3 caso\(s\) sinalizado/)).toBeInTheDocument();
   });
 
   it.each([
