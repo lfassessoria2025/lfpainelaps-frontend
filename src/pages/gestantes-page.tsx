@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   Baby,
   CircleAlert,
@@ -111,10 +111,10 @@ function ResumoCoorteC3({ diagnostico }: { diagnostico: DiagnosticoC3Out }) {
     <Card className="mb-4 overflow-hidden border-primary/20 bg-primary/[0.03] shadow-sm">
       <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Coorte vigente da última extração</p>
+          <p className="text-sm font-semibold text-foreground">Acompanhamento operacional da última extração</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Referência: {formatDate(diagnostico.data_referencia)}. A lista nominal abaixo reúne gestantes
-            em acompanhamento e puérperas desse recorte.
+            em acompanhamento e puérperas desse recorte. Não substitui o resultado oficial C3 da competência mensal.
           </p>
         </div>
         <dl className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:gap-6">
@@ -314,6 +314,25 @@ export function GestantesPage() {
     if (!el) return;
     setScrollAffordance(calcularAffordanceDeScroll(el));
   }, []);
+
+  function navegarTabelaComTeclado(event: KeyboardEvent<HTMLDivElement>) {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const passo = Math.max(120, Math.round(el.clientWidth * 0.75));
+    const destinos: Partial<Record<typeof event.key, number>> = {
+      ArrowLeft: Math.max(0, el.scrollLeft - passo),
+      ArrowRight: Math.min(el.scrollWidth - el.clientWidth, el.scrollLeft + passo),
+      Home: 0,
+      End: Math.max(0, el.scrollWidth - el.clientWidth),
+    };
+    const destino = destinos[event.key];
+    if (destino === undefined) return;
+
+    event.preventDefault();
+    el.scrollLeft = destino;
+    atualizarScrollAffordance();
+  }
 
   // Recalcula quando os dados chegam (a tabela só existe/tem largura real
   // depois disso) e quando a janela muda de tamanho.
@@ -700,8 +719,8 @@ export function GestantesPage() {
         <>
           {diagnostico ? <ResumoCoorteC3 diagnostico={diagnostico} /> : null}
           <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-              <label className="flex min-w-56 flex-1 flex-col gap-1 text-xs font-medium text-muted-foreground">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-5">
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
                 Buscar gestante ou equipe
                 <div className="relative">
                   <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" />
@@ -746,7 +765,7 @@ export function GestantesPage() {
                 getSecondaryLabel={(microArea) => `${microArea.total_gestantes} gestante(s)`}
                 onToggle={alternarMicroArea}
               />
-              <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
                 Parâmetro
                 <Select
                   value={parametroFiltro}
@@ -773,7 +792,7 @@ export function GestantesPage() {
                   </SelectContent>
                 </Select>
               </label>
-              <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
                 {parametroFiltro === "todos" ? "Status do acompanhamento" : "Status do parâmetro"}
                 <Select
                   value={statusFiltro}
@@ -792,7 +811,7 @@ export function GestantesPage() {
                   </SelectContent>
                 </Select>
               </label>
-              <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
                 Ordenar por
                 <Select
                   value={ordenacao}
@@ -1025,8 +1044,9 @@ export function GestantesPage() {
               containerProps={{
                 ref: scrollRef,
                 onScroll: atualizarScrollAffordance,
+                onKeyDown: navegarTabelaComTeclado,
                 role: "region",
-                "aria-label": "Tabela nominal de gestantes; use as setas horizontais para ver mais colunas",
+                "aria-label": "Tabela nominal de acompanhamento operacional; use as setas esquerda e direita para ver mais colunas",
                 tabIndex: 0,
               }}
               className={cn(densidade === "compacta" && "[&_td]:py-1 [&_th]:h-8")}

@@ -103,7 +103,8 @@ describe("GestantesPage", () => {
     expect(screen.getAllByText("Inserir condição Gestante").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/última ficha válida não marca/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Dump: 15/08/2026").length).toBeGreaterThan(0);
-    expect(await screen.findByText("Coorte vigente da última extração")).toBeInTheDocument();
+    expect(await screen.findByText("Acompanhamento operacional da última extração")).toBeInTheDocument();
+    expect(screen.getByText(/não substitui o resultado oficial c3 da competência mensal/i)).toBeInTheDocument();
     expect(screen.getByText("Gestantes ativas")).toBeInTheDocument();
     expect(screen.getByText("Puérperas")).toBeInTheDocument();
 
@@ -463,7 +464,7 @@ describe("GestantesPage", () => {
     await screen.findAllByText("Maria da Silva");
 
     const regiao = screen.getByRole("region", {
-      name: /tabela nominal de gestantes; use as setas horizontais/i,
+      name: /tabela nominal de acompanhamento operacional; use as setas esquerda e direita/i,
     });
     expect(regiao).toHaveAttribute("data-slot", "table-container");
     expect(regiao).toHaveClass("overflow-x-auto", "max-w-full", "overscroll-x-contain");
@@ -481,6 +482,12 @@ describe("GestantesPage", () => {
     regiao.scrollLeft = 400;
     fireEvent.scroll(regiao);
     await waitFor(() => expect(screen.getByTestId("overflow-esquerda")).toHaveClass("opacity-100"));
+
+    regiao.focus();
+    fireEvent.keyDown(regiao, { key: "Home" });
+    expect(regiao.scrollLeft).toBe(0);
+    fireEvent.keyDown(regiao, { key: "End" });
+    expect(regiao.scrollLeft).toBe(400);
   });
 
   it("mantém a página contida quando abre todos os parâmetros", async () => {
@@ -494,7 +501,7 @@ describe("GestantesPage", () => {
 
     const tabela = screen.getByRole("table");
     const regiao = screen.getByRole("region", {
-      name: /tabela nominal de gestantes; use as setas horizontais/i,
+      name: /tabela nominal de acompanhamento operacional; use as setas esquerda e direita/i,
     });
     const card = regiao.closest('[data-slot="card"]');
 
