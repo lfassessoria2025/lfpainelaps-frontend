@@ -107,8 +107,10 @@ describe("AnalyticsPage", () => {
     render(<AnalyticsPage />);
 
     expect(await screen.findByText("Analytics")).toBeInTheDocument();
-    expect(await screen.findByText("Acompanhamento operacional da última extração")).toBeInTheDocument();
-    expect(screen.getByText(/sem dados validados não significa desempenho zero/i)).toBeInTheDocument();
+    expect(await screen.findByText("Acompanhamento operacional")).toBeInTheDocument();
+    expect(screen.getByText(/ausência não é pontuação zero/i)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Escopos de leitura do C3" })).toBeInTheDocument();
+    expect(screen.getByText("Histórico de acompanhamento")).toBeInTheDocument();
     await waitFor(() =>
       expect(mockedGestanteService.metricas).toHaveBeenCalledWith(PREFEITURA.id),
     );

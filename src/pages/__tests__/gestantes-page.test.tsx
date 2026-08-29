@@ -105,6 +105,9 @@ describe("GestantesPage", () => {
     expect(screen.getAllByText("Dump: 15/08/2026").length).toBeGreaterThan(0);
     expect(await screen.findByText("Acompanhamento operacional da última extração")).toBeInTheDocument();
     expect(screen.getByText(/não substitui o resultado oficial c3 da competência mensal/i)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Escopos de leitura do C3" })).toBeInTheDocument();
+    expect(screen.getByText("Resultado C3 oficial mensal")).toBeInTheDocument();
+    expect(screen.getByText("Histórico de acompanhamento")).toBeInTheDocument();
     expect(screen.getByText("Gestantes ativas")).toBeInTheDocument();
     expect(screen.getByText("Puérperas")).toBeInTheDocument();
 

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
+import { C3ScopeBoundary } from "@/components/gestantes/c3-scope-boundary";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -667,6 +668,8 @@ export function GestantesPage() {
           </Select>
         )}
       </div>
+
+      <C3ScopeBoundary />
 
       {prefeituras !== null && prefeituras.length === 0 ? (
         <p className="text-sm text-muted-foreground">
