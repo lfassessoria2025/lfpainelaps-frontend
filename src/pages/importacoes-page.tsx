@@ -124,10 +124,12 @@ function DeleteImportDialog({
   importacao,
   onOpenChange,
   onDeleted,
+  reuploadAfterDelete = false,
 }: {
   importacao: ImportacaoComPrefeitura;
   onOpenChange: (open: boolean) => void;
   onDeleted: () => void;
+  reuploadAfterDelete?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -149,10 +151,15 @@ function DeleteImportDialog({
     <AlertDialog open onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Excluir importação</AlertDialogTitle>
+          <AlertDialogTitle>
+            {reuploadAfterDelete ? "Excluir e enviar novo arquivo" : "Excluir importação"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            "{importacao.display_name}" vai sumir da lista. Se ela estava bloqueando novos envios
-            para esta prefeitura, o bloqueio é liberado. Esta ação não pode ser desfeita.
+            {reuploadAfterDelete
+              ? `"${importacao.display_name}" não possui checkpoint seguro para ser retomado. `
+                + "Ele será removido antes de abrir um novo envio, que exigirá revisar a prefeitura e confirmar o código IBGE novamente."
+              : `"${importacao.display_name}" vai sumir da lista. Se ela estava bloqueando novos envios `
+                + "para esta prefeitura, o bloqueio é liberado. Esta ação não pode ser desfeita."}
           </AlertDialogDescription>
         </AlertDialogHeader>
         {error ? (
@@ -164,7 +171,7 @@ function DeleteImportDialog({
           <AlertDialogCancel disabled={isSubmitting}>Voltar</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleConfirm} disabled={isSubmitting}>
             {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
-            Excluir
+            {reuploadAfterDelete ? "Excluir e continuar" : "Excluir"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -183,6 +190,7 @@ export function ImportacoesPage() {
   const [resumeTarget, setResumeTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [renameTarget, setRenameTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImportacaoComPrefeitura | null>(null);
+  const [reuploadTarget, setReuploadTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -322,7 +330,10 @@ export function ImportacoesPage() {
               selectedId === null ? null : { ...importacao, prefeituraId: selectedId };
             const podeExcluir = IMPORTACAO_STATUS_EXCLUIVEL.has(importacao.status);
             const podeContinuar = importacao.status === "aguardando_upload";
-            const podeRepetir = importacao.status === "falhou";
+            // Só a API conhece o checkpoint que sobreviveu à falha. Não use
+            // código técnico ou estado visual como autorização para retry.
+            const podeRepetir = importacao.recovery_action === "retentar";
+            const deveReenviar = importacao.recovery_action === "reenviar";
             const emAndamento = IMPORTACAO_STATUS_EM_ANDAMENTO.has(importacao.status);
             return (
               <Card
@@ -376,6 +387,16 @@ export function ImportacoesPage() {
                               >
                                 {retryingId === importacao.id ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
                                 Tentar novamente
+                              </Button>
+                            ) : null}
+                            {deveReenviar && comPrefeitura ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setReuploadTarget(comPrefeitura)}
+                              >
+                                <UploadCloud data-icon="inline-start" />
+                                Excluir e enviar novo
                               </Button>
                             ) : null}
                             <Tooltip>
@@ -477,6 +498,18 @@ export function ImportacoesPage() {
           importacao={deleteTarget}
           onOpenChange={(open) => !open && setDeleteTarget(null)}
           onDeleted={() => void loadImports()}
+        />
+      ) : null}
+      {reuploadTarget ? (
+        <DeleteImportDialog
+          importacao={reuploadTarget}
+          onOpenChange={(open) => !open && setReuploadTarget(null)}
+          onDeleted={() => {
+            setReuploadTarget(null);
+            setNewImportOpen(true);
+            void loadImports();
+          }}
+          reuploadAfterDelete
         />
       ) : null}
     </div>

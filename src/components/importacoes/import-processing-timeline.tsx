@@ -77,7 +77,7 @@ export function ImportProcessingTimeline({
   observedAt: Date | null;
 }) {
   const interrompida = status === "falhou" || status === "expirado";
-  const emAndamento = !interrompida && status !== "concluido";
+  const emAndamento = !interrompida && status !== "concluido" && status !== "substituido";
   const referenciaDoProcesso = heartbeatAt ?? processUpdatedAt ?? createdAt;
 
   return (

@@ -42,6 +42,7 @@ function importacao(overrides: Partial<ImportacaoOut> = {}): ImportacaoOut {
     expected_size_bytes: 1024,
     created_at: "2026-08-25T00:00:00Z",
     last_failure_code: "object_absent",
+    recovery_action: "reenviar",
     ...overrides,
   };
 }
@@ -146,7 +147,10 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
   });
 
   it("permite retomar uma falha sem pedir novo arquivo", async () => {
-    const falha = importacao({ last_failure_code: "extracao_transient" });
+    const falha = importacao({
+      last_failure_code: "extracao_transient",
+      recovery_action: "retentar",
+    });
     mockedImportacoesService.list.mockResolvedValue([falha]);
     mockedImportacoesService.retry.mockResolvedValue(importacao({ status: "staging_restaurado", last_failure_code: null }));
     const user = userEvent.setup();
@@ -159,6 +163,36 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
       expect(mockedImportacoesService.retry).toHaveBeenCalledWith(PREFEITURA.id, falha.id);
     });
     expect(mockedImportacoesService.list).toHaveBeenCalledTimes(2);
+  });
+
+  it("não oferece retentativa quando a API exige novo envio", async () => {
+    mockedImportacoesService.list.mockResolvedValue([importacao()]);
+
+    render(<ImportacoesPage />);
+
+    await screen.findByText("backup semana 32");
+    expect(screen.queryByRole("button", { name: "Tentar novamente" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Excluir e enviar novo" })).toBeInTheDocument();
+  });
+
+  it("exclui a leva não recuperável antes de abrir novo envio com revisão de destino", async () => {
+    mockedImportacoesService.list.mockResolvedValue([importacao()]);
+    mockedImportacoesService.remove.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+    await screen.findByText("backup semana 32");
+    await user.click(screen.getByRole("button", { name: "Excluir e enviar novo" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(/não possui checkpoint seguro/i)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Excluir e continuar" }));
+
+    await waitFor(() => {
+      expect(mockedImportacoesService.remove).toHaveBeenCalledWith(PREFEITURA.id, importacao().id);
+    });
+    expect(await screen.findByText("Destino do backup")).toBeInTheDocument();
+    expect(screen.getByText(PREFEITURA.ibge_code)).toBeInTheDocument();
   });
 
   it("renomeia uma importação e recarrega a lista", async () => {

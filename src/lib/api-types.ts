@@ -203,8 +203,12 @@ export type ImportacaoStatus =
   | "staging_restaurado"
   | "extraindo"
   | "concluido"
+  | "substituido"
   | "falhou"
   | "expirado";
+
+/** Ação de recuperação decidida pela API, nunca inferida pelo navegador. */
+export type ImportacaoRecoveryAction = "nenhuma" | "retentar" | "reenviar";
 
 /** Status que indicam processamento em andamento (front pode fazer polling). */
 export const IMPORTACAO_STATUS_EM_ANDAMENTO: ReadonlySet<ImportacaoStatus> = new Set([
@@ -221,6 +225,7 @@ export const IMPORTACAO_STATUS_EM_ANDAMENTO: ReadonlySet<ImportacaoStatus> = new
 
 export const IMPORTACAO_STATUS_TERMINAL: ReadonlySet<ImportacaoStatus> = new Set([
   "concluido",
+  "substituido",
   "falhou",
   "expirado",
 ]);
@@ -232,6 +237,9 @@ export interface ImportacaoOut {
   expected_size_bytes: number;
   created_at: string; // ISO datetime
   last_failure_code: string | null;
+  /** Contrato do backend para uma leva terminal. Em rollout parcial, ausência
+   * significa que não há ação segura a oferecer. */
+  recovery_action?: ImportacaoRecoveryAction;
   /** Metadados opcionais de acompanhamento. Versões anteriores da API não os
    * retornam; a interface continua mostrando apenas o que consegue afirmar. */
   updated_at?: string; // ISO datetime da última transição persistida
