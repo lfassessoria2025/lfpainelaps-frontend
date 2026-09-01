@@ -120,11 +120,18 @@ function AcaoCondicaoGestante({
 
 function ResumoCoorteC3({ diagnostico }: { diagnostico: DiagnosticoC3Out }) {
   const { coorte } = diagnostico;
+  const acoesNoCadastro = coorte.condicao_nao_marcada + coorte.condicao_ainda_marcada;
+  const revisoesCadastrais =
+    coorte.cadastro_ausente_ou_nao_informado +
+    coorte.estado_esperado_indeterminado +
+    coorte.dados_legados_sem_avaliacao;
   const haInconsistencias =
     coorte.historicas > 0 ||
     coorte.excluidas_por_aborto > 0 ||
     coorte.referencia_indisponivel > 0 ||
-    coorte.conflitos_sinalizados > 0;
+    coorte.conflitos_sinalizados > 0 ||
+    acoesNoCadastro > 0 ||
+    revisoesCadastrais > 0;
 
   return (
     <Card className="mb-4 overflow-hidden border-primary/20 bg-primary/[0.03] shadow-sm">
@@ -145,6 +152,12 @@ function ResumoCoorteC3({ diagnostico }: { diagnostico: DiagnosticoC3Out }) {
             <dt className="text-xs text-muted-foreground">Puérperas</dt>
             <dd className="text-2xl font-semibold text-foreground">{coorte.puerperas}</dd>
           </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Cadastro coerente</dt>
+            <dd className="text-2xl font-semibold text-emerald-700 dark:text-emerald-400">
+              {coorte.cadastro_coerente}
+            </dd>
+          </div>
         </dl>
       </div>
       {haInconsistencias ? (
@@ -158,6 +171,8 @@ function ResumoCoorteC3({ diagnostico }: { diagnostico: DiagnosticoC3Out }) {
                 {coorte.excluidas_por_aborto > 0 ? <li>{coorte.excluidas_por_aborto} registro(s) excluído(s) por aborto.</li> : null}
                 {coorte.referencia_indisponivel > 0 ? <li>{coorte.referencia_indisponivel} registro(s) sem data de referência.</li> : null}
                 {coorte.conflitos_sinalizados > 0 ? <li>{coorte.conflitos_sinalizados} caso(s) sinalizado(s) para revisão cadastral.</li> : null}
+                {acoesNoCadastro > 0 ? <li>{acoesNoCadastro} caso(s) com ação a realizar na condição de saúde Gestante.</li> : null}
+                {revisoesCadastrais > 0 ? <li>{revisoesCadastrais} cadastro(s) sem informação suficiente ou legado(s) para revisar.</li> : null}
               </ul>
             </div>
           </div>

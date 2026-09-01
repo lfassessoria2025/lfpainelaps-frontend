@@ -383,6 +383,12 @@ export interface CoorteDiagnosticoC3Out {
   excluidas_por_aborto: number;
   referencia_indisponivel: number;
   conflitos_sinalizados: number;
+  cadastro_coerente: number;
+  condicao_nao_marcada: number;
+  condicao_ainda_marcada: number;
+  cadastro_ausente_ou_nao_informado: number;
+  estado_esperado_indeterminado: number;
+  dados_legados_sem_avaliacao: number;
   duplicatas_consolidadas: number | null;
   estado_duplicatas: EstadoDuplicatasC3;
 }
