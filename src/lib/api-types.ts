@@ -398,6 +398,8 @@ export interface DiagnosticoC3Out {
   importacao_id: number | null;
   data_referencia: string | null; // ISO date da última leva
   total_registros: number;
+  estado_confiabilidade: "operacional_pendente_homologacao_clinica";
+  mensagem_confiabilidade: string;
   coorte: CoorteDiagnosticoC3Out;
   cobertura_praticas: CoberturaPraticaC3Out[];
 }

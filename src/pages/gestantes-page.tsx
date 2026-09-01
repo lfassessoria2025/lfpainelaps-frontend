@@ -160,6 +160,17 @@ function ResumoCoorteC3({ diagnostico }: { diagnostico: DiagnosticoC3Out }) {
           </div>
         </dl>
       </div>
+      <div className="border-t border-amber-500/25 bg-amber-50/80 px-4 py-3 dark:bg-amber-950/20">
+        <div className="flex items-start gap-2 text-sm" role="status">
+          <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
+          <div>
+            <p className="font-medium text-amber-950 dark:text-amber-100">Validação clínica pendente</p>
+            <p className="mt-0.5 text-amber-900/80 dark:text-amber-100/80">
+              {diagnostico.mensagem_confiabilidade}
+            </p>
+          </div>
+        </div>
+      </div>
       {haInconsistencias ? (
         <div className="border-t border-primary/15 bg-background/60 px-4 py-3">
           <div className="flex items-start gap-2 text-sm" role="status">

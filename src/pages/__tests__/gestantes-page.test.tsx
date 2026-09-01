@@ -38,6 +38,8 @@ const DIAGNOSTICO: DiagnosticoC3Out = {
   importacao_id: 99,
   data_referencia: "2026-08-15",
   total_registros: 1,
+  estado_confiabilidade: "operacional_pendente_homologacao_clinica",
+  mensagem_confiabilidade: "Resultado operacional do dump. A homologação clínica agregada das práticas C3 ainda está pendente.",
   coorte: {
     ativas: 1,
     puerperas: 0,
