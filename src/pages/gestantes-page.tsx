@@ -177,6 +177,7 @@ type Ordenacao =
   | "parametro-asc";
 type PresetColunas = "essenciais" | "personalizado" | "todos";
 type DensidadeTabela = "confortavel" | "compacta";
+type VisaoGestantes = "acompanhamento" | "pendencias";
 type ColunaId =
   | "equipe"
   | "micro-area"
@@ -319,6 +320,7 @@ export function GestantesPage() {
     ...COLUNAS_ESSENCIAIS,
   ]);
   const [densidade, setDensidade] = useState<DensidadeTabela>("confortavel");
+  const [visao, setVisao] = useState<VisaoGestantes>("acompanhamento");
   const [cardsExpandidos, setCardsExpandidos] = useState<number[]>([]);
   const [pagina, setPagina] = useState(1);
 
@@ -595,6 +597,10 @@ export function GestantesPage() {
     if (!gestantes) return [];
     const termo = buscaDeferred.trim().toLocaleLowerCase("pt-BR");
     const resultado = gestantes.filter((gestante) => {
+      const correspondeVisao =
+        visao === "acompanhamento"
+          ? true
+          : gestante.condicao_gestante_acao !== "nenhuma_acao";
       const correspondeBusca =
         termo.length === 0 ||
         gestante.nome_cidadao.toLocaleLowerCase("pt-BR").includes(termo) ||
@@ -606,7 +612,7 @@ export function GestantesPage() {
         ? statusDaPratica(gestante, praticaSelecionada).status
         : statusGeralDaGestante(gestante);
       const correspondeStatus = statusFiltro === "todos" || statusParaFiltro === statusFiltro;
-      return correspondeBusca && correspondeStatus;
+      return correspondeVisao && correspondeBusca && correspondeStatus;
     });
 
     return resultado.toSorted((a, b) => {
@@ -622,7 +628,12 @@ export function GestantesPage() {
       }
       return a.nome_cidadao.localeCompare(b.nome_cidadao, "pt-BR");
     });
-  }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro]);
+  }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro, visao]);
+  const totalAcompanhamento = useMemo(
+    () => gestantes?.length ?? 0,
+    [gestantes],
+  );
+  const totalPendencias = (gestantes?.length ?? 0) - totalAcompanhamento;
   const totalPaginas = Math.max(1, Math.ceil(gestantesFiltradas.length / ITENS_POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const inicioDaPagina = (paginaAtual - 1) * ITENS_POR_PAGINA;
@@ -634,7 +645,7 @@ export function GestantesPage() {
   useEffect(() => {
     setPagina(1);
     setCardsExpandidos([]);
-  }, [buscaDeferred, equipesSelecionadas, gestantes, microAreasSelecionadas, ordenacao, parametroFiltro, selectedId, statusFiltro]);
+  }, [buscaDeferred, equipesSelecionadas, gestantes, microAreasSelecionadas, ordenacao, parametroFiltro, selectedId, statusFiltro, visao]);
 
   const trocarPagina = useCallback((proximaPagina: number) => {
     setPagina(proximaPagina);
@@ -739,6 +750,22 @@ export function GestantesPage() {
       ) : (
         <>
           {diagnostico ? <ResumoCoorteC3 diagnostico={diagnostico} /> : null}
+          <Card className="mb-4 p-3 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold">Organize o trabalho em duas filas</p>
+                <p className="text-sm text-muted-foreground">
+                  Acompanhamento mostra a coorte clínica completa. Pendências reúne somente correções no Cadastro Individual.
+                </p>
+              </div>
+              <Tabs value={visao} onValueChange={(value) => value && setVisao(value as VisaoGestantes)}>
+                <TabsList aria-label="Visão da lista de gestantes">
+                  <TabsTrigger value="acompanhamento">Acompanhamento <Badge variant="secondary">{totalAcompanhamento}</Badge></TabsTrigger>
+                  <TabsTrigger value="pendencias">Pendências <Badge variant="outline">{totalPendencias}</Badge></TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </Card>
           <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-5">
               <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
