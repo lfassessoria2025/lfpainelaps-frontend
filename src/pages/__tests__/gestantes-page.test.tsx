@@ -6,7 +6,6 @@ import { ApiError } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
 import type {
-  DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
   MicroAreaGestanteOut,
@@ -19,9 +18,6 @@ vi.mock("@/services/gestante", () => ({
     equipes: vi.fn(),
     microAreas: vi.fn(),
     exportar: vi.fn(),
-    diagnostico: vi.fn(),
-    validacoes: vi.fn(),
-    validar: vi.fn(),
   },
 }));
 vi.mock("@/services/prefeituras", () => ({
@@ -41,35 +37,9 @@ const MICRO_AREAS: MicroAreaGestanteOut[] = [
   { chave: "001", codigo: "001", total_gestantes: 1, sem_micro_area: false },
   { chave: "sem-micro-area", codigo: null, total_gestantes: 1, sem_micro_area: true },
 ];
-const DIAGNOSTICO: DiagnosticoC3Out = {
-  prefeitura_id: 1,
-  importacao_id: 99,
-  data_referencia: "2026-08-15",
-  total_registros: 1,
-  coorte: {
-    ativas: 1,
-    puerperas: 0,
-    historicas: 0,
-    excluidas_por_aborto: 0,
-    referencia_indisponivel: 0,
-    conflitos_sinalizados: 0,
-    cadastro_coerente: 1,
-    condicao_nao_marcada: 0,
-    condicao_ainda_marcada: 0,
-    cadastro_ausente_ou_nao_informado: 0,
-    estado_esperado_indeterminado: 0,
-    dados_legados_sem_avaliacao: 0,
-    duplicatas_consolidadas: null,
-    estado_duplicatas: "nao_observavel_no_resultado_publicado",
-  },
-  cobertura_praticas: [],
-};
-
 beforeEach(() => {
   mockedGestanteService.equipes.mockResolvedValue(EQUIPES);
   mockedGestanteService.microAreas.mockResolvedValue(MICRO_AREAS);
-  mockedGestanteService.diagnostico.mockResolvedValue(DIAGNOSTICO);
-  mockedGestanteService.validacoes.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -106,59 +76,19 @@ const GESTANTE: GestanteAcompanhamentoOut = {
 };
 
 describe("GestantesPage", () => {
-  it("organiza a conferência em abas e confirma uma linha da planilha", async () => {
+  it("exibe somente os filtros e a lista, sem cabeçalhos auxiliares ou abas", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE]);
-    mockedGestanteService.validar.mockResolvedValue({
-      id: 91,
-      gestante_acompanhamento_id: GESTANTE.id,
-      status: "confirmada",
-      campos_divergentes: [],
-      motivo_divergencia: null,
-      observacao: null,
-      created_at: "2026-09-11T12:00:00Z",
-    });
-    const user = userEvent.setup();
 
     render(<GestantesPage />);
 
-    expect(await screen.findByRole("tab", { name: /A validar 1/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Confirmadas 0/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Divergências 0/i })).toBeInTheDocument();
-
-    await user.click(
-      screen.getAllByRole("button", { name: /confirmar que maria da silva confere/i })[0],
-    );
-
-    await waitFor(() => {
-      expect(mockedGestanteService.validar).toHaveBeenCalledWith(
-        PREFEITURA.id,
-        GESTANTE.id,
-        { status: "confirmada" },
-      );
-    });
-    expect(screen.getByRole("tab", { name: /Confirmadas 1/i })).toBeInTheDocument();
-    expect(screen.getAllByText("Confere com a planilha").length).toBeGreaterThan(0);
-  });
-
-  it("abre o registro de divergência com campos e motivos estruturados", async () => {
-    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
-    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
-    const user = userEvent.setup();
-
-    render(<GestantesPage />);
-    await user.click(
-      (await screen.findAllByRole("button", { name: /registrar divergência para maria/i }))[0],
-    );
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Registrar divergência da planilha" })).toBeInTheDocument();
-    expect(screen.getByText("Presença na planilha")).toBeInTheDocument();
-    expect(screen.getByText("Prática K")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Salvar divergência" }));
-    expect(screen.getByText("Selecione ao menos um campo divergente.")).toBeInTheDocument();
-    expect(screen.getByText("Selecione um motivo.")).toBeInTheDocument();
+    expect((await screen.findAllByText("Maria da Silva")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("searchbox", { name: /buscar gestante ou equipe/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Filtrar por equipe" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(screen.queryByText("Acompanhamento operacional da última extração")).not.toBeInTheDocument();
+    expect(screen.queryByText("Validação com a planilha da cliente")).not.toBeInTheDocument();
+    expect(screen.queryByText("Atenção à qualidade desta leva")).not.toBeInTheDocument();
   });
 
   it("carrega a prefeitura ativa e renderiza a lista de gestantes", async () => {
@@ -173,47 +103,10 @@ describe("GestantesPage", () => {
     expect(screen.getAllByText("Inserir em condição de saúde Gestante").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/última ficha válida não marca/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Referência do dump: 15/08/2026").length).toBeGreaterThan(0);
-    expect(await screen.findByText("Acompanhamento operacional da última extração")).toBeInTheDocument();
-    expect(screen.getByText(/não substitui o resultado oficial c3 da competência mensal/i)).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Escopos de leitura do C3" })).toBeInTheDocument();
-    expect(screen.getByText("Resultado C3 oficial mensal")).toBeInTheDocument();
-    expect(screen.getByText("Histórico de acompanhamento")).toBeInTheDocument();
-    expect(screen.getByText("Gestantes ativas")).toBeInTheDocument();
-    expect(screen.getByText("Puérperas")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("tab", { name: "Todos os parâmetros" }));
-
-    // O preset completo expõe os parâmetros, sem depender de tooltip.
     expect(screen.getByText("Consultas (7)")).toBeInTheDocument();
     expect(screen.getByText("VD Gestação (3)")).toBeInTheDocument();
     expect(screen.getByText("Início gestação")).toBeInTheDocument();
     expect(screen.getByText("Fim puerpério")).toBeInTheDocument();
-
-    // Legenda de cor (completa/parcial/pendente) presente na tela.
-    const legenda = screen.getByText("Situação clínica de acompanhamento C3:").closest("div")!;
-    expect(within(legenda).getByText("Completa")).toBeInTheDocument();
-    expect(within(legenda).getByText("Parcial")).toBeInTheDocument();
-    expect(within(legenda).getByText("Pendente")).toBeInTheDocument();
-  });
-
-  it("comunica inconsistências da coorte apenas de forma agregada", async () => {
-    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
-    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
-    mockedGestanteService.diagnostico.mockResolvedValue({
-      ...DIAGNOSTICO,
-      coorte: {
-        ...DIAGNOSTICO.coorte,
-        historicas: 2,
-        excluidas_por_aborto: 1,
-        conflitos_sinalizados: 3,
-      },
-    });
-
-    render(<GestantesPage />);
-
-    expect(await screen.findByText("Atenção à qualidade desta leva")).toBeInTheDocument();
-    expect(screen.getByText(/2 registro\(s\) histórico/)).toBeInTheDocument();
-    expect(screen.getByText(/3 caso\(s\) sinalizado/)).toBeInTheDocument();
   });
 
   it.each([
@@ -238,11 +131,10 @@ describe("GestantesPage", () => {
     render(<GestantesPage />);
 
     expect((await screen.findAllByRole("region", { name: "Pendência de cadastro: condição Gestante" })).length).toBeGreaterThan(0);
-    expect(screen.getByText("Situação clínica de acompanhamento C3:")).toBeInTheDocument();
     expect(screen.getAllByText(/não altera a pontuação nem a pendência clínica do c3/i).length).toBeGreaterThan(0);
   });
 
-  it("busca, filtra, ordena e alterna os presets da tabela", async () => {
+  it("busca, filtra e ordena a tabela única", async () => {
     const gestantePendente: GestanteAcompanhamentoOut = {
       ...GESTANTE,
       id: 11,
@@ -270,10 +162,6 @@ describe("GestantesPage", () => {
 
     const contagemInicial = await screen.findByText(/de 2 gestantes/);
     expect(within(contagemInicial).getByText("2")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Essenciais" })).toHaveAttribute("data-active");
-    expect(screen.queryByText("Início gestação")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("tab", { name: "Todos os parâmetros" }));
     expect(screen.getByText("Início gestação")).toBeInTheDocument();
     expect(screen.getByText("Atualizado em")).toBeInTheDocument();
 
@@ -479,28 +367,6 @@ describe("GestantesPage", () => {
     expect(within(linhas[2]).getByText("Maria da Silva")).toBeInTheDocument();
   });
 
-  it("personaliza colunas e altera a densidade da tabela", async () => {
-    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
-    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
-    const user = userEvent.setup();
-
-    render(<GestantesPage />);
-    await screen.findAllByText("Maria da Silva");
-
-    await user.click(screen.getByRole("tab", { name: "Personalizado" }));
-    const escolherColunas = screen.getByRole("button", { name: "Escolher colunas visíveis" });
-    await user.click(escolherColunas);
-    const nascimento = await screen.findByRole("menuitemcheckbox", { name: "Nascimento" });
-    expect(nascimento).toHaveAttribute("aria-checked", "false");
-    await user.click(nascimento);
-
-    expect(within(screen.getByRole("table")).getByText("Nascimento")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("combobox", { name: "Densidade da tabela" }));
-    await user.click(await screen.findByRole("option", { name: "Compacta" }));
-    expect(screen.getByRole("table")).toHaveClass("[&_td]:py-1");
-  });
-
   it("expõe todos os parâmetros no card progressivo com controle acessível", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE]);
@@ -515,7 +381,7 @@ describe("GestantesPage", () => {
 
     expect(expandir).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("Ocultar detalhes")).toBeInTheDocument();
-    expect(screen.getByText("Elegibilidade")).toBeInTheDocument();
+    expect(screen.getAllByText("Elegibilidade").length).toBeGreaterThan(0);
     expect(screen.getByText("K · Odonto")).toBeInTheDocument();
     expect(document.getElementById("detalhes-gestante-10")).toBeInTheDocument();
   });
@@ -574,14 +440,12 @@ describe("GestantesPage", () => {
     expect(regiao.scrollLeft).toBe(400);
   });
 
-  it("mantém a página contida quando abre todos os parâmetros", async () => {
+  it("mantém a tabela única com todos os parâmetros contida na página", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE]);
-    const user = userEvent.setup();
 
     render(<GestantesPage />);
     await screen.findAllByText("Maria da Silva");
-    await user.click(screen.getByRole("tab", { name: "Todos os parâmetros" }));
 
     const tabela = screen.getByRole("table");
     const regiao = screen.getByRole("region", {

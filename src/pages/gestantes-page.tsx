@@ -1,8 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   Baby,
-  CheckCircle2,
-  CircleAlert,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -10,25 +8,13 @@ import {
   Loader2,
   Lock,
   Search,
-  Settings2,
   ShieldAlert,
-  TriangleAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
-import { C3ScopeBoundary } from "@/components/gestantes/c3-scope-boundary";
-import { ValidacaoPlanilhaDialog } from "@/components/gestantes/validacao-planilha-dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -50,13 +35,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PageHeader } from "@/components/layout/page-header";
 import type {
-  DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
-  GestanteValidacaoClienteIn,
-  GestanteValidacaoClienteOut,
   MicroAreaGestanteOut,
   PrefeituraOut,
 } from "@/lib/api-types";
@@ -123,70 +104,6 @@ function AcaoCondicaoGestante({
   );
 }
 
-function ResumoCoorteC3({ diagnostico }: { diagnostico: DiagnosticoC3Out }) {
-  const { coorte } = diagnostico;
-  const acoesNoCadastro = coorte.condicao_nao_marcada + coorte.condicao_ainda_marcada;
-  const revisoesCadastrais =
-    coorte.cadastro_ausente_ou_nao_informado +
-    coorte.estado_esperado_indeterminado +
-    coorte.dados_legados_sem_avaliacao;
-  const haInconsistencias =
-    coorte.historicas > 0 ||
-    coorte.excluidas_por_aborto > 0 ||
-    coorte.referencia_indisponivel > 0 ||
-    coorte.conflitos_sinalizados > 0 ||
-    acoesNoCadastro > 0 ||
-    revisoesCadastrais > 0;
-
-  return (
-    <Card className="mb-4 overflow-hidden border-primary/20 bg-primary/[0.03] shadow-sm">
-      <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Acompanhamento operacional da última extração</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Referência: {formatDate(diagnostico.data_referencia)}. A lista nominal abaixo reúne gestantes
-            em acompanhamento e puérperas desse recorte. Não substitui o resultado oficial C3 da competência mensal.
-          </p>
-        </div>
-        <dl className="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:gap-6">
-          <div>
-            <dt className="text-xs text-muted-foreground">Gestantes ativas</dt>
-            <dd className="text-2xl font-semibold text-foreground">{coorte.ativas}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Puérperas</dt>
-            <dd className="text-2xl font-semibold text-foreground">{coorte.puerperas}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted-foreground">Cadastro coerente</dt>
-            <dd className="text-2xl font-semibold text-emerald-700 dark:text-emerald-400">
-              {coorte.cadastro_coerente}
-            </dd>
-          </div>
-        </dl>
-      </div>
-      {haInconsistencias ? (
-        <div className="border-t border-primary/15 bg-background/60 px-4 py-3">
-          <div className="flex items-start gap-2 text-sm" role="status">
-            <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-            <div className="space-y-1 text-muted-foreground">
-              <p className="font-medium text-foreground">Atenção à qualidade desta leva</p>
-              <ul className="list-disc space-y-0.5 pl-4">
-                {coorte.historicas > 0 ? <li>{coorte.historicas} registro(s) histórico(s) fora do acompanhamento vigente.</li> : null}
-                {coorte.excluidas_por_aborto > 0 ? <li>{coorte.excluidas_por_aborto} registro(s) excluído(s) por aborto.</li> : null}
-                {coorte.referencia_indisponivel > 0 ? <li>{coorte.referencia_indisponivel} registro(s) sem data de referência.</li> : null}
-                {coorte.conflitos_sinalizados > 0 ? <li>{coorte.conflitos_sinalizados} caso(s) sinalizado(s) para revisão cadastral.</li> : null}
-                {acoesNoCadastro > 0 ? <li>{acoesNoCadastro} caso(s) com ação a realizar na condição de saúde Gestante.</li> : null}
-                {revisoesCadastrais > 0 ? <li>{revisoesCadastrais} cadastro(s) sem informação suficiente ou legado(s) para revisar.</li> : null}
-              </ul>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
 type StatusFiltro = StatusPratica | "todos";
 type ParametroFiltro = "todos" | (typeof PRATICAS)[number]["letra"];
 type Ordenacao =
@@ -195,14 +112,6 @@ type Ordenacao =
   | "pontuacao-asc"
   | "parametro-desc"
   | "parametro-asc";
-type PresetColunas = "essenciais" | "personalizado" | "todos";
-type DensidadeTabela = "confortavel" | "compacta";
-type VisaoGestantes =
-  | "acompanhamento"
-  | "a-validar"
-  | "confirmadas"
-  | "divergencias"
-  | "pendencias-cadastro";
 type ColunaId =
   | "equipe"
   | "micro-area"
@@ -214,7 +123,6 @@ type ColunaId =
   | "elegibilidade"
   | "status"
   | "condicao-gestante"
-  | "validacao-planilha"
   | "pontuacao"
   | "atualizado"
   | `pratica-${string}`;
@@ -230,17 +138,9 @@ const COLUNAS_FIXAS: ReadonlyArray<{ id: ColunaId; rotulo: string }> = [
   { id: "elegibilidade", rotulo: "Elegibilidade" },
   { id: "status", rotulo: "Status" },
   { id: "condicao-gestante", rotulo: "Ação no Cadastro Individual" },
-  { id: "validacao-planilha", rotulo: "Validação da planilha" },
   { id: "pontuacao", rotulo: "Pontuação" },
   { id: "atualizado", rotulo: "Atualizado em" },
 ];
-const COLUNAS_ESSENCIAIS = new Set<ColunaId>([
-  "equipe",
-  "status",
-  "condicao-gestante",
-  "validacao-planilha",
-  "pontuacao",
-]);
 const COLUNAS_TODAS: ColunaId[] = [
   ...COLUNAS_FIXAS.map(({ id }) => id),
   ...PRATICAS.map(({ letra }) => `pratica-${letra}` as ColunaId),
@@ -319,94 +219,11 @@ function PaginacaoGestantes({
   );
 }
 
-const MOTIVO_DIVERGENCIA_ROTULO = {
-  ausente_na_planilha: "Não consta na planilha",
-  valor_diferente_na_planilha: "Valor diferente na planilha",
-  data_divergente: "Data divergente",
-  evento_posterior_ao_dump: "Evento posterior ao dump",
-  pre_natal_sem_encerramento: "Pré-natal sem encerramento",
-  cadastro_divergente: "Cadastro divergente",
-  outro: "Outro motivo",
-} as const;
-
-function ValidacaoPlanilhaAcoes({
-  gestante,
-  validacao,
-  salvando,
-  onConfirmar,
-  onDivergencia,
-}: {
-  gestante: GestanteAcompanhamentoOut;
-  validacao: GestanteValidacaoClienteOut | null;
-  salvando: boolean;
-  onConfirmar: () => void;
-  onDivergencia: () => void;
-}) {
-  const status = validacao?.status ?? "pendente";
-  return (
-    <section aria-label={`Validação da planilha de ${gestante.nome_cidadao}`} className="flex min-w-52 flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        {status === "confirmada" ? (
-          <Badge variant="secondary"><CheckCircle2 /> Confere com a planilha</Badge>
-        ) : status === "divergente" ? (
-          <Badge variant="destructive"><TriangleAlert /> Divergência registrada</Badge>
-        ) : (
-          <Badge variant="outline">Aguardando validação</Badge>
-        )}
-      </div>
-      {validacao?.status === "divergente" ? (
-        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-          <p>
-            {validacao.motivo_divergencia
-              ? MOTIVO_DIVERGENCIA_ROTULO[validacao.motivo_divergencia]
-              : "Motivo não informado"}
-            {validacao.campos_divergentes.length > 0
-              ? ` · Campos: ${validacao.campos_divergentes.join(", ")}`
-              : ""}
-          </p>
-          {validacao.observacao ? <p className="whitespace-normal">{validacao.observacao}</p> : null}
-        </div>
-      ) : null}
-      <div className="flex flex-wrap gap-2">
-        {status !== "confirmada" ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={salvando}
-            onClick={onConfirmar}
-            aria-label={`Confirmar que ${gestante.nome_cidadao} confere com a planilha`}
-          >
-            {salvando ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <CheckCircle2 data-icon="inline-start" />}
-            Confere
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={salvando}
-          onClick={onDivergencia}
-          aria-label={`Registrar divergência para ${gestante.nome_cidadao}`}
-        >
-          <TriangleAlert data-icon="inline-start" />
-          {status === "divergente" ? "Editar" : "Divergência"}
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 export function GestantesPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [gestantes, setGestantes] = useState<GestanteAcompanhamentoOut[] | null>(null);
-  const [validacoes, setValidacoes] = useState<Record<number, GestanteValidacaoClienteOut>>({});
-  const [gestanteEmDivergencia, setGestanteEmDivergencia] = useState<GestanteAcompanhamentoOut | null>(null);
-  const [salvandoValidacaoId, setSalvandoValidacaoId] = useState<number | null>(null);
-  const [validacaoError, setValidacaoError] = useState<string | null>(null);
-  const [diagnostico, setDiagnostico] = useState<DiagnosticoC3Out | null>(null);
   const [equipes, setEquipes] = useState<EquipeGestanteOut[] | null>(null);
   const [equipesSelecionadas, setEquipesSelecionadas] = useState<string[]>(() =>
     [...new Set(new URLSearchParams(window.location.search).getAll("equipe"))].slice(0, 50),
@@ -425,12 +242,6 @@ export function GestantesPage() {
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>("todos");
   const [parametroFiltro, setParametroFiltro] = useState<ParametroFiltro>("todos");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("nome-asc");
-  const [presetColunas, setPresetColunas] = useState<PresetColunas>("essenciais");
-  const [colunasPersonalizadas, setColunasPersonalizadas] = useState<ColunaId[]>([
-    ...COLUNAS_ESSENCIAIS,
-  ]);
-  const [densidade, setDensidade] = useState<DensidadeTabela>("confortavel");
-  const [visao, setVisao] = useState<VisaoGestantes>("acompanhamento");
   const [cardsExpandidos, setCardsExpandidos] = useState<number[]>([]);
   const [pagina, setPagina] = useState(1);
 
@@ -513,7 +324,6 @@ export function GestantesPage() {
       setEquipes(null);
       setMicroAreas(null);
       setGestantes(null);
-      setDiagnostico(null);
       setSelectedId(Number(value));
     },
     [atualizarEquipesSelecionadas, atualizarMicroAreasSelecionadas],
@@ -594,21 +404,13 @@ export function GestantesPage() {
   const loadGestantes = useCallback(async (signal?: AbortSignal) => {
     if (selectedId === null) return;
     try {
-      const [data, validacoesAtuais] = await Promise.all([
-        gestanteService.list(
-          selectedId,
-          equipesSelecionadas,
-          microAreasSelecionadas,
-          signal,
-        ),
-        gestanteService.validacoes(selectedId, signal),
-      ]);
-      setGestantes(data);
-      setValidacoes(
-        Object.fromEntries(
-          validacoesAtuais.map((validacao) => [validacao.gestante_acompanhamento_id, validacao]),
-        ),
+      const data = await gestanteService.list(
+        selectedId,
+        equipesSelecionadas,
+        microAreasSelecionadas,
+        signal,
       );
+      setGestantes(data);
       setLoadError(null);
       setForbidden(false);
     } catch (err) {
@@ -626,48 +428,12 @@ export function GestantesPage() {
     }
   }, [equipesSelecionadas, microAreasSelecionadas, selectedId]);
 
-  const salvarValidacao = useCallback(async (
-    gestante: GestanteAcompanhamentoOut,
-    entrada: GestanteValidacaoClienteIn,
-  ) => {
-    if (selectedId === null) return;
-    setSalvandoValidacaoId(gestante.id);
-    setValidacaoError(null);
-    try {
-      const validacao = await gestanteService.validar(selectedId, gestante.id, entrada);
-      setValidacoes((atuais) => ({ ...atuais, [gestante.id]: validacao }));
-      if (entrada.status === "divergente") setGestanteEmDivergencia(null);
-    } catch (erro) {
-      setValidacaoError(
-        erro instanceof ApiError ? erro.detail : "Não foi possível salvar a validação.",
-      );
-    } finally {
-      setSalvandoValidacaoId(null);
-    }
-  }, [selectedId]);
-
   useEffect(() => {
     const controller = new AbortController();
     setForbidden(false);
     void loadGestantes(controller.signal);
     return () => controller.abort();
   }, [loadGestantes]);
-
-  useEffect(() => {
-    if (selectedId === null) return;
-    const controller = new AbortController();
-    setDiagnostico(null);
-    gestanteService
-      .diagnostico(selectedId, controller.signal)
-      .then(setDiagnostico)
-      .catch((erro: unknown) => {
-        // O resumo é complementar: uma indisponibilidade dele não pode esconder
-        // a lista nominal já autorizada nem apresentar um erro técnico ao usuário.
-        if (erro instanceof DOMException && erro.name === "AbortError") return;
-        setDiagnostico(null);
-      });
-    return () => controller.abort();
-  }, [selectedId]);
 
   const handleExportar = useCallback(async () => {
     if (selectedId === null) return;
@@ -714,18 +480,6 @@ export function GestantesPage() {
         : `${microAreasSelecionadas.length} micro-áreas`;
 
   const podeExportar = !forbidden && !loadError && gestantes !== null && gestantes.length > 0;
-  const colunaVisivel = useCallback(
-    (coluna: ColunaId) =>
-      presetColunas === "todos" ||
-      (presetColunas === "essenciais" && COLUNAS_ESSENCIAIS.has(coluna)) ||
-      (presetColunas === "personalizado" && colunasPersonalizadas.includes(coluna)),
-    [colunasPersonalizadas, presetColunas],
-  );
-  const alternarColuna = useCallback((coluna: ColunaId, checked: boolean) => {
-    setColunasPersonalizadas((atuais) =>
-      checked ? [...new Set([...atuais, coluna])] : atuais.filter((item) => item !== coluna),
-    );
-  }, []);
   const alternarCard = useCallback((id: number) => {
     setCardsExpandidos((atuais) =>
       atuais.includes(id) ? atuais.filter((item) => item !== id) : [...atuais, id],
@@ -735,12 +489,6 @@ export function GestantesPage() {
     if (!gestantes) return [];
     const termo = buscaDeferred.trim().toLocaleLowerCase("pt-BR");
     const resultado = gestantes.filter((gestante) => {
-      const correspondeVisao =
-        visao === "acompanhamento" ||
-        (visao === "a-validar" && (!validacoes[gestante.id] || validacoes[gestante.id].status === "pendente")) ||
-        (visao === "confirmadas" && validacoes[gestante.id]?.status === "confirmada") ||
-        (visao === "divergencias" && validacoes[gestante.id]?.status === "divergente") ||
-        (visao === "pendencias-cadastro" && gestante.condicao_gestante_acao !== "nenhuma_acao");
       const correspondeBusca =
         termo.length === 0 ||
         gestante.nome_cidadao.toLocaleLowerCase("pt-BR").includes(termo) ||
@@ -752,7 +500,7 @@ export function GestantesPage() {
         ? statusDaPratica(gestante, praticaSelecionada).status
         : statusGeralDaGestante(gestante);
       const correspondeStatus = statusFiltro === "todos" || statusParaFiltro === statusFiltro;
-      return correspondeVisao && correspondeBusca && correspondeStatus;
+      return correspondeBusca && correspondeStatus;
     });
 
     return resultado.toSorted((a, b) => {
@@ -768,20 +516,7 @@ export function GestantesPage() {
       }
       return a.nome_cidadao.localeCompare(b.nome_cidadao, "pt-BR");
     });
-  }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro, validacoes, visao]);
-  const totalAcompanhamento = gestantes?.length ?? 0;
-  const totalAValidar = gestantes?.filter(
-    (gestante) => !validacoes[gestante.id] || validacoes[gestante.id].status === "pendente",
-  ).length ?? 0;
-  const totalConfirmadas = gestantes?.filter(
-    (gestante) => validacoes[gestante.id]?.status === "confirmada",
-  ).length ?? 0;
-  const totalDivergencias = gestantes?.filter(
-    (gestante) => validacoes[gestante.id]?.status === "divergente",
-  ).length ?? 0;
-  const totalPendenciasCadastro = gestantes?.filter(
-    (gestante) => gestante.condicao_gestante_acao !== "nenhuma_acao",
-  ).length ?? 0;
+  }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro]);
   const totalPaginas = Math.max(1, Math.ceil(gestantesFiltradas.length / ITENS_POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const inicioDaPagina = (paginaAtual - 1) * ITENS_POR_PAGINA;
@@ -793,7 +528,7 @@ export function GestantesPage() {
   useEffect(() => {
     setPagina(1);
     setCardsExpandidos([]);
-  }, [buscaDeferred, equipesSelecionadas, gestantes, microAreasSelecionadas, ordenacao, parametroFiltro, selectedId, statusFiltro, visao]);
+  }, [buscaDeferred, equipesSelecionadas, gestantes, microAreasSelecionadas, ordenacao, parametroFiltro, selectedId, statusFiltro]);
 
   const trocarPagina = useCallback((proximaPagina: number) => {
     setPagina(proximaPagina);
@@ -802,18 +537,6 @@ export function GestantesPage() {
 
   return (
     <div className="min-w-0">
-      <PageHeader
-        title="Gestantes e puerpério"
-        description="Indicador C3 (Previne Brasil) — acompanhamento nominal para busca ativa."
-        actions={
-          podeExportar ? (
-            <Button variant="outline" onClick={handleExportar} disabled={exportando}>
-              {exportando ? <Loader2 className="animate-spin" /> : <Download />}
-              Baixar planilha
-            </Button>
-          ) : undefined
-        }
-      />
       {exportError ? <p className="mb-4 text-sm text-destructive">{exportError}</p> : null}
 
       <div className="mb-4 max-w-xs">
@@ -845,8 +568,6 @@ export function GestantesPage() {
           </Select>
         )}
       </div>
-
-      <C3ScopeBoundary />
 
       {prefeituras !== null && prefeituras.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -897,29 +618,6 @@ export function GestantesPage() {
         </Empty>
       ) : (
         <>
-          {diagnostico ? <ResumoCoorteC3 diagnostico={diagnostico} /> : null}
-          <Card className="mb-4 p-3 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-semibold">Validação com a planilha da cliente</p>
-                <p className="text-sm text-muted-foreground">
-                  Confirme os casos que batem e registre campos e motivos claros quando houver diferença.
-                </p>
-              </div>
-              <Tabs value={visao} onValueChange={(value) => value && setVisao(value as VisaoGestantes)}>
-                <TabsList className="max-w-full flex-wrap" aria-label="Visão da lista de gestantes">
-                  <TabsTrigger value="acompanhamento">Acompanhamento <Badge variant="secondary">{totalAcompanhamento}</Badge></TabsTrigger>
-                  <TabsTrigger value="a-validar">A validar <Badge variant="outline">{totalAValidar}</Badge></TabsTrigger>
-                  <TabsTrigger value="confirmadas">Confirmadas <Badge variant="secondary">{totalConfirmadas}</Badge></TabsTrigger>
-                  <TabsTrigger value="divergencias">Divergências <Badge variant="destructive">{totalDivergencias}</Badge></TabsTrigger>
-                  <TabsTrigger value="pendencias-cadastro">Cadastro <Badge variant="outline">{totalPendenciasCadastro}</Badge></TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </Card>
-          {validacaoError && gestanteEmDivergencia === null ? (
-            <p className="mb-4 text-sm text-destructive" role="alert">{validacaoError}</p>
-          ) : null}
           <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-5">
               <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
@@ -1044,16 +742,12 @@ export function GestantesPage() {
                 de {gestantes.length} gestantes · Exibindo {gestantesFiltradas.length === 0 ? 0 : inicioDaPagina + 1}–
                 {Math.min(inicioDaPagina + ITENS_POR_PAGINA, gestantesFiltradas.length)}
               </p>
-              <Tabs
-                value={presetColunas}
-                onValueChange={(value) => setPresetColunas(value as PresetColunas)}
-              >
-                <TabsList aria-label="Colunas visíveis">
-                  <TabsTrigger value="essenciais">Essenciais</TabsTrigger>
-                  <TabsTrigger value="personalizado">Personalizado</TabsTrigger>
-                  <TabsTrigger value="todos">Todos os parâmetros</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              {podeExportar ? (
+                <Button variant="outline" size="sm" onClick={handleExportar} disabled={exportando}>
+                  {exportando ? <Loader2 className="animate-spin" /> : <Download />}
+                  Baixar planilha
+                </Button>
+              ) : null}
             </div>
             <CatalogFilterChips
               selectedKeys={equipesSelecionadas}
@@ -1073,78 +767,6 @@ export function GestantesPage() {
               clearLabel="Limpar micro-áreas"
               onClear={() => atualizarMicroAreasSelecionadas([])}
             />
-            <div className="flex flex-wrap items-end gap-3">
-              {presetColunas === "personalizado" ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={<Button variant="outline" size="sm" />}
-                    aria-label="Escolher colunas visíveis"
-                  >
-                    <Settings2 data-icon="inline-start" />
-                    Escolher colunas
-                    <ChevronDown data-icon="inline-end" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-64" align="start">
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Dados da gestante</DropdownMenuLabel>
-                      {COLUNAS_FIXAS.map((coluna) => (
-                        <DropdownMenuCheckboxItem
-                          key={coluna.id}
-                          checked={colunasPersonalizadas.includes(coluna.id)}
-                          onCheckedChange={(checked) => alternarColuna(coluna.id, checked)}
-                        >
-                          {coluna.rotulo}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuGroup>
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Parâmetros do indicador</DropdownMenuLabel>
-                      {PRATICAS.map((pratica) => {
-                        const id = `pratica-${pratica.letra}` as ColunaId;
-                        return (
-                          <DropdownMenuCheckboxItem
-                            key={id}
-                            checked={colunasPersonalizadas.includes(id)}
-                            onCheckedChange={(checked) => alternarColuna(id, checked)}
-                          >
-                            {pratica.letra} · {pratica.rotulo}
-                          </DropdownMenuCheckboxItem>
-                        );
-                      })}
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null}
-              <label className="flex min-w-40 flex-col gap-1 text-xs font-medium text-muted-foreground">
-                Densidade da tabela
-                <Select
-                  value={densidade}
-                  onValueChange={(value) => value && setDensidade(value as DensidadeTabela)}
-                >
-                  <SelectTrigger className="w-full" aria-label="Densidade da tabela">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="confortavel">Confortável</SelectItem>
-                      <SelectItem value="compacta">Compacta</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </label>
-            </div>
-          </div>
-          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Situação clínica de acompanhamento C3:</span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-emerald-500" /> Completa
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-amber-500" /> Parcial
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-muted-foreground/40" /> Pendente
-            </span>
           </div>
           {/* Coluna "Gestante" sticky usa z-[1], não z-10: o Sidebar
               (position: fixed) também usa z-10 — no mesmo nível, a ordem do
@@ -1156,7 +778,7 @@ export function GestantesPage() {
               const statusGeral = statusGeralDaGestante(gestante);
               const expandido = cardsExpandidos.includes(gestante.id);
               return (
-                <Card key={gestante.id} className={cn("gap-3", densidade === "compacta" ? "p-3" : "p-4")}>
+                <Card key={gestante.id} className="gap-3 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-medium">{gestante.nome_cidadao}</p>
@@ -1176,16 +798,6 @@ export function GestantesPage() {
                     </span>
                     <AcaoCondicaoGestante gestante={gestante} />
                   </div>
-                  <ValidacaoPlanilhaAcoes
-                    gestante={gestante}
-                    validacao={validacoes[gestante.id] ?? null}
-                    salvando={salvandoValidacaoId === gestante.id}
-                    onConfirmar={() => void salvarValidacao(gestante, { status: "confirmada" })}
-                    onDivergencia={() => {
-                      setValidacaoError(null);
-                      setGestanteEmDivergencia(gestante);
-                    }}
-                  />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1261,27 +873,21 @@ export function GestantesPage() {
                 "aria-label": "Tabela nominal de acompanhamento operacional; use as setas esquerda e direita para ver mais colunas",
                 tabIndex: 0,
               }}
-              className={cn(densidade === "compacta" && "[&_td]:py-1 [&_th]:h-8")}
             >
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="sticky left-0 z-[1] min-w-40 bg-muted/40">Gestante</TableHead>
-                  {colunaVisivel("equipe") ? <TableHead>Equipe</TableHead> : null}
-                  {colunaVisivel("micro-area") ? <TableHead>Micro-área</TableHead> : null}
-                  {colunaVisivel("nascimento") ? <TableHead>Nascimento</TableHead> : null}
-                  {colunaVisivel("ine") ? <TableHead>INE</TableHead> : null}
-                  {colunaVisivel("inicio-gestacao") ? <TableHead>Início gestação</TableHead> : null}
-                  {colunaVisivel("fim-gestacao") ? <TableHead>Fim gestação</TableHead> : null}
-                  {colunaVisivel("fim-puerperio") ? <TableHead>Fim puerpério</TableHead> : null}
-                  {colunaVisivel("elegibilidade") ? <TableHead>Elegibilidade</TableHead> : null}
-                  {colunaVisivel("status") ? <TableHead>Status</TableHead> : null}
-                  {colunaVisivel("condicao-gestante") ? (
-                    <TableHead>Ação no Cadastro Individual</TableHead>
-                  ) : null}
-                  {colunaVisivel("validacao-planilha") ? (
-                    <TableHead>Validação da planilha</TableHead>
-                  ) : null}
-                  {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => (
+                  <TableHead>Equipe</TableHead>
+                  <TableHead>Micro-área</TableHead>
+                  <TableHead>Nascimento</TableHead>
+                  <TableHead>INE</TableHead>
+                  <TableHead>Início gestação</TableHead>
+                  <TableHead>Fim gestação</TableHead>
+                  <TableHead>Fim puerpério</TableHead>
+                  <TableHead>Elegibilidade</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Ação no Cadastro Individual</TableHead>
+                  {PRATICAS.map((pratica) => (
                     <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
                       <Tooltip>
                         <TooltipTrigger className="flex w-full cursor-default flex-col items-center gap-0.5">
@@ -1296,8 +902,8 @@ export function GestantesPage() {
                       </Tooltip>
                     </TableHead>
                   ))}
-                  {colunaVisivel("pontuacao") ? <TableHead className="text-right">Pontuação</TableHead> : null}
-                  {colunaVisivel("atualizado") ? <TableHead>Atualizado em</TableHead> : null}
+                  <TableHead className="text-right">Pontuação</TableHead>
+                  <TableHead>Atualizado em</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1318,41 +924,25 @@ export function GestantesPage() {
                         </span>
                       </div>
                     </TableCell>
-                    {colunaVisivel("equipe") ? <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground">
                       {gestante.equipe_nome ?? "—"}
-                    </TableCell> : null}
-                    {colunaVisivel("micro-area") ? <TableCell className="text-muted-foreground">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {gestante.micro_area ?? "—"}
-                    </TableCell> : null}
-                    {colunaVisivel("nascimento") ? <TableCell>{formatDate(gestante.data_nascimento)}</TableCell> : null}
-                    {colunaVisivel("ine") ? <TableCell className="font-mono text-xs">{gestante.equipe_ine ?? "—"}</TableCell> : null}
-                    {colunaVisivel("inicio-gestacao") ? <TableCell>{formatDate(gestante.dt_inicio_gestacao)}</TableCell> : null}
-                    {colunaVisivel("fim-gestacao") ? <TableCell>{formatDate(gestante.dt_fim_gestacao)}</TableCell> : null}
-                    {colunaVisivel("fim-puerperio") ? <TableCell>{formatDate(gestante.dt_fim_puerperio)}</TableCell> : null}
-                    {colunaVisivel("elegibilidade") ? <TableCell>{gestante.excluida_por_aborto ? "Excluída (aborto)" : "Incluída"}</TableCell> : null}
-                    {colunaVisivel("status") ? <TableCell>
+                    </TableCell>
+                    <TableCell>{formatDate(gestante.data_nascimento)}</TableCell>
+                    <TableCell className="font-mono text-xs">{gestante.equipe_ine ?? "—"}</TableCell>
+                    <TableCell>{formatDate(gestante.dt_inicio_gestacao)}</TableCell>
+                    <TableCell>{formatDate(gestante.dt_fim_gestacao)}</TableCell>
+                    <TableCell>{formatDate(gestante.dt_fim_puerperio)}</TableCell>
+                    <TableCell>{gestante.excluida_por_aborto ? "Excluída (aborto)" : "Incluída"}</TableCell>
+                    <TableCell>
                       <Badge variant="outline" className={STATUS_CLASSNAME[statusGeral]}>
                         {STATUS_PRATICA_ROTULO[statusGeral]}
                       </Badge>
-                    </TableCell> : null}
-                    {colunaVisivel("condicao-gestante") ? (
-                      <TableCell><AcaoCondicaoGestante gestante={gestante} compact /></TableCell>
-                    ) : null}
-                    {colunaVisivel("validacao-planilha") ? (
-                      <TableCell>
-                        <ValidacaoPlanilhaAcoes
-                          gestante={gestante}
-                          validacao={validacoes[gestante.id] ?? null}
-                          salvando={salvandoValidacaoId === gestante.id}
-                          onConfirmar={() => void salvarValidacao(gestante, { status: "confirmada" })}
-                          onDivergencia={() => {
-                            setValidacaoError(null);
-                            setGestanteEmDivergencia(gestante);
-                          }}
-                        />
-                      </TableCell>
-                    ) : null}
-                    {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => {
+                    </TableCell>
+                    <TableCell><AcaoCondicaoGestante gestante={gestante} compact /></TableCell>
+                    {PRATICAS.map((pratica) => {
                       const { status, texto } = statusDaPratica(gestante, pratica);
                       return (
                         <TableCell key={pratica.letra} className="text-center">
@@ -1367,19 +957,17 @@ export function GestantesPage() {
                         </TableCell>
                       );
                     })}
-                    {colunaVisivel("pontuacao") ? <TableCell className="text-right">
+                    <TableCell className="text-right">
                       <Badge className="tabular-nums">{gestante.pontuacao_total}</Badge>
-                    </TableCell> : null}
-                    {colunaVisivel("atualizado") ? (
-                      <TableCell>{formatDateTime(gestante.created_at)}</TableCell>
-                    ) : null}
+                    </TableCell>
+                    <TableCell>{formatDateTime(gestante.created_at)}</TableCell>
                   </TableRow>
                   );
                 })}
                 {gestantesFiltradas.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={1 + COLUNAS_TODAS.filter(colunaVisivel).length}
+                      colSpan={1 + COLUNAS_TODAS.length}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Nenhuma gestante corresponde aos filtros selecionados.
@@ -1397,28 +985,6 @@ export function GestantesPage() {
           />
         </>
       )}
-      <ValidacaoPlanilhaDialog
-        gestante={gestanteEmDivergencia}
-        validacao={
-          gestanteEmDivergencia ? validacoes[gestanteEmDivergencia.id] ?? null : null
-        }
-        open={gestanteEmDivergencia !== null}
-        salvando={
-          gestanteEmDivergencia !== null && salvandoValidacaoId === gestanteEmDivergencia.id
-        }
-        erro={validacaoError}
-        onOpenChange={(open) => {
-          if (!open && salvandoValidacaoId === null) {
-            setGestanteEmDivergencia(null);
-            setValidacaoError(null);
-          }
-        }}
-        onSalvar={async (entrada) => {
-          if (gestanteEmDivergencia) {
-            await salvarValidacao(gestanteEmDivergencia, entrada);
-          }
-        }}
-      />
     </div>
   );
 }

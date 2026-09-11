@@ -330,50 +330,6 @@ export interface GestanteAcompanhamentoOut {
   created_at: string; // ISO datetime
 }
 
-export type StatusValidacaoGestante = "pendente" | "confirmada" | "divergente";
-export type CampoDivergenciaGestante =
-  | "coorte"
-  | "identificacao"
-  | "dum"
-  | "dpp"
-  | "aborto"
-  | "A"
-  | "B"
-  | "C"
-  | "D"
-  | "E"
-  | "F"
-  | "G"
-  | "H"
-  | "I"
-  | "J"
-  | "K";
-export type MotivoDivergenciaGestante =
-  | "ausente_na_planilha"
-  | "valor_diferente_na_planilha"
-  | "data_divergente"
-  | "evento_posterior_ao_dump"
-  | "pre_natal_sem_encerramento"
-  | "cadastro_divergente"
-  | "outro";
-
-export interface GestanteValidacaoClienteIn {
-  status: StatusValidacaoGestante;
-  campos_divergentes?: CampoDivergenciaGestante[];
-  motivo_divergencia?: MotivoDivergenciaGestante | null;
-  observacao?: string | null;
-}
-
-export interface GestanteValidacaoClienteOut {
-  id: number;
-  gestante_acompanhamento_id: number;
-  status: StatusValidacaoGestante;
-  campos_divergentes: CampoDivergenciaGestante[];
-  motivo_divergencia: MotivoDivergenciaGestante | null;
-  observacao: string | null;
-  created_at: string;
-}
-
 export interface EquipeGestanteOut {
   chave: string;
   nome: string | null;
