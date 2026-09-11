@@ -103,10 +103,11 @@ describe("GestantesPage", () => {
     expect(screen.getAllByText("Inserir em condição de saúde Gestante").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/última ficha válida não marca/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Referência do dump: 15/08/2026").length).toBeGreaterThan(0);
-    expect(screen.getByText("Consultas (7)")).toBeInTheDocument();
-    expect(screen.getByText("VD Gestação (3)")).toBeInTheDocument();
-    expect(screen.getByText("Início gestação")).toBeInTheDocument();
-    expect(screen.getByText("Fim puerpério")).toBeInTheDocument();
+    const tabelaDesktop = screen.getByRole("table");
+    expect(within(tabelaDesktop).getByText("Consultas (7)")).toBeInTheDocument();
+    expect(within(tabelaDesktop).getByText("VD Gestação (3)")).toBeInTheDocument();
+    expect(within(tabelaDesktop).getByText("Início gestação")).toBeInTheDocument();
+    expect(within(tabelaDesktop).getByText("Fim puerpério")).toBeInTheDocument();
   });
 
   it.each([
@@ -162,8 +163,9 @@ describe("GestantesPage", () => {
 
     const contagemInicial = await screen.findByText(/de 2 gestantes/);
     expect(within(contagemInicial).getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("Início gestação")).toBeInTheDocument();
-    expect(screen.getByText("Atualizado em")).toBeInTheDocument();
+    const tabelaDesktop = screen.getByRole("table");
+    expect(within(tabelaDesktop).getByText("Início gestação")).toBeInTheDocument();
+    expect(within(tabelaDesktop).getByText("Atualizado em")).toBeInTheDocument();
 
     await user.type(screen.getByRole("searchbox", { name: /buscar gestante ou equipe/i }), "Norte");
     expect((await screen.findAllByText("Ana Souza")).length).toBeGreaterThan(0);
@@ -429,6 +431,7 @@ describe("GestantesPage", () => {
     await waitFor(() => expect(screen.getByTestId("overflow-direita")).toHaveClass("opacity-100"));
     expect(regiao).toHaveAttribute("tabindex", "0");
     expect(regiao).toHaveClass("cursor-grab");
+    expect(screen.getByTestId("cabecalho-tabela-fixo")).toHaveAttribute("aria-hidden", "true");
 
     const cabecalhoGestante = within(screen.getByRole("table")).getByRole("columnheader", {
       name: "Gestante",

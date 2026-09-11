@@ -2,12 +2,14 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   Baby,
   ChevronDown,
@@ -160,7 +162,82 @@ const COLUNAS_TODAS: ColunaId[] = [
   ...COLUNAS_FIXAS.map(({ id }) => id),
   ...PRATICAS.map(({ letra }) => `pratica-${letra}` as ColunaId),
 ];
+const COLUNAS_CABECALHO = ["gestante", ...COLUNAS_TODAS] as const;
 const ITENS_POR_PAGINA = 20;
+
+function topoDaAreaRolavel(elemento: HTMLElement): number {
+  let ancestral = elemento.parentElement;
+  while (ancestral) {
+    const overflowY = window.getComputedStyle(ancestral).overflowY;
+    if (/^(auto|scroll|overlay)$/.test(overflowY) && ancestral.scrollHeight > ancestral.clientHeight) {
+      return Math.max(0, ancestral.getBoundingClientRect().top);
+    }
+    ancestral = ancestral.parentElement;
+  }
+  return 0;
+}
+
+function RotuloParametro({ pratica }: { pratica: (typeof PRATICAS)[number] }) {
+  return (
+    <span className="flex w-full flex-col items-center gap-0.5">
+      <span className="text-[10px] font-normal tracking-wide text-muted-foreground">
+        {pratica.letra}
+      </span>
+      <span className="text-xs leading-tight font-semibold whitespace-normal text-foreground">
+        {pratica.rotulo}
+      </span>
+    </span>
+  );
+}
+
+function CabecalhoTabelaGestantes({
+  flutuante = false,
+  headerRef,
+}: {
+  flutuante?: boolean;
+  headerRef?: React.Ref<HTMLTableSectionElement>;
+}) {
+  return (
+    <TableHeader ref={headerRef}>
+      <TableRow className={flutuante ? "bg-muted hover:bg-muted" : "bg-muted/40 hover:bg-muted/40"}>
+        <TableHead
+          className={cn(
+            "min-w-40 border-r bg-muted",
+            !flutuante && "sticky left-0 z-[3]",
+          )}
+        >
+          Gestante
+        </TableHead>
+        <TableHead>Equipe</TableHead>
+        <TableHead>Micro-área</TableHead>
+        <TableHead>Nascimento</TableHead>
+        <TableHead>INE</TableHead>
+        <TableHead>Início gestação</TableHead>
+        <TableHead>Fim gestação</TableHead>
+        <TableHead>Fim puerpério</TableHead>
+        <TableHead>Elegibilidade</TableHead>
+        <TableHead>Status</TableHead>
+        <TableHead>Ação no Cadastro Individual</TableHead>
+        {PRATICAS.map((pratica) => (
+          <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
+            {flutuante ? (
+              <RotuloParametro pratica={pratica} />
+            ) : (
+              <Tooltip>
+                <TooltipTrigger className="w-full cursor-default">
+                  <RotuloParametro pratica={pratica} />
+                </TooltipTrigger>
+                <TooltipContent>{pratica.titulo}</TooltipContent>
+              </Tooltip>
+            )}
+          </TableHead>
+        ))}
+        <TableHead className="text-right">Pontuação</TableHead>
+        <TableHead>Atualizado em</TableHead>
+      </TableRow>
+    </TableHeader>
+  );
+}
 
 function paginasProximas(paginaAtual: number, totalPaginas: number): Array<number | "ellipsis"> {
   if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, indice) => indice + 1);
@@ -261,6 +338,11 @@ export function GestantesPage() {
   const [pagina, setPagina] = useState(1);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const tabelaRef = useRef<HTMLTableElement>(null);
+  const cabecalhoOriginalRef = useRef<HTMLTableSectionElement>(null);
+  const cabecalhoFixoRef = useRef<HTMLDivElement>(null);
+  const tabelaCabecalhoFixoRef = useRef<HTMLTableElement>(null);
+  const primeiraColunaCabecalhoFixoRef = useRef<HTMLDivElement>(null);
   const arrasteHorizontalRef = useRef<ArrasteHorizontal | null>(null);
   const [arrastandoTabela, setArrastandoTabela] = useState(false);
   const [scrollAffordance, setScrollAffordance] = useState<ScrollAffordanceState>({
@@ -268,11 +350,51 @@ export function GestantesPage() {
     mostrarSombraDireita: false,
   });
 
+  const sincronizarPosicaoCabecalhoFixo = useCallback(() => {
+    const container = scrollRef.current;
+    const cabecalhoOriginal = cabecalhoOriginalRef.current;
+    const cabecalhoFixo = cabecalhoFixoRef.current;
+    const tabelaFixa = tabelaCabecalhoFixoRef.current;
+    if (!container || !cabecalhoOriginal || !cabecalhoFixo || !tabelaFixa) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const cabecalhoRect = cabecalhoOriginal.getBoundingClientRect();
+    const topo = topoDaAreaRolavel(container);
+    const deveFixar = cabecalhoRect.top < topo && containerRect.bottom > topo + cabecalhoRect.height;
+
+    cabecalhoFixo.style.left = `${containerRect.left}px`;
+    cabecalhoFixo.style.top = `${topo}px`;
+    cabecalhoFixo.style.width = `${containerRect.width}px`;
+    cabecalhoFixo.style.height = `${cabecalhoRect.height}px`;
+    cabecalhoFixo.style.visibility = deveFixar ? "visible" : "hidden";
+    tabelaFixa.style.transform = `translate3d(${-container.scrollLeft}px, 0, 0)`;
+  }, []);
+
+  const sincronizarDimensoesCabecalhoFixo = useCallback(() => {
+    const cabecalhoOriginal = cabecalhoOriginalRef.current;
+    const tabelaFixa = tabelaCabecalhoFixoRef.current;
+    const primeiraColunaFixa = primeiraColunaCabecalhoFixoRef.current;
+    if (!cabecalhoOriginal || !tabelaFixa || !primeiraColunaFixa) return;
+
+    const celulasOriginais = Array.from(cabecalhoOriginal.querySelectorAll("th"));
+    const colunasFixas = Array.from(tabelaFixa.querySelectorAll("col"));
+    if (celulasOriginais.length !== colunasFixas.length) return;
+
+    const larguras = celulasOriginais.map((celula) => celula.getBoundingClientRect().width);
+    colunasFixas.forEach((coluna, indice) => {
+      coluna.style.width = `${larguras[indice]}px`;
+    });
+    tabelaFixa.style.width = `${larguras.reduce((total, largura) => total + largura, 0)}px`;
+    primeiraColunaFixa.style.width = `${larguras[0]}px`;
+    sincronizarPosicaoCabecalhoFixo();
+  }, [sincronizarPosicaoCabecalhoFixo]);
+
   const atualizarScrollAffordance = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     setScrollAffordance(calcularAffordanceDeScroll(el));
-  }, []);
+    sincronizarPosicaoCabecalhoFixo();
+  }, [sincronizarPosicaoCabecalhoFixo]);
 
   function navegarTabelaComTeclado(event: KeyboardEvent<HTMLDivElement>) {
     const el = scrollRef.current;
@@ -332,13 +454,31 @@ export function GestantesPage() {
     setArrastandoTabela(false);
   }
 
-  // Recalcula quando os dados chegam (a tabela só existe/tem largura real
-  // depois disso) e quando a janela muda de tamanho.
-  useEffect(() => {
+  // Mantém o cabeçalho flutuante alinhado durante qualquer rolagem da página
+  // ou de um ancestral, sem transformar cada pixel rolado em render do React.
+  useLayoutEffect(() => {
+    sincronizarDimensoesCabecalhoFixo();
     atualizarScrollAffordance();
-    window.addEventListener("resize", atualizarScrollAffordance);
-    return () => window.removeEventListener("resize", atualizarScrollAffordance);
-  }, [atualizarScrollAffordance, gestantes]);
+    document.addEventListener("scroll", sincronizarPosicaoCabecalhoFixo, { capture: true, passive: true });
+    window.addEventListener("resize", sincronizarDimensoesCabecalhoFixo);
+
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(sincronizarDimensoesCabecalhoFixo);
+    if (scrollRef.current) observer?.observe(scrollRef.current);
+    if (tabelaRef.current) observer?.observe(tabelaRef.current);
+
+    return () => {
+      document.removeEventListener("scroll", sincronizarPosicaoCabecalhoFixo, true);
+      window.removeEventListener("resize", sincronizarDimensoesCabecalhoFixo);
+      observer?.disconnect();
+    };
+  }, [
+    atualizarScrollAffordance,
+    gestantes,
+    sincronizarDimensoesCabecalhoFixo,
+    sincronizarPosicaoCabecalhoFixo,
+  ]);
 
   useEffect(() => {
     prefeiturasService
@@ -898,6 +1038,32 @@ export function GestantesPage() {
             ) : null}
           </div>
           <div className="relative hidden min-w-0 max-w-full md:block">
+            {createPortal(
+              <div
+                ref={cabecalhoFixoRef}
+                aria-hidden
+                data-testid="cabecalho-tabela-fixo"
+                className="pointer-events-none fixed z-[4] overflow-hidden bg-muted shadow-sm"
+                style={{ visibility: "hidden" }}
+              >
+                <table
+                  ref={tabelaCabecalhoFixoRef}
+                  className="table-fixed caption-bottom text-sm"
+                >
+                  <colgroup>
+                    {COLUNAS_CABECALHO.map((coluna) => <col key={coluna} />)}
+                  </colgroup>
+                  <CabecalhoTabelaGestantes flutuante />
+                </table>
+                <div
+                  ref={primeiraColunaCabecalhoFixoRef}
+                  className="absolute inset-y-0 left-0 z-[1] flex items-center border-r bg-muted px-2 font-medium text-foreground"
+                >
+                  Gestante
+                </div>
+              </div>,
+              document.body,
+            )}
             {/* Sombras de affordance — indicam que há mais colunas fora da
                 tela, sem precisar descobrir arrastando por acaso (FLO-41).
                 z-[2]: acima da coluna sticky (z-[1]), abaixo da sidebar
@@ -920,6 +1086,7 @@ export function GestantesPage() {
             />
             <Card className="min-w-0 max-w-full gap-0 border-border/60 py-0 shadow-sm">
             <Table
+              ref={tabelaRef}
               containerClassName={cn(
                 "max-w-full cursor-grab overscroll-x-contain",
                 arrastandoTabela && "cursor-grabbing select-none",
@@ -938,38 +1105,7 @@ export function GestantesPage() {
                 tabIndex: 0,
               }}
             >
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="sticky left-0 z-[3] min-w-40 border-r bg-muted">Gestante</TableHead>
-                  <TableHead>Equipe</TableHead>
-                  <TableHead>Micro-área</TableHead>
-                  <TableHead>Nascimento</TableHead>
-                  <TableHead>INE</TableHead>
-                  <TableHead>Início gestação</TableHead>
-                  <TableHead>Fim gestação</TableHead>
-                  <TableHead>Fim puerpério</TableHead>
-                  <TableHead>Elegibilidade</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ação no Cadastro Individual</TableHead>
-                  {PRATICAS.map((pratica) => (
-                    <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
-                      <Tooltip>
-                        <TooltipTrigger className="flex w-full cursor-default flex-col items-center gap-0.5">
-                          <span className="text-[10px] font-normal tracking-wide text-muted-foreground">
-                            {pratica.letra}
-                          </span>
-                          <span className="text-xs leading-tight font-semibold whitespace-normal text-foreground">
-                            {pratica.rotulo}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>{pratica.titulo}</TooltipContent>
-                      </Tooltip>
-                    </TableHead>
-                  ))}
-                  <TableHead className="text-right">Pontuação</TableHead>
-                  <TableHead>Atualizado em</TableHead>
-                </TableRow>
-              </TableHeader>
+              <CabecalhoTabelaGestantes headerRef={cabecalhoOriginalRef} />
               <TableBody>
             {gestantesDaPagina.map((gestante) => {
                   const statusGeral = statusGeralDaGestante(gestante);

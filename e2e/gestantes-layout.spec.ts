@@ -39,6 +39,11 @@ const gestante = {
   condicao_gestante_data_referencia: "2026-08-15",
   created_at: "2026-08-15T00:00:00Z",
 };
+const gestantes = Array.from({ length: 20 }, (_, indice) => ({
+  ...gestante,
+  id: gestante.id + indice,
+  nome_cidadao: `${gestante.nome_cidadao} ${indice + 1}`,
+}));
 
 async function responderJson(route: Route, body: unknown) {
   await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
@@ -57,7 +62,7 @@ test.beforeEach(async ({ page }) => {
     if (path.endsWith("/gestantes/micro-areas")) {
       return responderJson(route, [{ chave: "001", codigo: "001", total_gestantes: 1, sem_micro_area: false }]);
     }
-    if (path.endsWith("/gestantes")) return responderJson(route, [gestante]);
+    if (path.endsWith("/gestantes")) return responderJson(route, gestantes);
     await route.fulfill({ status: 404, contentType: "application/json", body: '{"detail":"mock ausente"}' });
   });
 });
@@ -124,6 +129,13 @@ test("mantém o cabeçalho fixo opaco e permite arrastar horizontalmente", async
   expect(cabecalho!.x + cabecalho!.width).toBeLessThanOrEqual(areaRolavel!.x + areaRolavel!.width + 1);
   await expect(celulaSticky.locator("[title]")).toHaveAttribute(
     "title",
-    "Maria da Silva com nome suficientemente longo",
+    "Maria da Silva com nome suficientemente longo 1",
   );
+
+  const cabecalhoFixo = page.getByTestId("cabecalho-tabela-fixo");
+  await expect(cabecalhoFixo).toBeHidden();
+  await page.mouse.move(areaRolavel!.x + areaRolavel!.width / 2, areaRolavel!.y + areaRolavel!.height / 2);
+  await page.mouse.wheel(0, 700);
+  await expect(cabecalhoFixo).toBeVisible();
+  await expect(cabecalhoFixo.getByText("Atualizado em", { exact: true })).toBeInViewport();
 });
