@@ -1,6 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   Baby,
+  CheckCircle2,
   CircleAlert,
   ChevronDown,
   ChevronLeft,
@@ -11,6 +12,7 @@ import {
   Search,
   Settings2,
   ShieldAlert,
+  TriangleAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ import {
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
 import { C3ScopeBoundary } from "@/components/gestantes/c3-scope-boundary";
+import { ValidacaoPlanilhaDialog } from "@/components/gestantes/validacao-planilha-dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -52,6 +55,8 @@ import type {
   DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
+  GestanteValidacaoClienteIn,
+  GestanteValidacaoClienteOut,
   MicroAreaGestanteOut,
   PrefeituraOut,
 } from "@/lib/api-types";
@@ -192,7 +197,12 @@ type Ordenacao =
   | "parametro-asc";
 type PresetColunas = "essenciais" | "personalizado" | "todos";
 type DensidadeTabela = "confortavel" | "compacta";
-type VisaoGestantes = "acompanhamento" | "pendencias";
+type VisaoGestantes =
+  | "acompanhamento"
+  | "a-validar"
+  | "confirmadas"
+  | "divergencias"
+  | "pendencias-cadastro";
 type ColunaId =
   | "equipe"
   | "micro-area"
@@ -204,6 +214,7 @@ type ColunaId =
   | "elegibilidade"
   | "status"
   | "condicao-gestante"
+  | "validacao-planilha"
   | "pontuacao"
   | "atualizado"
   | `pratica-${string}`;
@@ -219,6 +230,7 @@ const COLUNAS_FIXAS: ReadonlyArray<{ id: ColunaId; rotulo: string }> = [
   { id: "elegibilidade", rotulo: "Elegibilidade" },
   { id: "status", rotulo: "Status" },
   { id: "condicao-gestante", rotulo: "Ação no Cadastro Individual" },
+  { id: "validacao-planilha", rotulo: "Validação da planilha" },
   { id: "pontuacao", rotulo: "Pontuação" },
   { id: "atualizado", rotulo: "Atualizado em" },
 ];
@@ -226,6 +238,7 @@ const COLUNAS_ESSENCIAIS = new Set<ColunaId>([
   "equipe",
   "status",
   "condicao-gestante",
+  "validacao-planilha",
   "pontuacao",
 ]);
 const COLUNAS_TODAS: ColunaId[] = [
@@ -306,11 +319,93 @@ function PaginacaoGestantes({
   );
 }
 
+const MOTIVO_DIVERGENCIA_ROTULO = {
+  ausente_na_planilha: "Não consta na planilha",
+  valor_diferente_na_planilha: "Valor diferente na planilha",
+  data_divergente: "Data divergente",
+  evento_posterior_ao_dump: "Evento posterior ao dump",
+  pre_natal_sem_encerramento: "Pré-natal sem encerramento",
+  cadastro_divergente: "Cadastro divergente",
+  outro: "Outro motivo",
+} as const;
+
+function ValidacaoPlanilhaAcoes({
+  gestante,
+  validacao,
+  salvando,
+  onConfirmar,
+  onDivergencia,
+}: {
+  gestante: GestanteAcompanhamentoOut;
+  validacao: GestanteValidacaoClienteOut | null;
+  salvando: boolean;
+  onConfirmar: () => void;
+  onDivergencia: () => void;
+}) {
+  const status = validacao?.status ?? "pendente";
+  return (
+    <section aria-label={`Validação da planilha de ${gestante.nome_cidadao}`} className="flex min-w-52 flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {status === "confirmada" ? (
+          <Badge variant="secondary"><CheckCircle2 /> Confere com a planilha</Badge>
+        ) : status === "divergente" ? (
+          <Badge variant="destructive"><TriangleAlert /> Divergência registrada</Badge>
+        ) : (
+          <Badge variant="outline">Aguardando validação</Badge>
+        )}
+      </div>
+      {validacao?.status === "divergente" ? (
+        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+          <p>
+            {validacao.motivo_divergencia
+              ? MOTIVO_DIVERGENCIA_ROTULO[validacao.motivo_divergencia]
+              : "Motivo não informado"}
+            {validacao.campos_divergentes.length > 0
+              ? ` · Campos: ${validacao.campos_divergentes.join(", ")}`
+              : ""}
+          </p>
+          {validacao.observacao ? <p className="whitespace-normal">{validacao.observacao}</p> : null}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {status !== "confirmada" ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={salvando}
+            onClick={onConfirmar}
+            aria-label={`Confirmar que ${gestante.nome_cidadao} confere com a planilha`}
+          >
+            {salvando ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <CheckCircle2 data-icon="inline-start" />}
+            Confere
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={salvando}
+          onClick={onDivergencia}
+          aria-label={`Registrar divergência para ${gestante.nome_cidadao}`}
+        >
+          <TriangleAlert data-icon="inline-start" />
+          {status === "divergente" ? "Editar" : "Divergência"}
+        </Button>
+      </div>
+    </section>
+  );
+}
+
 export function GestantesPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [gestantes, setGestantes] = useState<GestanteAcompanhamentoOut[] | null>(null);
+  const [validacoes, setValidacoes] = useState<Record<number, GestanteValidacaoClienteOut>>({});
+  const [gestanteEmDivergencia, setGestanteEmDivergencia] = useState<GestanteAcompanhamentoOut | null>(null);
+  const [salvandoValidacaoId, setSalvandoValidacaoId] = useState<number | null>(null);
+  const [validacaoError, setValidacaoError] = useState<string | null>(null);
   const [diagnostico, setDiagnostico] = useState<DiagnosticoC3Out | null>(null);
   const [equipes, setEquipes] = useState<EquipeGestanteOut[] | null>(null);
   const [equipesSelecionadas, setEquipesSelecionadas] = useState<string[]>(() =>
@@ -499,13 +594,21 @@ export function GestantesPage() {
   const loadGestantes = useCallback(async (signal?: AbortSignal) => {
     if (selectedId === null) return;
     try {
-      const data = await gestanteService.list(
-        selectedId,
-        equipesSelecionadas,
-        microAreasSelecionadas,
-        signal,
-      );
+      const [data, validacoesAtuais] = await Promise.all([
+        gestanteService.list(
+          selectedId,
+          equipesSelecionadas,
+          microAreasSelecionadas,
+          signal,
+        ),
+        gestanteService.validacoes(selectedId, signal),
+      ]);
       setGestantes(data);
+      setValidacoes(
+        Object.fromEntries(
+          validacoesAtuais.map((validacao) => [validacao.gestante_acompanhamento_id, validacao]),
+        ),
+      );
       setLoadError(null);
       setForbidden(false);
     } catch (err) {
@@ -522,6 +625,26 @@ export function GestantesPage() {
       );
     }
   }, [equipesSelecionadas, microAreasSelecionadas, selectedId]);
+
+  const salvarValidacao = useCallback(async (
+    gestante: GestanteAcompanhamentoOut,
+    entrada: GestanteValidacaoClienteIn,
+  ) => {
+    if (selectedId === null) return;
+    setSalvandoValidacaoId(gestante.id);
+    setValidacaoError(null);
+    try {
+      const validacao = await gestanteService.validar(selectedId, gestante.id, entrada);
+      setValidacoes((atuais) => ({ ...atuais, [gestante.id]: validacao }));
+      if (entrada.status === "divergente") setGestanteEmDivergencia(null);
+    } catch (erro) {
+      setValidacaoError(
+        erro instanceof ApiError ? erro.detail : "Não foi possível salvar a validação.",
+      );
+    } finally {
+      setSalvandoValidacaoId(null);
+    }
+  }, [selectedId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -613,9 +736,11 @@ export function GestantesPage() {
     const termo = buscaDeferred.trim().toLocaleLowerCase("pt-BR");
     const resultado = gestantes.filter((gestante) => {
       const correspondeVisao =
-        visao === "acompanhamento"
-          ? true
-          : gestante.condicao_gestante_acao !== "nenhuma_acao";
+        visao === "acompanhamento" ||
+        (visao === "a-validar" && (!validacoes[gestante.id] || validacoes[gestante.id].status === "pendente")) ||
+        (visao === "confirmadas" && validacoes[gestante.id]?.status === "confirmada") ||
+        (visao === "divergencias" && validacoes[gestante.id]?.status === "divergente") ||
+        (visao === "pendencias-cadastro" && gestante.condicao_gestante_acao !== "nenhuma_acao");
       const correspondeBusca =
         termo.length === 0 ||
         gestante.nome_cidadao.toLocaleLowerCase("pt-BR").includes(termo) ||
@@ -643,12 +768,20 @@ export function GestantesPage() {
       }
       return a.nome_cidadao.localeCompare(b.nome_cidadao, "pt-BR");
     });
-  }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro, visao]);
-  const totalAcompanhamento = useMemo(
-    () => gestantes?.length ?? 0,
-    [gestantes],
-  );
-  const totalPendencias = (gestantes?.length ?? 0) - totalAcompanhamento;
+  }, [buscaDeferred, gestantes, ordenacao, parametroFiltro, statusFiltro, validacoes, visao]);
+  const totalAcompanhamento = gestantes?.length ?? 0;
+  const totalAValidar = gestantes?.filter(
+    (gestante) => !validacoes[gestante.id] || validacoes[gestante.id].status === "pendente",
+  ).length ?? 0;
+  const totalConfirmadas = gestantes?.filter(
+    (gestante) => validacoes[gestante.id]?.status === "confirmada",
+  ).length ?? 0;
+  const totalDivergencias = gestantes?.filter(
+    (gestante) => validacoes[gestante.id]?.status === "divergente",
+  ).length ?? 0;
+  const totalPendenciasCadastro = gestantes?.filter(
+    (gestante) => gestante.condicao_gestante_acao !== "nenhuma_acao",
+  ).length ?? 0;
   const totalPaginas = Math.max(1, Math.ceil(gestantesFiltradas.length / ITENS_POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const inicioDaPagina = (paginaAtual - 1) * ITENS_POR_PAGINA;
@@ -768,19 +901,25 @@ export function GestantesPage() {
           <Card className="mb-4 p-3 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold">Organize o trabalho em duas filas</p>
+                <p className="font-semibold">Validação com a planilha da cliente</p>
                 <p className="text-sm text-muted-foreground">
-                  Acompanhamento mostra a coorte clínica completa. Pendências reúne somente correções no Cadastro Individual.
+                  Confirme os casos que batem e registre campos e motivos claros quando houver diferença.
                 </p>
               </div>
               <Tabs value={visao} onValueChange={(value) => value && setVisao(value as VisaoGestantes)}>
-                <TabsList aria-label="Visão da lista de gestantes">
+                <TabsList className="max-w-full flex-wrap" aria-label="Visão da lista de gestantes">
                   <TabsTrigger value="acompanhamento">Acompanhamento <Badge variant="secondary">{totalAcompanhamento}</Badge></TabsTrigger>
-                  <TabsTrigger value="pendencias">Pendências <Badge variant="outline">{totalPendencias}</Badge></TabsTrigger>
+                  <TabsTrigger value="a-validar">A validar <Badge variant="outline">{totalAValidar}</Badge></TabsTrigger>
+                  <TabsTrigger value="confirmadas">Confirmadas <Badge variant="secondary">{totalConfirmadas}</Badge></TabsTrigger>
+                  <TabsTrigger value="divergencias">Divergências <Badge variant="destructive">{totalDivergencias}</Badge></TabsTrigger>
+                  <TabsTrigger value="pendencias-cadastro">Cadastro <Badge variant="outline">{totalPendenciasCadastro}</Badge></TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
           </Card>
+          {validacaoError && gestanteEmDivergencia === null ? (
+            <p className="mb-4 text-sm text-destructive" role="alert">{validacaoError}</p>
+          ) : null}
           <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-5">
               <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
@@ -1037,6 +1176,16 @@ export function GestantesPage() {
                     </span>
                     <AcaoCondicaoGestante gestante={gestante} />
                   </div>
+                  <ValidacaoPlanilhaAcoes
+                    gestante={gestante}
+                    validacao={validacoes[gestante.id] ?? null}
+                    salvando={salvandoValidacaoId === gestante.id}
+                    onConfirmar={() => void salvarValidacao(gestante, { status: "confirmada" })}
+                    onDivergencia={() => {
+                      setValidacaoError(null);
+                      setGestanteEmDivergencia(gestante);
+                    }}
+                  />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1129,6 +1278,9 @@ export function GestantesPage() {
                   {colunaVisivel("condicao-gestante") ? (
                     <TableHead>Ação no Cadastro Individual</TableHead>
                   ) : null}
+                  {colunaVisivel("validacao-planilha") ? (
+                    <TableHead>Validação da planilha</TableHead>
+                  ) : null}
                   {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => (
                     <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
                       <Tooltip>
@@ -1186,6 +1338,20 @@ export function GestantesPage() {
                     {colunaVisivel("condicao-gestante") ? (
                       <TableCell><AcaoCondicaoGestante gestante={gestante} compact /></TableCell>
                     ) : null}
+                    {colunaVisivel("validacao-planilha") ? (
+                      <TableCell>
+                        <ValidacaoPlanilhaAcoes
+                          gestante={gestante}
+                          validacao={validacoes[gestante.id] ?? null}
+                          salvando={salvandoValidacaoId === gestante.id}
+                          onConfirmar={() => void salvarValidacao(gestante, { status: "confirmada" })}
+                          onDivergencia={() => {
+                            setValidacaoError(null);
+                            setGestanteEmDivergencia(gestante);
+                          }}
+                        />
+                      </TableCell>
+                    ) : null}
                     {PRATICAS.filter((pratica) => colunaVisivel(`pratica-${pratica.letra}`)).map((pratica) => {
                       const { status, texto } = statusDaPratica(gestante, pratica);
                       return (
@@ -1231,6 +1397,28 @@ export function GestantesPage() {
           />
         </>
       )}
+      <ValidacaoPlanilhaDialog
+        gestante={gestanteEmDivergencia}
+        validacao={
+          gestanteEmDivergencia ? validacoes[gestanteEmDivergencia.id] ?? null : null
+        }
+        open={gestanteEmDivergencia !== null}
+        salvando={
+          gestanteEmDivergencia !== null && salvandoValidacaoId === gestanteEmDivergencia.id
+        }
+        erro={validacaoError}
+        onOpenChange={(open) => {
+          if (!open && salvandoValidacaoId === null) {
+            setGestanteEmDivergencia(null);
+            setValidacaoError(null);
+          }
+        }}
+        onSalvar={async (entrada) => {
+          if (gestanteEmDivergencia) {
+            await salvarValidacao(gestanteEmDivergencia, entrada);
+          }
+        }}
+      />
     </div>
   );
 }

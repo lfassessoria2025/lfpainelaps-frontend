@@ -14,7 +14,15 @@ import type {
 } from "@/lib/api-types";
 
 vi.mock("@/services/gestante", () => ({
-  gestanteService: { list: vi.fn(), equipes: vi.fn(), microAreas: vi.fn(), exportar: vi.fn(), diagnostico: vi.fn() },
+  gestanteService: {
+    list: vi.fn(),
+    equipes: vi.fn(),
+    microAreas: vi.fn(),
+    exportar: vi.fn(),
+    diagnostico: vi.fn(),
+    validacoes: vi.fn(),
+    validar: vi.fn(),
+  },
 }));
 vi.mock("@/services/prefeituras", () => ({
   prefeiturasService: { list: vi.fn() },
@@ -61,6 +69,7 @@ beforeEach(() => {
   mockedGestanteService.equipes.mockResolvedValue(EQUIPES);
   mockedGestanteService.microAreas.mockResolvedValue(MICRO_AREAS);
   mockedGestanteService.diagnostico.mockResolvedValue(DIAGNOSTICO);
+  mockedGestanteService.validacoes.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -97,6 +106,61 @@ const GESTANTE: GestanteAcompanhamentoOut = {
 };
 
 describe("GestantesPage", () => {
+  it("organiza a conferência em abas e confirma uma linha da planilha", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    mockedGestanteService.validar.mockResolvedValue({
+      id: 91,
+      gestante_acompanhamento_id: GESTANTE.id,
+      status: "confirmada",
+      campos_divergentes: [],
+      motivo_divergencia: null,
+      observacao: null,
+      created_at: "2026-09-11T12:00:00Z",
+    });
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+
+    expect(await screen.findByRole("tab", { name: /A validar 1/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Confirmadas 0/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Divergências 0/i })).toBeInTheDocument();
+
+    await user.click(
+      screen.getAllByRole("button", { name: /confirmar que maria da silva confere/i })[0],
+    );
+
+    await waitFor(() => {
+      expect(mockedGestanteService.validar).toHaveBeenCalledWith(
+        PREFEITURA.id,
+        GESTANTE.id,
+        { status: "confirmada" },
+      );
+    });
+    expect(screen.getByRole("tab", { name: /Confirmadas 1/i })).toBeInTheDocument();
+    expect(screen.getAllByText("Confere com a planilha").length).toBeGreaterThan(0);
+  });
+
+  it("abre o registro de divergência com campos e motivos estruturados", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await user.click(
+      (await screen.findAllByRole("button", { name: /registrar divergência para maria/i }))[0],
+    );
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Registrar divergência da planilha" })).toBeInTheDocument();
+    expect(screen.getByText("Presença na planilha")).toBeInTheDocument();
+    expect(screen.getByText("Prática K")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Salvar divergência" }));
+    expect(screen.getByText("Selecione ao menos um campo divergente.")).toBeInTheDocument();
+    expect(screen.getByText("Selecione um motivo.")).toBeInTheDocument();
+  });
+
   it("carrega a prefeitura ativa e renderiza a lista de gestantes", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE]);

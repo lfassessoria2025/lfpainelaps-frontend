@@ -3,6 +3,8 @@ import type {
   DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
+  GestanteValidacaoClienteIn,
+  GestanteValidacaoClienteOut,
   MetricasIndicadorOut,
   MicroAreaGestanteOut,
   SerieHistoricaPontoOut,
@@ -60,6 +62,22 @@ export const gestanteService = {
   diagnostico: (prefeituraId: number, signal?: AbortSignal) =>
     http.get<DiagnosticoC3Out>(
       `/prefeituras/${prefeituraId}/indicadores/gestantes/diagnostico`,
+      signal,
+    ),
+  validacoes: (prefeituraId: number, signal?: AbortSignal) =>
+    http.get<GestanteValidacaoClienteOut[]>(
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/validacoes`,
+      signal,
+    ),
+  validar: (
+    prefeituraId: number,
+    gestanteId: number,
+    entrada: GestanteValidacaoClienteIn,
+    signal?: AbortSignal,
+  ) =>
+    http.put<GestanteValidacaoClienteOut>(
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/${gestanteId}/validacao`,
+      entrada,
       signal,
     ),
   serieHistorica: (prefeituraId: number, signal?: AbortSignal) =>
