@@ -428,6 +428,25 @@ describe("GestantesPage", () => {
 
     await waitFor(() => expect(screen.getByTestId("overflow-direita")).toHaveClass("opacity-100"));
     expect(regiao).toHaveAttribute("tabindex", "0");
+    expect(regiao).toHaveClass("cursor-grab");
+
+    const cabecalhoGestante = within(screen.getByRole("table")).getByRole("columnheader", {
+      name: "Gestante",
+    });
+    expect(cabecalhoGestante).toHaveClass("z-[3]", "bg-muted");
+    expect(cabecalhoGestante).not.toHaveClass("bg-muted/40");
+
+    fireEvent.pointerDown(regiao, {
+      pointerId: 7,
+      pointerType: "mouse",
+      button: 0,
+      clientX: 350,
+    });
+    fireEvent.pointerMove(regiao, { pointerId: 7, pointerType: "mouse", clientX: 150 });
+    expect(regiao.scrollLeft).toBe(200);
+    expect(regiao).toHaveClass("cursor-grabbing", "select-none");
+    fireEvent.pointerUp(regiao, { pointerId: 7, pointerType: "mouse", clientX: 150 });
+    expect(regiao).not.toHaveClass("cursor-grabbing", "select-none");
 
     regiao.scrollLeft = 400;
     fireEvent.scroll(regiao);

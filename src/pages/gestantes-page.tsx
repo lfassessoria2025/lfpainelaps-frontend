@@ -1,4 +1,13 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   Baby,
   ChevronDown,
@@ -127,6 +136,12 @@ type ColunaId =
   | "atualizado"
   | `pratica-${string}`;
 
+type ArrasteHorizontal = {
+  pointerId: number;
+  xInicial: number;
+  scrollInicial: number;
+};
+
 const COLUNAS_FIXAS: ReadonlyArray<{ id: ColunaId; rotulo: string }> = [
   { id: "equipe", rotulo: "Equipe" },
   { id: "micro-area", rotulo: "Micro-área" },
@@ -246,6 +261,8 @@ export function GestantesPage() {
   const [pagina, setPagina] = useState(1);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const arrasteHorizontalRef = useRef<ArrasteHorizontal | null>(null);
+  const [arrastandoTabela, setArrastandoTabela] = useState(false);
   const [scrollAffordance, setScrollAffordance] = useState<ScrollAffordanceState>({
     mostrarSombraEsquerda: false,
     mostrarSombraDireita: false,
@@ -274,6 +291,45 @@ export function GestantesPage() {
     event.preventDefault();
     el.scrollLeft = destino;
     atualizarScrollAffordance();
+  }
+
+  function iniciarArrasteHorizontal(event: ReactPointerEvent<HTMLDivElement>) {
+    const el = scrollRef.current;
+    if (!el || event.button !== 0 || (event.pointerType && event.pointerType !== "mouse")) return;
+    if (el.scrollWidth <= el.clientWidth) return;
+    if (
+      event.target instanceof Element
+      && event.target.closest("button, a, input, select, textarea, [role='button'], [role='link']")
+    ) return;
+
+    arrasteHorizontalRef.current = {
+      pointerId: event.pointerId,
+      xInicial: event.clientX,
+      scrollInicial: el.scrollLeft,
+    };
+    el.setPointerCapture?.(event.pointerId);
+    setArrastandoTabela(true);
+    event.preventDefault();
+  }
+
+  function moverArrasteHorizontal(event: ReactPointerEvent<HTMLDivElement>) {
+    const el = scrollRef.current;
+    const arraste = arrasteHorizontalRef.current;
+    if (!el || !arraste || arraste.pointerId !== event.pointerId) return;
+
+    el.scrollLeft = arraste.scrollInicial + arraste.xInicial - event.clientX;
+    atualizarScrollAffordance();
+    event.preventDefault();
+  }
+
+  function finalizarArrasteHorizontal(event: ReactPointerEvent<HTMLDivElement>) {
+    const el = scrollRef.current;
+    const arraste = arrasteHorizontalRef.current;
+    if (!el || !arraste || arraste.pointerId !== event.pointerId) return;
+
+    if (el.hasPointerCapture?.(event.pointerId)) el.releasePointerCapture(event.pointerId);
+    arrasteHorizontalRef.current = null;
+    setArrastandoTabela(false);
   }
 
   // Recalcula quando os dados chegam (a tabela só existe/tem largura real
@@ -864,19 +920,27 @@ export function GestantesPage() {
             />
             <Card className="min-w-0 max-w-full gap-0 border-border/60 py-0 shadow-sm">
             <Table
-              containerClassName="max-w-full overscroll-x-contain"
+              containerClassName={cn(
+                "max-w-full cursor-grab overscroll-x-contain",
+                arrastandoTabela && "cursor-grabbing select-none",
+              )}
               containerProps={{
                 ref: scrollRef,
                 onScroll: atualizarScrollAffordance,
                 onKeyDown: navegarTabelaComTeclado,
+                onPointerDown: iniciarArrasteHorizontal,
+                onPointerMove: moverArrasteHorizontal,
+                onPointerUp: finalizarArrasteHorizontal,
+                onPointerCancel: finalizarArrasteHorizontal,
+                onLostPointerCapture: finalizarArrasteHorizontal,
                 role: "region",
-                "aria-label": "Tabela nominal de acompanhamento operacional; use as setas esquerda e direita para ver mais colunas",
+                "aria-label": "Tabela nominal de acompanhamento operacional; use as setas esquerda e direita ou clique e arraste para ver mais colunas",
                 tabIndex: 0,
               }}
             >
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead className="sticky left-0 z-[1] min-w-40 bg-muted/40">Gestante</TableHead>
+                  <TableHead className="sticky left-0 z-[3] min-w-40 border-r bg-muted">Gestante</TableHead>
                   <TableHead>Equipe</TableHead>
                   <TableHead>Micro-área</TableHead>
                   <TableHead>Nascimento</TableHead>
@@ -911,7 +975,7 @@ export function GestantesPage() {
                   const statusGeral = statusGeralDaGestante(gestante);
                   return (
                   <TableRow key={gestante.id}>
-                    <TableCell className="sticky left-0 z-[1] min-w-40 max-w-52 bg-background font-medium">
+                    <TableCell className="sticky left-0 z-[1] min-w-40 max-w-52 border-r bg-background font-medium">
                       <div className="flex min-w-0 flex-col">
                         <span className="truncate" title={gestante.nome_cidadao}>{gestante.nome_cidadao}</span>
                         <span className="text-xs text-muted-foreground">

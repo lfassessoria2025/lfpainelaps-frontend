@@ -17,6 +17,7 @@ const gestante = {
   data_nascimento: "1995-04-10",
   equipe_nome: "ESF Centro",
   equipe_ine: "0001",
+  micro_area: "001",
   dt_inicio_gestacao: "2025-01-01",
   dt_fim_gestacao: "2025-10-01",
   dt_fim_puerperio: "2025-12-01",
@@ -53,63 +54,76 @@ test.beforeEach(async ({ page }) => {
     if (path.endsWith("/gestantes/equipes")) {
       return responderJson(route, [{ chave: "ine:0001", nome: "ESF Centro", ine: "0001", total_gestantes: 1, sem_equipe: false }]);
     }
+    if (path.endsWith("/gestantes/micro-areas")) {
+      return responderJson(route, [{ chave: "001", codigo: "001", total_gestantes: 1, sem_micro_area: false }]);
+    }
     if (path.endsWith("/gestantes")) return responderJson(route, [gestante]);
     await route.fulfill({ status: 404, contentType: "application/json", body: '{"detail":"mock ausente"}' });
   });
 });
 
-for (const densidade of ["Confortável", "Compacta"] as const) {
-  test(`contém e alinha a tabela completa na densidade ${densidade}`, async ({ page }) => {
-    await page.goto("/gestantes");
-    await expect(page.getByRole("heading", { name: "Gestantes e puerpério" })).toBeVisible();
+test("mantém o cabeçalho fixo opaco e permite arrastar horizontalmente", async ({ page }) => {
+  await page.goto("/gestantes");
+  await expect(page.getByRole("searchbox", { name: /buscar gestante ou equipe/i })).toBeVisible();
 
-    await page.getByRole("tab", { name: "Todos os parâmetros" }).click();
-    if (densidade === "Compacta") {
-      await page.getByRole("combobox", { name: "Densidade da tabela" }).click();
-      await page.getByRole("option", { name: "Compacta" }).click();
-    }
+  const filtros = [
+    page.getByRole("searchbox", { name: /buscar gestante ou equipe/i }),
+    page.getByRole("button", { name: "Filtrar por equipe" }),
+    page.getByRole("button", { name: "Filtrar por micro-área" }),
+    page.getByRole("combobox", { name: "Filtrar por parâmetro" }),
+    page.getByRole("combobox", { name: "Filtrar por status" }),
+    page.getByRole("combobox", { name: "Ordenar gestantes" }),
+  ];
+  for (const filtro of filtros) await expect(filtro).toBeVisible();
 
-    const filtros = [
-      page.getByRole("searchbox", { name: /buscar gestante ou equipe/i }),
-      page.getByRole("button", { name: "Filtrar por equipe" }),
-      page.getByRole("combobox", { name: "Filtrar por parâmetro" }),
-      page.getByRole("combobox", { name: "Filtrar por status" }),
-      page.getByRole("combobox", { name: "Ordenar gestantes" }),
-    ];
-    for (const filtro of filtros) await expect(filtro).toBeVisible();
+  const regiao = page.getByRole("region", { name: /tabela nominal de acompanhamento operacional/i });
+  const ultimaColuna = page.getByRole("columnheader", { name: "Atualizado em" });
+  const cabecalhoSticky = page.getByRole("columnheader", { name: "Gestante" });
+  const celulaSticky = page.getByRole("cell").filter({ hasText: "Maria da Silva" }).first();
+  const sidebar = page.locator('[data-slot="sidebar-container"]');
 
-    const regiao = page.getByRole("region", { name: /tabela nominal de gestantes/i });
-    const ultimaColuna = page.getByRole("columnheader", { name: "Atualizado em" });
-    const cabecalhoSticky = page.getByRole("columnheader", { name: "Gestante" });
-    const celulaSticky = page.getByRole("cell").filter({ hasText: "Maria da Silva" }).first();
-    const sidebar = page.locator('[data-slot="sidebar-container"]');
+  await expect(regiao).toBeVisible();
+  await expect.poll(() => regiao.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect(cabecalhoSticky).toHaveClass(/\bbg-muted\b/);
+  expect((await cabecalhoSticky.getAttribute("class"))?.split(/\s+/)).not.toContain("bg-muted/40");
 
-    await expect(regiao).toBeVisible();
-    await expect.poll(() => regiao.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  const areaTabela = await regiao.boundingBox();
+  expect(areaTabela).not.toBeNull();
+  await page.mouse.move(
+    areaTabela!.x + areaTabela!.width * 0.8,
+    areaTabela!.y + Math.min(100, areaTabela!.height / 2),
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    areaTabela!.x + areaTabela!.width * 0.2,
+    areaTabela!.y + Math.min(100, areaTabela!.height / 2),
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect.poll(() => regiao.evaluate((el) => el.scrollLeft)).toBeGreaterThan(100);
 
-    await regiao.evaluate((el) => { el.scrollLeft = el.scrollWidth - el.clientWidth; });
-    await expect.poll(() => regiao.evaluate((el) => Math.abs(el.scrollLeft - (el.scrollWidth - el.clientWidth)) <= 2)).toBe(true);
-    await expect(ultimaColuna).toBeInViewport();
+  await regiao.evaluate((el) => { el.scrollLeft = el.scrollWidth - el.clientWidth; });
+  await expect.poll(() => regiao.evaluate((el) => Math.abs(el.scrollLeft - (el.scrollWidth - el.clientWidth)) <= 2)).toBe(true);
+  await expect(ultimaColuna).toBeInViewport();
 
-    const geometria = await Promise.all([
-      cabecalhoSticky.boundingBox(),
-      celulaSticky.boundingBox(),
-      sidebar.boundingBox(),
-      regiao.boundingBox(),
-    ]);
-    const [cabecalho, celula, barraLateral, areaTabela] = geometria;
-    expect(cabecalho).not.toBeNull();
-    expect(celula).not.toBeNull();
-    expect(barraLateral).not.toBeNull();
-    expect(areaTabela).not.toBeNull();
-    expect(Math.abs(cabecalho!.x - celula!.x)).toBeLessThanOrEqual(1);
-    expect(cabecalho!.x).toBeGreaterThanOrEqual(barraLateral!.x + barraLateral!.width - 1);
-    expect(cabecalho!.x).toBeGreaterThanOrEqual(areaTabela!.x - 1);
-    expect(cabecalho!.x + cabecalho!.width).toBeLessThanOrEqual(areaTabela!.x + areaTabela!.width + 1);
-    await expect(celulaSticky.locator("[title]")).toHaveAttribute(
-      "title",
-      "Maria da Silva com nome suficientemente longo",
-    );
-  });
-}
+  const geometria = await Promise.all([
+    cabecalhoSticky.boundingBox(),
+    celulaSticky.boundingBox(),
+    sidebar.boundingBox(),
+    regiao.boundingBox(),
+  ]);
+  const [cabecalho, celula, barraLateral, areaRolavel] = geometria;
+  expect(cabecalho).not.toBeNull();
+  expect(celula).not.toBeNull();
+  expect(barraLateral).not.toBeNull();
+  expect(areaRolavel).not.toBeNull();
+  expect(Math.abs(cabecalho!.x - celula!.x)).toBeLessThanOrEqual(1);
+  expect(cabecalho!.x).toBeGreaterThanOrEqual(barraLateral!.x + barraLateral!.width - 1);
+  expect(cabecalho!.x).toBeGreaterThanOrEqual(areaRolavel!.x - 1);
+  expect(cabecalho!.x + cabecalho!.width).toBeLessThanOrEqual(areaRolavel!.x + areaRolavel!.width + 1);
+  await expect(celulaSticky.locator("[title]")).toHaveAttribute(
+    "title",
+    "Maria da Silva com nome suficientemente longo",
+  );
+});
