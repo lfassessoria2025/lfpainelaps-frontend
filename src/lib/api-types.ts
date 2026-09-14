@@ -301,6 +301,11 @@ export type MotivoAcaoCondicao =
   | "estado_esperado_indeterminado"
   | "registro_historico";
 
+export type RecorteGestante =
+  | "atual"
+  | "quadrimestre_atual"
+  | "quadrimestre_anterior";
+
 export interface GestanteAcompanhamentoOut {
   id: number;
   nome_cidadao: string;
@@ -308,6 +313,9 @@ export interface GestanteAcompanhamentoOut {
   equipe_nome: string | null;
   equipe_ine: string | null;
   micro_area: string | null;
+  recorte: RecorteGestante;
+  periodo_inicio: string;
+  periodo_fim: string;
   dt_inicio_gestacao: string; // ISO date
   dt_fim_gestacao: string; // ISO date
   dt_fim_puerperio: string; // ISO date
@@ -327,6 +335,7 @@ export interface GestanteAcompanhamentoOut {
   condicao_gestante_acao: AcaoCondicaoAutorreferida;
   condicao_gestante_motivo: MotivoAcaoCondicao;
   condicao_gestante_data_referencia: string | null; // ISO date do dump
+  condicao_gestante_em_alguma_fci: boolean;
   created_at: string; // ISO datetime
 }
 

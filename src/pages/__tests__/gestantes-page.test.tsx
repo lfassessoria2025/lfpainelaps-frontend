@@ -53,6 +53,9 @@ const GESTANTE: GestanteAcompanhamentoOut = {
   equipe_nome: "ESF Centro",
   equipe_ine: "0001",
   micro_area: "001",
+  recorte: "atual",
+  periodo_inicio: "2026-08-15",
+  periodo_fim: "2026-08-15",
   dt_inicio_gestacao: "2025-01-01",
   dt_fim_gestacao: "2025-10-01",
   dt_fim_puerperio: "2025-12-01",
@@ -72,6 +75,7 @@ const GESTANTE: GestanteAcompanhamentoOut = {
   condicao_gestante_acao: "inserir",
   condicao_gestante_motivo: "condicao_nao_marcada",
   condicao_gestante_data_referencia: "2026-08-15",
+  condicao_gestante_em_alguma_fci: true,
   created_at: "2026-01-01T00:00:00Z",
 };
 
@@ -243,6 +247,7 @@ describe("GestantesPage", () => {
         ["ine:0001", "sem-equipe"],
         [],
         expect.any(AbortSignal),
+        "quadrimestre_anterior",
       );
     });
     expect(new URLSearchParams(window.location.search).getAll("equipe")).toEqual([
@@ -263,6 +268,8 @@ describe("GestantesPage", () => {
       PREFEITURA.id,
       ["ine:0001", "sem-equipe"],
       [],
+      undefined,
+      "quadrimestre_anterior",
     );
     vi.unstubAllGlobals();
   });
@@ -295,6 +302,7 @@ describe("GestantesPage", () => {
         [],
         ["001", "sem-micro-area"],
         expect.any(AbortSignal),
+        "quadrimestre_anterior",
       );
     });
     expect(new URLSearchParams(window.location.search).getAll("micro_area")).toEqual([
@@ -330,9 +338,19 @@ describe("GestantesPage", () => {
     await user.click(screen.getAllByRole("combobox")[0]);
     await user.click(await screen.findByRole("option", { name: "Outra cidade" }));
 
-    await waitFor(() => expect(mockedGestanteService.equipes).toHaveBeenLastCalledWith(2, expect.any(AbortSignal)));
+    await waitFor(() => expect(mockedGestanteService.equipes).toHaveBeenLastCalledWith(
+      2,
+      expect.any(AbortSignal),
+      "quadrimestre_anterior",
+    ));
     expect(window.location.search).toBe("");
-    expect(mockedGestanteService.list).toHaveBeenLastCalledWith(2, [], [], expect.any(AbortSignal));
+    expect(mockedGestanteService.list).toHaveBeenLastCalledWith(
+      2,
+      [],
+      [],
+      expect.any(AbortSignal),
+      "quadrimestre_anterior",
+    );
   });
 
   it("filtra e ordena pelo parâmetro individual selecionado", async () => {
@@ -542,7 +560,13 @@ describe("GestantesPage", () => {
 
     await userEvent.click(botao);
 
-    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(PREFEITURA.id, [], []);
+    expect(mockedGestanteService.exportar).toHaveBeenCalledWith(
+      PREFEITURA.id,
+      [],
+      [],
+      undefined,
+      "quadrimestre_anterior",
+    );
     expect(createObjectURL).toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
 

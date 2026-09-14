@@ -5,15 +5,21 @@ import type {
   GestanteAcompanhamentoOut,
   MetricasIndicadorOut,
   MicroAreaGestanteOut,
+  RecorteGestante,
   SerieHistoricaPontoOut,
 } from "@/lib/api-types";
 
-function queryFiltros(equipes: readonly string[], microAreas: readonly string[]): string {
-  if (equipes.length === 0 && microAreas.length === 0) return "";
+function queryFiltros(
+  equipes: readonly string[],
+  microAreas: readonly string[],
+  recorte: RecorteGestante = "atual",
+): string {
   const query = new URLSearchParams();
   equipes.forEach((equipe) => query.append("equipe", equipe));
   microAreas.forEach((microArea) => query.append("micro_area", microArea));
-  return `?${query.toString()}`;
+  if (recorte !== "atual") query.set("recorte", recorte);
+  const serializada = query.toString();
+  return serializada ? `?${serializada}` : "";
 }
 
 export const gestanteService = {
@@ -22,19 +28,28 @@ export const gestanteService = {
     equipes: readonly string[] = [],
     microAreas: readonly string[] = [],
     signal?: AbortSignal,
+    recorte: RecorteGestante = "atual",
   ) =>
     http.get<GestanteAcompanhamentoOut[]>(
-      `/prefeituras/${prefeituraId}/indicadores/gestantes${queryFiltros(equipes, microAreas)}`,
+      `/prefeituras/${prefeituraId}/indicadores/gestantes${queryFiltros(equipes, microAreas, recorte)}`,
       signal,
     ),
-  equipes: (prefeituraId: number, signal?: AbortSignal) =>
+  equipes: (
+    prefeituraId: number,
+    signal?: AbortSignal,
+    recorte: RecorteGestante = "atual",
+  ) =>
     http.get<EquipeGestanteOut[]>(
-      `/prefeituras/${prefeituraId}/indicadores/gestantes/equipes`,
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/equipes${queryFiltros([], [], recorte)}`,
       signal,
     ),
-  microAreas: (prefeituraId: number, signal?: AbortSignal) =>
+  microAreas: (
+    prefeituraId: number,
+    signal?: AbortSignal,
+    recorte: RecorteGestante = "atual",
+  ) =>
     http.get<MicroAreaGestanteOut[]>(
-      `/prefeituras/${prefeituraId}/indicadores/gestantes/micro-areas`,
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/micro-areas${queryFiltros([], [], recorte)}`,
       signal,
     ),
   exportar: (
@@ -42,9 +57,10 @@ export const gestanteService = {
     equipes: readonly string[] = [],
     microAreas: readonly string[] = [],
     signal?: AbortSignal,
+    recorte: RecorteGestante = "atual",
   ) =>
     http.getBlob(
-      `/prefeituras/${prefeituraId}/indicadores/gestantes/exportar${queryFiltros(equipes, microAreas)}`,
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/exportar${queryFiltros(equipes, microAreas, recorte)}`,
       signal,
     ),
   metricas: (

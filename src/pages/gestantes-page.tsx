@@ -51,6 +51,7 @@ import type {
   GestanteAcompanhamentoOut,
   MicroAreaGestanteOut,
   PrefeituraOut,
+  RecorteGestante,
 } from "@/lib/api-types";
 import { apresentarAcaoCondicao, explicarMotivoCondicao } from "@/lib/condicao-autorreferida";
 import { ApiError } from "@/lib/http";
@@ -314,6 +315,12 @@ function PaginacaoGestantes({
 export function GestantesPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [recorte, setRecorte] = useState<RecorteGestante>(() => {
+    const valor = new URLSearchParams(window.location.search).get("recorte");
+    return valor === "atual" || valor === "quadrimestre_atual" || valor === "quadrimestre_anterior"
+      ? valor
+      : "quadrimestre_anterior";
+  });
 
   const [gestantes, setGestantes] = useState<GestanteAcompanhamentoOut[] | null>(null);
   const [equipes, setEquipes] = useState<EquipeGestanteOut[] | null>(null);
@@ -525,6 +532,23 @@ export function GestantesPage() {
     [atualizarEquipesSelecionadas, atualizarMicroAreasSelecionadas],
   );
 
+  const handleTrocarRecorte = useCallback(
+    (valor: string | null) => {
+      if (!valor) return;
+      const proximo = valor as RecorteGestante;
+      setRecorte(proximo);
+      atualizarEquipesSelecionadas([]);
+      atualizarMicroAreasSelecionadas([]);
+      setEquipes(null);
+      setMicroAreas(null);
+      setGestantes(null);
+      const url = new URL(window.location.href);
+      url.searchParams.set("recorte", proximo);
+      window.history.replaceState(window.history.state, "", url);
+    },
+    [atualizarEquipesSelecionadas, atualizarMicroAreasSelecionadas],
+  );
+
   const alternarEquipe = useCallback(
     (chave: string, selecionada: boolean) => {
       atualizarEquipesSelecionadas(
@@ -552,7 +576,7 @@ export function GestantesPage() {
     const controller = new AbortController();
     setEquipes(null);
     gestanteService
-      .equipes(selectedId, controller.signal)
+      .equipes(selectedId, controller.signal, recorte)
       .then((catalogo) => {
         setEquipes(catalogo);
       })
@@ -561,14 +585,14 @@ export function GestantesPage() {
         setEquipes([]);
       });
     return () => controller.abort();
-  }, [selectedId]);
+  }, [recorte, selectedId]);
 
   useEffect(() => {
     if (selectedId === null) return;
     const controller = new AbortController();
     setMicroAreas(null);
     gestanteService
-      .microAreas(selectedId, controller.signal)
+      .microAreas(selectedId, controller.signal, recorte)
       .then((catalogo) => {
         setMicroAreas(catalogo);
       })
@@ -577,7 +601,7 @@ export function GestantesPage() {
         setMicroAreas([]);
       });
     return () => controller.abort();
-  }, [selectedId]);
+  }, [recorte, selectedId]);
 
   useEffect(() => {
     if (equipes === null) return;
@@ -605,6 +629,7 @@ export function GestantesPage() {
         equipesSelecionadas,
         microAreasSelecionadas,
         signal,
+        recorte,
       );
       setGestantes(data);
       setLoadError(null);
@@ -622,7 +647,7 @@ export function GestantesPage() {
         err instanceof ApiError ? err.detail : "Não foi possível carregar os dados de gestantes.",
       );
     }
-  }, [equipesSelecionadas, microAreasSelecionadas, selectedId]);
+  }, [equipesSelecionadas, microAreasSelecionadas, recorte, selectedId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -640,6 +665,8 @@ export function GestantesPage() {
         selectedId,
         equipesSelecionadas,
         microAreasSelecionadas,
+        undefined,
+        recorte,
       );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -654,7 +681,7 @@ export function GestantesPage() {
     } finally {
       setExportando(false);
     }
-  }, [equipesSelecionadas, microAreasSelecionadas, selectedId]);
+  }, [equipesSelecionadas, microAreasSelecionadas, recorte, selectedId]);
 
   const rotuloFiltroEquipe =
     equipesSelecionadas.length === 0
@@ -724,7 +751,7 @@ export function GestantesPage() {
   useEffect(() => {
     setPagina(1);
     setCardsExpandidos([]);
-  }, [buscaDeferred, equipesSelecionadas, gestantes, microAreasSelecionadas, ordenacao, parametroFiltro, selectedId, statusFiltro]);
+  }, [buscaDeferred, equipesSelecionadas, gestantes, microAreasSelecionadas, ordenacao, parametroFiltro, recorte, selectedId, statusFiltro]);
 
   const trocarPagina = useCallback((proximaPagina: number) => {
     setPagina(proximaPagina);
@@ -815,7 +842,28 @@ export function GestantesPage() {
       ) : (
         <>
           <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-6">
+              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
+                Período
+                <Select value={recorte} onValueChange={handleTrocarRecorte}>
+                  <SelectTrigger className="w-full" aria-label="Selecionar período">
+                    <SelectValue>
+                      {(value: RecorteGestante | null) => {
+                        if (value === "quadrimestre_anterior") return "Último quadrimestre fechado";
+                        if (value === "quadrimestre_atual") return "Quadrimestre em andamento";
+                        return "Situação atual";
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="quadrimestre_anterior">Último quadrimestre fechado</SelectItem>
+                      <SelectItem value="quadrimestre_atual">Quadrimestre em andamento</SelectItem>
+                      <SelectItem value="atual">Situação atual</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
               <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
                 Buscar gestante ou equipe
                 <div className="relative">
