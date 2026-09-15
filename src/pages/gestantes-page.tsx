@@ -1062,7 +1062,7 @@ export function GestantesPage() {
                         <dt className="text-muted-foreground">Início gestação</dt><dd>{formatDate(gestante.dt_inicio_gestacao)}</dd>
                         <dt className="text-muted-foreground">Fim gestação</dt><dd>{formatDate(gestante.dt_fim_gestacao)}</dd>
                         <dt className="text-muted-foreground">Fim puerpério</dt><dd>{formatDate(gestante.dt_fim_puerperio)}</dd>
-                        <dt className="text-muted-foreground">Elegibilidade</dt><dd>{gestante.excluida_por_aborto ? "Excluída (aborto)" : "Incluída"}</dd>
+                        <dt className="text-muted-foreground">Elegibilidade</dt><dd>{gestante.excluida_por_aborto ? "Aborto — encerrado" : "Incluída"}</dd>
                         <dt className="text-muted-foreground">Atualizado em</dt><dd>{formatDateTime(gestante.created_at)}</dd>
                       </dl>
                       <dl className="flex flex-col gap-2 text-sm">
@@ -1166,7 +1166,7 @@ export function GestantesPage() {
                           {formatDate(gestante.data_nascimento)}
                           {gestante.excluida_por_aborto ? (
                             <Badge variant="outline" className="ml-2">
-                              Excluída (aborto)
+                              Aborto — encerrado
                             </Badge>
                           ) : null}
                         </span>
@@ -1183,7 +1183,7 @@ export function GestantesPage() {
                     <TableCell>{formatDate(gestante.dt_inicio_gestacao)}</TableCell>
                     <TableCell>{formatDate(gestante.dt_fim_gestacao)}</TableCell>
                     <TableCell>{formatDate(gestante.dt_fim_puerperio)}</TableCell>
-                    <TableCell>{gestante.excluida_por_aborto ? "Excluída (aborto)" : "Incluída"}</TableCell>
+                    <TableCell>{gestante.excluida_por_aborto ? "Aborto — encerrado" : "Incluída"}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={STATUS_CLASSNAME[statusGeral]}>
                         {STATUS_PRATICA_ROTULO[statusGeral]}

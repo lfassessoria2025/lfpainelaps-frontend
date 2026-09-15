@@ -114,6 +114,19 @@ describe("GestantesPage", () => {
     expect(within(tabelaDesktop).getByText("Fim puerpério")).toBeInTheDocument();
   });
 
+  it("identifica aborto encerrado sem retirar a gestante da lista operacional", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([
+      { ...GESTANTE, excluida_por_aborto: true },
+    ]);
+
+    render(<GestantesPage />);
+
+    expect((await screen.findAllByText("Maria da Silva")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Aborto — encerrado").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Excluída (aborto)")).not.toBeInTheDocument();
+  });
+
   it.each([
     ["remover", "condicao_ainda_marcada", "Remover condição de saúde Gestante"],
     ["nenhuma_acao", "cadastro_coerente", "Nenhuma ação"],
