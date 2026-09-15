@@ -91,6 +91,19 @@ function AcaoCondicaoGestante({
 }) {
   const apresentacao = apresentarAcaoCondicao(gestante.condicao_gestante_acao);
   const requerRevisao = gestante.condicao_gestante_acao !== "nenhuma_acao";
+  const motivo = explicarMotivoCondicao(gestante.condicao_gestante_motivo);
+
+  if (compact) {
+    return (
+      <Badge
+        variant={apresentacao.variant}
+        className="max-w-44 truncate text-[11px]"
+        title={`${apresentacao.rotulo}. ${motivo}`}
+      >
+        {apresentacao.rotulo}
+      </Badge>
+    );
+  }
 
   return (
     <section
@@ -101,17 +114,13 @@ function AcaoCondicaoGestante({
         Cadastro Individual · condição autorreferida
       </span>
       <Badge variant={apresentacao.variant}>{apresentacao.rotulo}</Badge>
-      <span className="whitespace-normal text-xs text-muted-foreground">
-        {explicarMotivoCondicao(gestante.condicao_gestante_motivo)}
+      <span className="whitespace-normal text-xs text-muted-foreground">{motivo}</span>
+      <span className="text-xs text-muted-foreground">
+        Referência do dump: {formatDate(gestante.condicao_gestante_data_referencia)}
       </span>
-      {compact ? null : <>
-        <span className="text-xs text-muted-foreground">
-          Referência do dump: {formatDate(gestante.condicao_gestante_data_referencia)}
-        </span>
-        <span className="text-xs text-muted-foreground">
-          Esta é uma ação cadastral para conferência. Não altera a pontuação nem a pendência clínica do C3.
-        </span>
-      </>}
+      <span className="text-xs text-muted-foreground">
+        Esta é uma ação cadastral para conferência. Não altera a pontuação nem a pendência clínica do C3.
+      </span>
     </section>
   );
 }
@@ -184,7 +193,7 @@ function RotuloParametro({ pratica }: { pratica: (typeof PRATICAS)[number] }) {
       <span className="text-[10px] font-normal tracking-wide text-muted-foreground">
         {pratica.letra}
       </span>
-      <span className="text-xs leading-tight font-semibold whitespace-normal text-foreground">
+      <span className="text-[11px] leading-tight font-semibold whitespace-normal text-foreground">
         {pratica.rotulo}
       </span>
     </span>
@@ -203,7 +212,7 @@ function CabecalhoTabelaGestantes({
       <TableRow className={flutuante ? "bg-muted hover:bg-muted" : "bg-muted/40 hover:bg-muted/40"}>
         <TableHead
           className={cn(
-            "min-w-40 border-r bg-muted",
+            "min-w-36 border-r bg-muted",
             !flutuante && "sticky left-0 z-[3]",
           )}
         >
@@ -220,7 +229,7 @@ function CabecalhoTabelaGestantes({
         <TableHead>Status</TableHead>
         <TableHead>Ação no Cadastro Individual</TableHead>
         {PRATICAS.map((pratica) => (
-          <TableHead key={pratica.letra} className="min-w-28 text-center align-bottom">
+          <TableHead key={pratica.letra} className="min-w-24 text-center align-bottom">
             {flutuante ? (
               <RotuloParametro pratica={pratica} />
             ) : (
@@ -319,7 +328,7 @@ export function GestantesPage() {
     const valor = new URLSearchParams(window.location.search).get("recorte");
     return valor === "atual" || valor === "quadrimestre_atual" || valor === "quadrimestre_anterior"
       ? valor
-      : "quadrimestre_anterior";
+      : "atual";
   });
 
   const [gestantes, setGestantes] = useState<GestanteAcompanhamentoOut[] | null>(null);
@@ -841,12 +850,12 @@ export function GestantesPage() {
         </Empty>
       ) : (
         <>
-          <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-6">
-              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
+          <div className="mb-3 flex flex-col gap-2 rounded-lg border bg-card p-2.5">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
                 Período
                 <Select value={recorte} onValueChange={handleTrocarRecorte}>
-                  <SelectTrigger className="w-full" aria-label="Selecionar período">
+                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Selecionar período">
                     <SelectValue>
                       {(value: RecorteGestante | null) => {
                         if (value === "quadrimestre_anterior") return "Último quadrimestre fechado";
@@ -864,7 +873,7 @@ export function GestantesPage() {
                   </SelectContent>
                 </Select>
               </label>
-              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
                 Buscar gestante ou equipe
                 <div className="relative">
                   <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" />
@@ -873,7 +882,7 @@ export function GestantesPage() {
                     value={busca}
                     onChange={(event) => setBusca(event.target.value)}
                     placeholder="Nome, equipe, INE ou micro-área"
-                    className="pl-8"
+                    className="h-8 pl-8 text-xs"
                   />
                 </div>
               </label>
@@ -909,7 +918,7 @@ export function GestantesPage() {
                 getSecondaryLabel={(microArea) => `${microArea.total_gestantes} gestante(s)`}
                 onToggle={alternarMicroArea}
               />
-              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
                 Parâmetro
                 <Select
                   value={parametroFiltro}
@@ -921,7 +930,7 @@ export function GestantesPage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full" aria-label="Filtrar por parâmetro">
+                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Filtrar por parâmetro">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -936,13 +945,13 @@ export function GestantesPage() {
                   </SelectContent>
                 </Select>
               </label>
-              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
                 {parametroFiltro === "todos" ? "Status do acompanhamento" : "Status do parâmetro"}
                 <Select
                   value={statusFiltro}
                   onValueChange={(value) => value && setStatusFiltro(value as StatusFiltro)}
                 >
-                  <SelectTrigger className="w-full" aria-label="Filtrar por status">
+                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Filtrar por status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -955,13 +964,13 @@ export function GestantesPage() {
                   </SelectContent>
                 </Select>
               </label>
-              <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
+              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
                 Ordenar por
                 <Select
                   value={ordenacao}
                   onValueChange={(value) => value && setOrdenacao(value as Ordenacao)}
                 >
-                  <SelectTrigger className="w-full" aria-label="Ordenar gestantes">
+                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Ordenar gestantes">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -981,7 +990,7 @@ export function GestantesPage() {
               </label>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground" aria-live="polite">
+              <p className="text-xs text-muted-foreground" aria-live="polite">
                 <strong className="font-semibold text-foreground">{gestantesFiltradas.length}</strong>{" "}
                 de {gestantes.length} gestantes · Exibindo {gestantesFiltradas.length === 0 ? 0 : inicioDaPagina + 1}–
                 {Math.min(inicioDaPagina + ITENS_POR_PAGINA, gestantesFiltradas.length)}
@@ -1096,7 +1105,7 @@ export function GestantesPage() {
               >
                 <table
                   ref={tabelaCabecalhoFixoRef}
-                  className="table-fixed caption-bottom text-sm"
+                  className="table-fixed caption-bottom text-xs [&_th]:h-8 [&_th]:px-1.5"
                 >
                   <colgroup>
                     {COLUNAS_CABECALHO.map((coluna) => <col key={coluna} />)}
@@ -1135,6 +1144,7 @@ export function GestantesPage() {
             <Card className="min-w-0 max-w-full gap-0 border-border/60 py-0 shadow-sm">
             <Table
               ref={tabelaRef}
+              className="text-xs [&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5"
               containerClassName={cn(
                 "max-w-full cursor-grab overscroll-x-contain",
                 arrastandoTabela && "cursor-grabbing select-none",
@@ -1159,18 +1169,10 @@ export function GestantesPage() {
                   const statusGeral = statusGeralDaGestante(gestante);
                   return (
                   <TableRow key={gestante.id}>
-                    <TableCell className="sticky left-0 z-[1] min-w-40 max-w-52 border-r bg-background font-medium">
-                      <div className="flex min-w-0 flex-col">
-                        <span className="truncate" title={gestante.nome_cidadao}>{gestante.nome_cidadao}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(gestante.data_nascimento)}
-                          {gestante.excluida_por_aborto ? (
-                            <Badge variant="outline" className="ml-2">
-                              Aborto — encerrado
-                            </Badge>
-                          ) : null}
-                        </span>
-                      </div>
+                    <TableCell className="sticky left-0 z-[1] min-w-36 max-w-48 border-r bg-background font-medium">
+                      <span className="block truncate" title={gestante.nome_cidadao}>
+                        {gestante.nome_cidadao}
+                      </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {gestante.equipe_nome ?? "—"}

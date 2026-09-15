@@ -260,7 +260,7 @@ describe("GestantesPage", () => {
         ["ine:0001", "sem-equipe"],
         [],
         expect.any(AbortSignal),
-        "quadrimestre_anterior",
+        "atual",
       );
     });
     expect(new URLSearchParams(window.location.search).getAll("equipe")).toEqual([
@@ -282,7 +282,7 @@ describe("GestantesPage", () => {
       ["ine:0001", "sem-equipe"],
       [],
       undefined,
-      "quadrimestre_anterior",
+      "atual",
     );
     vi.unstubAllGlobals();
   });
@@ -315,7 +315,7 @@ describe("GestantesPage", () => {
         [],
         ["001", "sem-micro-area"],
         expect.any(AbortSignal),
-        "quadrimestre_anterior",
+        "atual",
       );
     });
     expect(new URLSearchParams(window.location.search).getAll("micro_area")).toEqual([
@@ -354,7 +354,7 @@ describe("GestantesPage", () => {
     await waitFor(() => expect(mockedGestanteService.equipes).toHaveBeenLastCalledWith(
       2,
       expect.any(AbortSignal),
-      "quadrimestre_anterior",
+      "atual",
     ));
     expect(window.location.search).toBe("");
     expect(mockedGestanteService.list).toHaveBeenLastCalledWith(
@@ -362,7 +362,7 @@ describe("GestantesPage", () => {
       [],
       [],
       expect.any(AbortSignal),
-      "quadrimestre_anterior",
+      "atual",
     );
   });
 
@@ -578,7 +578,7 @@ describe("GestantesPage", () => {
       [],
       [],
       undefined,
-      "quadrimestre_anterior",
+      "atual",
     );
     expect(createObjectURL).toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");

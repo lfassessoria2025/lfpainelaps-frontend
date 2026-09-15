@@ -55,11 +55,44 @@ describe("ResetPasswordPage — validação client-side", () => {
     await user.click(screen.getByRole("button", { name: "Redefinir senha e entrar" }));
 
     expect(
-      await screen.findByText("A senha precisa ter pelo menos 8 caracteres."),
+      await screen.findByText(
+        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+      ),
     ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Nova senha").closest('[data-slot="field"]')!).getByText(
-        "A senha precisa ter pelo menos 8 caracteres.",
+        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+      ),
+    ).toBeInTheDocument();
+    expect(mockedResetPassword).not.toHaveBeenCalled();
+  });
+
+  it("atualiza os requisitos em tempo real e permite visualizar a senha", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const senha = screen.getByLabelText("Nova senha");
+    expect(senha).toHaveAttribute("type", "password");
+    await user.type(senha, "senha-forte!123");
+    expect(screen.getByText("Pelo menos 12 caracteres")).toHaveClass("text-emerald-700");
+    expect(screen.getByText("Pelo menos 1 caractere especial")).toHaveClass("text-emerald-700");
+
+    await user.click(screen.getByRole("button", { name: "Mostrar nova senha" }));
+    expect(senha).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "Ocultar nova senha" })).toBeInTheDocument();
+  });
+
+  it("bloqueia senha longa sem caractere especial", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByLabelText("Nova senha"), "senhalongasemespecial123");
+    await user.type(screen.getByLabelText("Confirmar senha"), "senhalongasemespecial123");
+    await user.click(screen.getByRole("button", { name: "Redefinir senha e entrar" }));
+
+    expect(
+      await screen.findByText(
+        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(mockedResetPassword).not.toHaveBeenCalled();

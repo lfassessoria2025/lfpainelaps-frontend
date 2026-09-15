@@ -2,15 +2,18 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthShell } from "@/components/layout/auth-shell";
+import {
+  PasswordField,
+  PasswordMatchFeedback,
+  PasswordRequirements,
+} from "@/components/auth/password-field";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/contexts/auth-context";
 import { authService } from "@/services/auth";
 import { ApiError } from "@/lib/http";
-
-const SENHA_MINIMA = 8;
+import { PASSWORD_POLICY_ERROR, passwordMeetsPolicy } from "@/lib/password-policy";
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -31,8 +34,8 @@ export function ResetPasswordPage() {
     setConfirmacaoError(null);
     setRequestError(null);
 
-    if (senha.length < SENHA_MINIMA) {
-      setSenhaError(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
+    if (!passwordMeetsPolicy(senha)) {
+      setSenhaError(PASSWORD_POLICY_ERROR);
       return;
     }
     if (senha !== confirmacao) {
@@ -72,9 +75,9 @@ export function ResetPasswordPage() {
           <FieldGroup>
             <Field data-invalid={Boolean(senhaError)}>
               <FieldLabel htmlFor="senha">Nova senha</FieldLabel>
-              <Input
+              <PasswordField
                 id="senha"
-                type="password"
+                visibilityLabel="nova senha"
                 autoComplete="new-password"
                 required
                 value={senha}
@@ -85,14 +88,16 @@ export function ResetPasswordPage() {
                 aria-invalid={Boolean(senhaError)}
                 aria-describedby={senhaError ? "senha-description senha-error" : "senha-description"}
               />
-              <FieldDescription id="senha-description">Mínimo de {SENHA_MINIMA} caracteres.</FieldDescription>
+              <FieldDescription id="senha-description">
+                <PasswordRequirements value={senha} />
+              </FieldDescription>
               {senhaError ? <FieldError id="senha-error">{senhaError}</FieldError> : null}
             </Field>
             <Field data-invalid={Boolean(confirmacaoError || requestError)}>
               <FieldLabel htmlFor="confirmacao">Confirmar senha</FieldLabel>
-              <Input
+              <PasswordField
                 id="confirmacao"
-                type="password"
+                visibilityLabel="confirmação da senha"
                 autoComplete="new-password"
                 required
                 value={confirmacao}
@@ -103,6 +108,7 @@ export function ResetPasswordPage() {
                 aria-invalid={Boolean(confirmacaoError || requestError)}
                 aria-describedby={confirmacaoError || requestError ? "confirmacao-error" : undefined}
               />
+              <PasswordMatchFeedback password={senha} confirmation={confirmacao} />
               {confirmacaoError || requestError ? <FieldError id="confirmacao-error">{confirmacaoError ?? requestError}</FieldError> : null}
             </Field>
             <Button type="submit" disabled={isSubmitting} className="mt-2 w-full">

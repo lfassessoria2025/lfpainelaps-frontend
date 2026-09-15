@@ -2,6 +2,11 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  PasswordField,
+  PasswordMatchFeedback,
+  PasswordRequirements,
+} from "@/components/auth/password-field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -11,8 +16,8 @@ import { AcceptedTermCopyCard } from "@/components/responsibility-terms/accepted
 import { useAuth } from "@/contexts/auth-context";
 import { authService } from "@/services/auth";
 import { ApiError } from "@/lib/http";
+import { PASSWORD_POLICY_ERROR, passwordMeetsPolicy } from "@/lib/password-policy";
 
-const SENHA_MINIMA = 8;
 const NOME_MAXIMO = 150;
 
 export function ProfilePage() {
@@ -57,8 +62,8 @@ export function ProfilePage() {
     event.preventDefault();
     setSenhaError(null);
 
-    if (senhaNova.length < SENHA_MINIMA) {
-      setSenhaError(`A senha nova precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
+    if (!passwordMeetsPolicy(senhaNova)) {
+      setSenhaError(PASSWORD_POLICY_ERROR);
       return;
     }
     if (senhaNova !== confirmacao) {
@@ -131,9 +136,9 @@ export function ProfilePage() {
               <FieldGroup>
                 <Field data-invalid={Boolean(senhaError)}>
                   <FieldLabel htmlFor="senha-atual">Senha atual</FieldLabel>
-                  <Input
+                  <PasswordField
                     id="senha-atual"
-                    type="password"
+                    visibilityLabel="senha atual"
                     autoComplete="current-password"
                     required
                     value={senhaAtual}
@@ -143,28 +148,31 @@ export function ProfilePage() {
                 </Field>
                 <Field data-invalid={Boolean(senhaError)}>
                   <FieldLabel htmlFor="senha-nova">Nova senha</FieldLabel>
-                  <Input
+                  <PasswordField
                     id="senha-nova"
-                    type="password"
+                    visibilityLabel="nova senha"
                     autoComplete="new-password"
                     required
                     value={senhaNova}
                     onChange={(event) => setSenhaNova(event.target.value)}
                     aria-invalid={Boolean(senhaError)}
                   />
-                  <FieldDescription>Mínimo de {SENHA_MINIMA} caracteres.</FieldDescription>
+                  <FieldDescription>
+                    <PasswordRequirements value={senhaNova} />
+                  </FieldDescription>
                 </Field>
                 <Field data-invalid={Boolean(senhaError)}>
                   <FieldLabel htmlFor="confirmacao">Confirmar nova senha</FieldLabel>
-                  <Input
+                  <PasswordField
                     id="confirmacao"
-                    type="password"
+                    visibilityLabel="confirmação da nova senha"
                     autoComplete="new-password"
                     required
                     value={confirmacao}
                     onChange={(event) => setConfirmacao(event.target.value)}
                     aria-invalid={Boolean(senhaError)}
                   />
+                  <PasswordMatchFeedback password={senhaNova} confirmation={confirmacao} />
                   {senhaError ? <FieldError>{senhaError}</FieldError> : null}
                 </Field>
                 <Button type="submit" disabled={isChangingPassword} className="w-fit">

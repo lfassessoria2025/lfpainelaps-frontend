@@ -2,19 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  PasswordField,
+  PasswordMatchFeedback,
+  PasswordRequirements,
+} from "@/components/auth/password-field";
 import { AuthShell } from "@/components/layout/auth-shell";
 import { ResponsibilityTermDocument } from "@/components/responsibility-terms/responsibility-term-document";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { authService } from "@/services/auth";
 import type { ResponsibilityTermOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
-
-const SENHA_MINIMA = 8;
+import { PASSWORD_POLICY_ERROR, passwordMeetsPolicy } from "@/lib/password-policy";
 
 export function AcceptInvitePage() {
   const [searchParams] = useSearchParams();
@@ -72,8 +75,8 @@ export function AcceptInvitePage() {
       setAcknowledgementError("Leia o termo e marque a declaração de responsabilidade para continuar.");
       return;
     }
-    if (senha.length < SENHA_MINIMA) {
-      setSenhaError(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
+    if (!passwordMeetsPolicy(senha)) {
+      setSenhaError(PASSWORD_POLICY_ERROR);
       return;
     }
     if (senha !== confirmacao) {
@@ -150,9 +153,9 @@ export function AcceptInvitePage() {
           <FieldGroup>
             <Field data-invalid={Boolean(senhaError)}>
               <FieldLabel htmlFor="senha">Nova senha</FieldLabel>
-              <Input
+              <PasswordField
                 id="senha"
-                type="password"
+                visibilityLabel="nova senha"
                 autoComplete="new-password"
                 required
                 value={senha}
@@ -163,14 +166,16 @@ export function AcceptInvitePage() {
                 aria-invalid={Boolean(senhaError)}
                 aria-describedby={senhaError ? "senha-description senha-error" : "senha-description"}
               />
-              <FieldDescription id="senha-description">Mínimo de {SENHA_MINIMA} caracteres.</FieldDescription>
+              <FieldDescription id="senha-description">
+                <PasswordRequirements value={senha} />
+              </FieldDescription>
               {senhaError ? <FieldError id="senha-error">{senhaError}</FieldError> : null}
             </Field>
             <Field data-invalid={Boolean(confirmacaoError)}>
               <FieldLabel htmlFor="confirmacao">Confirmar senha</FieldLabel>
-              <Input
+              <PasswordField
                 id="confirmacao"
-                type="password"
+                visibilityLabel="confirmação da senha"
                 autoComplete="new-password"
                 required
                 value={confirmacao}
@@ -181,6 +186,7 @@ export function AcceptInvitePage() {
                 aria-invalid={Boolean(confirmacaoError)}
                 aria-describedby={confirmacaoError ? "confirmacao-error" : undefined}
               />
+              <PasswordMatchFeedback password={senha} confirmation={confirmacao} />
               {confirmacaoError ? <FieldError id="confirmacao-error">{confirmacaoError}</FieldError> : null}
             </Field>
             <Button type="submit" disabled={isSubmitting || !acknowledged} className="w-full">

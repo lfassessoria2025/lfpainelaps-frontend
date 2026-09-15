@@ -91,7 +91,9 @@ describe("ProfilePage — trocar senha", () => {
     await user.click(screen.getByRole("button", { name: "Trocar senha" }));
 
     expect(
-      await screen.findByText("A senha nova precisa ter pelo menos 8 caracteres."),
+      await screen.findByText(
+        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+      ),
     ).toBeInTheDocument();
     expect(mockedChangePassword).not.toHaveBeenCalled();
   });

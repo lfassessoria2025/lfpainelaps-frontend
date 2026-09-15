@@ -62,10 +62,14 @@ describe("AcceptInvitePage — termo e ativação", () => {
     await user.type(screen.getByLabelText("Confirmar senha"), "curta1");
     await user.click(screen.getByRole("button", { name: "Confirmar responsabilidade e ativar conta" }));
 
-    expect(await screen.findByText("A senha precisa ter pelo menos 8 caracteres.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+      ),
+    ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Nova senha").closest('[data-slot="field"]')!).getByText(
-        "A senha precisa ter pelo menos 8 caracteres.",
+        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(mockedAcceptInvite).not.toHaveBeenCalled();

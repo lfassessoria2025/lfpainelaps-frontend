@@ -42,11 +42,11 @@ export function CatalogFilterDropdown<T>({
   onToggle,
 }: CatalogFilterDropdownProps<T>) {
   return (
-    <div className="flex min-w-52 flex-col gap-1 text-xs font-medium text-muted-foreground">
+    <div className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
       {label}
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="outline" className="justify-between font-normal" />}
+          render={<Button variant="outline" className="h-8 justify-between text-xs font-normal" />}
           aria-label={ariaLabel}
           disabled={items === null || items.length === 0}
         >
