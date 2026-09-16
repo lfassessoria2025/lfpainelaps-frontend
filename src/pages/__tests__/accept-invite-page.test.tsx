@@ -64,12 +64,12 @@ describe("AcceptInvitePage — termo e ativação", () => {
 
     expect(
       await screen.findByText(
-        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+        "A senha deve ter pelo menos 8 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Nova senha").closest('[data-slot="field"]')!).getByText(
-        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+        "A senha deve ter pelo menos 8 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(mockedAcceptInvite).not.toHaveBeenCalled();

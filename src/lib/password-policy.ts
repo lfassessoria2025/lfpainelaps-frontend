@@ -2,7 +2,7 @@
  * Espelho visual da política aplicada pelo backend em `app/domain/user.py`.
  * Serve para feedback imediato; a API continua sendo a autoridade.
  */
-export const PASSWORD_MIN_LENGTH = 12;
+export const PASSWORD_MIN_LENGTH = 8;
 
 export interface PasswordPolicyState {
   hasMinimumLength: boolean;
@@ -24,4 +24,4 @@ export function passwordMeetsPolicy(value: string): boolean {
 }
 
 export const PASSWORD_POLICY_ERROR =
-  "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.";
+  "A senha deve ter pelo menos 8 caracteres e 1 caractere especial.";

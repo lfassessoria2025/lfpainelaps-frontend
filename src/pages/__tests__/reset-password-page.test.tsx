@@ -56,12 +56,12 @@ describe("ResetPasswordPage — validação client-side", () => {
 
     expect(
       await screen.findByText(
-        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+        "A senha deve ter pelo menos 8 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(
       within(screen.getByLabelText("Nova senha").closest('[data-slot="field"]')!).getByText(
-        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+        "A senha deve ter pelo menos 8 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(mockedResetPassword).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe("ResetPasswordPage — validação client-side", () => {
     const senha = screen.getByLabelText("Nova senha");
     expect(senha).toHaveAttribute("type", "password");
     await user.type(senha, "senha-forte!123");
-    expect(screen.getByText("Pelo menos 12 caracteres")).toHaveClass("text-emerald-700");
+    expect(screen.getByText("Pelo menos 8 caracteres")).toHaveClass("text-emerald-700");
     expect(screen.getByText("Pelo menos 1 caractere especial")).toHaveClass("text-emerald-700");
 
     await user.click(screen.getByRole("button", { name: "Mostrar nova senha" }));
@@ -92,7 +92,7 @@ describe("ResetPasswordPage — validação client-side", () => {
 
     expect(
       await screen.findByText(
-        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+        "A senha deve ter pelo menos 8 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(mockedResetPassword).not.toHaveBeenCalled();

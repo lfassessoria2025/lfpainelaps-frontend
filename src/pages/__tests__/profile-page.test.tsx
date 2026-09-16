@@ -92,7 +92,7 @@ describe("ProfilePage — trocar senha", () => {
 
     expect(
       await screen.findByText(
-        "A senha deve ter pelo menos 12 caracteres e 1 caractere especial.",
+        "A senha deve ter pelo menos 8 caracteres e 1 caractere especial.",
       ),
     ).toBeInTheDocument();
     expect(mockedChangePassword).not.toHaveBeenCalled();
