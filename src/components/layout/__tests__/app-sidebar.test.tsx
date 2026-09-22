@@ -21,6 +21,7 @@ describe("AppSidebar — grupos de navegação (FLO-42)", () => {
     expect(screen.getByText("Painel")).toBeInTheDocument();
     expect(screen.getByText("Indicadores")).toBeInTheDocument();
     expect(screen.getByText("Gestantes")).toBeInTheDocument();
+    expect(screen.getByText("Crianças")).toBeInTheDocument();
     expect(screen.getByText("Administrativo")).toBeInTheDocument();
     expect(screen.getByText("Prefeituras")).toBeInTheDocument();
     expect(screen.getByText("Cargos e permissões")).toBeInTheDocument();
@@ -40,7 +41,15 @@ describe("AppSidebar — grupos de navegação (FLO-42)", () => {
   it("todas as rotas existentes continuam acessíveis (nenhuma removida no reagrupamento)", () => {
     renderComRota("/");
 
-    const rotasEsperadas = ["/", "/gestantes", "/prefeituras", "/cargos", "/importacoes", "/analytics"];
+    const rotasEsperadas = [
+      "/",
+      "/gestantes",
+      "/criancas",
+      "/prefeituras",
+      "/cargos",
+      "/importacoes",
+      "/analytics",
+    ];
     for (const rota of rotasEsperadas) {
       const link = screen.getAllByRole("link").find((a) => a.getAttribute("href") === rota);
       expect(link, `rota ${rota} não encontrada`).toBeTruthy();

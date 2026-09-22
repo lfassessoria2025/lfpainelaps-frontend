@@ -33,6 +33,9 @@ const ImportacoesPage = lazy(() =>
 const GestantesPage = lazy(() =>
   import("@/pages/gestantes-page").then((m) => ({ default: m.GestantesPage })),
 );
+const CriancasPage = lazy(() =>
+  import("@/pages/criancas-page").then((m) => ({ default: m.CriancasPage })),
+);
 const AnalyticsPage = lazy(() =>
   import("@/pages/analytics-page").then((m) => ({ default: m.AnalyticsPage })),
 );
@@ -78,6 +81,7 @@ function App() {
               <Route path="/prefeituras" element={<PrefeiturasPage />} />
               <Route path="/importacoes" element={<ImportacoesPage />} />
               <Route path="/gestantes" element={<GestantesPage />} />
+              <Route path="/criancas" element={<CriancasPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
               <Route path="/termo-responsabilidade" element={<ResponsibilityTermPage />} />

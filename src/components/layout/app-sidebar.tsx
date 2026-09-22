@@ -1,4 +1,4 @@
-import { Baby, BarChart3, Building2, LayoutDashboard, ShieldCheck, UploadCloud } from "lucide-react";
+import { Baby, BarChart3, Blocks, Building2, LayoutDashboard, ShieldCheck, UploadCloud } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -21,9 +21,10 @@ interface NavItem {
 
 const PAINEL_ITEM: NavItem = { to: "/", label: "Painel", icon: LayoutDashboard };
 
-// Indicadores: só Gestantes (C3) hoje — grupo já nasce pronto pra receber
-// C4/C5/etc quando existirem, sem precisar reestruturar a sidebar de novo.
-const INDICADORES_ITEMS: NavItem[] = [{ to: "/gestantes", label: "Gestantes", icon: Baby }];
+const INDICADORES_ITEMS: NavItem[] = [
+  { to: "/gestantes", label: "Gestantes", icon: Baby },
+  { to: "/criancas", label: "Crianças", icon: Blocks },
+];
 
 const ADMINISTRATIVO_ITEMS: NavItem[] = [
   { to: "/prefeituras", label: "Prefeituras", icon: Building2 },

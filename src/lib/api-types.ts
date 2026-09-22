@@ -78,6 +78,7 @@ export type Permission =
   | "relatorio.visualizar"
   | "relatorio.baixar"
   | "relatorio.gestante.visualizar"
+  | "relatorio.crianca.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -378,6 +379,70 @@ export interface MetricasEquipeGestanteOut {
   total_gestantes: number;
   sem_equipe: boolean;
   praticas: MetricaPraticaOut[];
+}
+
+// ---------------------------------------------------------------------------
+// Crianças — indicador C2 (app/schemas/crianca.py)
+// ---------------------------------------------------------------------------
+
+export interface CriancaAcompanhamentoOut {
+  id: number;
+  data_referencia: string;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  primeira_consulta_data: string | null;
+  pratica_a_primeira_consulta_30_dias: boolean;
+  pratica_b_consultas_puericultura: number;
+  pratica_c_peso_altura: number;
+  pratica_d_primeira_visita_30_dias: boolean;
+  pratica_d_segunda_visita_6_meses: boolean;
+  pratica_d_total_visitas_6_meses: number;
+  pratica_d_automatica_eap: boolean;
+  pratica_d_visitas_completas: boolean;
+  vacina_dtp_doses: number;
+  vacina_hepatite_b_doses: number;
+  vacina_hib_doses: number;
+  vacina_polio_doses: number;
+  vacina_triplice_viral_doses: number;
+  vacina_pneumococica_doses: number;
+  pratica_e_esquema_vacinal_completo: boolean;
+  pontuacao_total: number;
+  created_at: string;
+}
+
+export interface EquipeCriancaOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_criancas: number;
+  sem_equipe: boolean;
+}
+
+export interface MicroAreaCriancaOut {
+  chave: string;
+  codigo: string | null;
+  total_criancas: number;
+  sem_micro_area: boolean;
+}
+
+export interface MetricaPraticaC2Out {
+  pratica: string;
+  titulo: string;
+  total_criancas: number;
+  total_cumprida: number;
+  percentual_cumprido: number;
+}
+
+export interface MetricasEquipeCriancaOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_criancas: number;
+  sem_equipe: boolean;
+  praticas: MetricaPraticaC2Out[];
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de
