@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   Baby,
+  BarChart3,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -26,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
+import { TeamComparison } from "@/components/gestantes/team-comparison";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -49,6 +51,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type {
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
+  MetricasEquipeGestanteOut,
   MicroAreaGestanteOut,
   PrefeituraOut,
   RecorteGestante,
@@ -350,6 +353,9 @@ export function GestantesPage() {
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltro>("todos");
   const [parametroFiltro, setParametroFiltro] = useState<ParametroFiltro>("todos");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("nome-asc");
+  const [comparacaoAberta, setComparacaoAberta] = useState(false);
+  const [comparacaoEquipes, setComparacaoEquipes] = useState<MetricasEquipeGestanteOut[] | null>(null);
+  const [comparacaoErro, setComparacaoErro] = useState<string | null>(null);
   const [cardsExpandidos, setCardsExpandidos] = useState<number[]>([]);
   const [pagina, setPagina] = useState(1);
 
@@ -665,6 +671,26 @@ export function GestantesPage() {
     return () => controller.abort();
   }, [loadGestantes]);
 
+  useEffect(() => {
+    if (!comparacaoAberta || selectedId === null) return;
+    const controller = new AbortController();
+    setComparacaoEquipes(null);
+    setComparacaoErro(null);
+    gestanteService
+      .compararEquipes(selectedId, controller.signal, recorte)
+      .then(setComparacaoEquipes)
+      .catch((erro: unknown) => {
+        if (erro instanceof DOMException && erro.name === "AbortError") return;
+        setComparacaoEquipes([]);
+        setComparacaoErro(
+          erro instanceof ApiError
+            ? erro.detail
+            : "Não foi possível comparar as equipes neste momento.",
+        );
+      });
+    return () => controller.abort();
+  }, [comparacaoAberta, recorte, selectedId]);
+
   const handleExportar = useCallback(async () => {
     if (selectedId === null) return;
     setExportando(true);
@@ -766,6 +792,16 @@ export function GestantesPage() {
     setPagina(proximaPagina);
     setCardsExpandidos([]);
   }, []);
+
+  const abrirEquipeDaComparacao = useCallback((chave: string) => {
+    atualizarEquipesSelecionadas([chave]);
+    atualizarMicroAreasSelecionadas([]);
+    setBusca("");
+    setParametroFiltro("todos");
+    setStatusFiltro("todos");
+    setOrdenacao("nome-asc");
+    setComparacaoAberta(false);
+  }, [atualizarEquipesSelecionadas, atualizarMicroAreasSelecionadas]);
 
   return (
     <div className="min-w-0">
@@ -995,12 +1031,27 @@ export function GestantesPage() {
                 de {gestantes.length} gestantes · Exibindo {gestantesFiltradas.length === 0 ? 0 : inicioDaPagina + 1}–
                 {Math.min(inicioDaPagina + ITENS_POR_PAGINA, gestantesFiltradas.length)}
               </p>
-              {podeExportar ? (
-                <Button variant="outline" size="sm" onClick={handleExportar} disabled={exportando}>
-                  {exportando ? <Loader2 className="animate-spin" /> : <Download />}
-                  Baixar planilha
-                </Button>
-              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                {equipes && equipes.length > 1 ? (
+                  <Button
+                    type="button"
+                    variant={comparacaoAberta ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setComparacaoAberta((aberta) => !aberta)}
+                    aria-expanded={comparacaoAberta}
+                    aria-controls="comparacao-equipes"
+                  >
+                    <BarChart3 />
+                    {comparacaoAberta ? "Ocultar comparação" : `Comparar equipes (${equipes.length})`}
+                  </Button>
+                ) : null}
+                {podeExportar ? (
+                  <Button variant="outline" size="sm" onClick={handleExportar} disabled={exportando}>
+                    {exportando ? <Loader2 className="animate-spin" /> : <Download />}
+                    Baixar planilha
+                  </Button>
+                ) : null}
+              </div>
             </div>
             <CatalogFilterChips
               selectedKeys={equipesSelecionadas}
@@ -1021,6 +1072,27 @@ export function GestantesPage() {
               onClear={() => atualizarMicroAreasSelecionadas([])}
             />
           </div>
+          {comparacaoAberta ? (
+            <div id="comparacao-equipes">
+              {comparacaoEquipes === null ? (
+                <div className="mb-3 space-y-2 rounded-lg border bg-card p-3" aria-label="Carregando comparação entre equipes">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : comparacaoErro ? (
+                <p className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive" role="alert">
+                  {comparacaoErro}
+                </p>
+              ) : comparacaoEquipes.length > 1 ? (
+                <TeamComparison equipes={comparacaoEquipes} onOpenTeam={abrirEquipeDaComparacao} />
+              ) : (
+                <p className="mb-3 rounded-lg border p-3 text-xs text-muted-foreground">
+                  Este período não possui duas equipes com gestantes para comparar.
+                </p>
+              )}
+            </div>
+          ) : null}
           {/* Coluna "Gestante" sticky usa z-[1], não z-10: o Sidebar
               (position: fixed) também usa z-10 — no mesmo nível, a ordem do
               DOM decide, e a tabela (renderizada depois) pintava por cima da

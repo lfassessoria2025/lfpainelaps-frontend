@@ -17,6 +17,7 @@ vi.mock("@/services/gestante", () => ({
     list: vi.fn(),
     equipes: vi.fn(),
     microAreas: vi.fn(),
+    compararEquipes: vi.fn(),
     exportar: vi.fn(),
   },
 }));
@@ -285,6 +286,62 @@ describe("GestantesPage", () => {
       "atual",
     );
     vi.unstubAllGlobals();
+  });
+
+  it("compara todas as equipes por indicador e abre a lista da equipe escolhida", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    mockedGestanteService.compararEquipes.mockResolvedValue([
+      {
+        ...EQUIPES[0],
+        praticas: [
+          { pratica: "A", titulo: "Captação precoce", total_gestantes: 10, total_cumprida: 8, percentual_cumprido: 80 },
+          { pratica: "B", titulo: "Consultas", total_gestantes: 10, total_cumprida: 5, percentual_cumprido: 50 },
+        ],
+        total_gestantes: 10,
+      },
+      {
+        ...EQUIPES[1],
+        praticas: [
+          { pratica: "A", titulo: "Captação precoce", total_gestantes: 4, total_cumprida: 2, percentual_cumprido: 50 },
+          { pratica: "B", titulo: "Consultas", total_gestantes: 4, total_cumprida: 3, percentual_cumprido: 75 },
+        ],
+        total_gestantes: 4,
+      },
+    ]);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await screen.findAllByText("Maria da Silva");
+
+    await user.click(screen.getByRole("button", { name: "Comparar equipes (3)" }));
+    await waitFor(() => {
+      expect(mockedGestanteService.compararEquipes).toHaveBeenCalledWith(
+        PREFEITURA.id,
+        expect.any(AbortSignal),
+        "atual",
+      );
+    });
+    const comparacao = await screen.findByRole("region", { name: "Comparação entre equipes" });
+    expect(within(comparacao).getByText("80%")).toBeInTheDocument();
+    expect(within(comparacao).getByText("8/10")).toBeInTheDocument();
+
+    await user.click(within(comparacao).getByRole("combobox", { name: "Indicador para comparar equipes" }));
+    await user.click(await screen.findByRole("option", { name: /B · Consultas/ }));
+    expect(within(comparacao).getByText("75%")).toBeInTheDocument();
+    expect(within(comparacao).getByText("3/4")).toBeInTheDocument();
+
+    await user.click(within(comparacao).getByRole("button", { name: "Ver gestantes da equipe ESF Rural" }));
+    await waitFor(() => {
+      expect(mockedGestanteService.list).toHaveBeenLastCalledWith(
+        PREFEITURA.id,
+        ["nome:ESF Rural"],
+        [],
+        expect.any(AbortSignal),
+        "atual",
+      );
+    });
+    expect(screen.queryByRole("region", { name: "Comparação entre equipes" })).not.toBeInTheDocument();
   });
 
   it("filtra por múltiplas micro-áreas e mantém lista e URL no mesmo recorte", async () => {

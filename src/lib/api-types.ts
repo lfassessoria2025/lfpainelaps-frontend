@@ -371,6 +371,15 @@ export interface MetricasIndicadorOut {
   praticas: MetricaPraticaOut[];
 }
 
+export interface MetricasEquipeGestanteOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_gestantes: number;
+  sem_equipe: boolean;
+  praticas: MetricaPraticaOut[];
+}
+
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de
 // nascimento, chaves do e-SUS ou qualquer identificador individual.
 export type EstadoCoberturaPraticaC3 = "resultado_calculado_sem_rastreio_da_fonte";

@@ -3,6 +3,7 @@ import type {
   DiagnosticoC3Out,
   EquipeGestanteOut,
   GestanteAcompanhamentoOut,
+  MetricasEquipeGestanteOut,
   MetricasIndicadorOut,
   MicroAreaGestanteOut,
   RecorteGestante,
@@ -50,6 +51,15 @@ export const gestanteService = {
   ) =>
     http.get<MicroAreaGestanteOut[]>(
       `/prefeituras/${prefeituraId}/indicadores/gestantes/micro-areas${queryFiltros([], [], recorte)}`,
+      signal,
+    ),
+  compararEquipes: (
+    prefeituraId: number,
+    signal?: AbortSignal,
+    recorte: RecorteGestante = "atual",
+  ) =>
+    http.get<MetricasEquipeGestanteOut[]>(
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/comparacao-equipes${queryFiltros([], [], recorte)}`,
       signal,
     ),
   exportar: (
