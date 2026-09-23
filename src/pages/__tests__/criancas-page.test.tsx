@@ -151,6 +151,29 @@ describe("CriancasPage", () => {
     });
   });
 
+  it("exibe 20 crianças por página com navegação numerada", async () => {
+    service.list.mockResolvedValue(
+      Array.from({ length: 41 }, (_, indice) => ({
+        ...CRIANCA,
+        id: indice + 1,
+        nome_cidadao: `Criança ${String(indice + 1).padStart(2, "0")}`,
+      })),
+    );
+    const user = userEvent.setup();
+
+    render(<CriancasPage />);
+
+    expect(await screen.findByText(/Exibindo 1–20/)).toBeInTheDocument();
+    expect(screen.queryByText("Criança 21")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Página 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Página 3" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Página 2" }));
+
+    expect((await screen.findAllByText("Criança 21")).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Exibindo 21–40/)).toBeInTheDocument();
+  });
+
   it("explica quando o cargo não possui a permissão do C2", async () => {
     service.list.mockRejectedValue(
       new ApiError(403, "Ator não tem a permissão relatorio.crianca.visualizar."),

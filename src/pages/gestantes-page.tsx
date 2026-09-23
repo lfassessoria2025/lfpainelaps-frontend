@@ -14,8 +14,6 @@ import {
   Baby,
   BarChart3,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Download,
   Loader2,
   Lock,
@@ -28,6 +26,11 @@ import { Card } from "@/components/ui/card";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
 import { TeamComparison } from "@/components/gestantes/team-comparison";
+import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
+import {
+  IndicatorFilterField,
+  IndicatorToolbar,
+} from "@/components/indicators/indicator-toolbar";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
@@ -211,7 +214,7 @@ function CabecalhoTabelaGestantes({
   headerRef?: React.Ref<HTMLTableSectionElement>;
 }) {
   return (
-    <TableHeader ref={headerRef}>
+    <TableHeader ref={headerRef} className="select-none">
       <TableRow className={flutuante ? "bg-muted hover:bg-muted" : "bg-muted/40 hover:bg-muted/40"}>
         <TableHead
           className={cn(
@@ -249,78 +252,6 @@ function CabecalhoTabelaGestantes({
         <TableHead>Atualizado em</TableHead>
       </TableRow>
     </TableHeader>
-  );
-}
-
-function paginasProximas(paginaAtual: number, totalPaginas: number): Array<number | "ellipsis"> {
-  if (totalPaginas <= 7) return Array.from({ length: totalPaginas }, (_, indice) => indice + 1);
-  if (paginaAtual <= 4) return [1, 2, 3, 4, 5, "ellipsis", totalPaginas];
-  if (paginaAtual >= totalPaginas - 3) {
-    return [1, "ellipsis", totalPaginas - 4, totalPaginas - 3, totalPaginas - 2, totalPaginas - 1, totalPaginas];
-  }
-  return [1, "ellipsis", paginaAtual - 1, paginaAtual, paginaAtual + 1, "ellipsis", totalPaginas];
-}
-
-function PaginacaoGestantes({
-  paginaAtual,
-  totalPaginas,
-  onChange,
-}: {
-  paginaAtual: number;
-  totalPaginas: number;
-  onChange: (pagina: number) => void;
-}) {
-  if (totalPaginas <= 1) return null;
-  return (
-    <nav
-      className="flex flex-wrap items-center justify-center gap-1 border-t pt-3"
-      aria-label="Paginação de gestantes"
-    >
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => onChange(paginaAtual - 1)}
-        disabled={paginaAtual === 1}
-        aria-label="Página anterior"
-      >
-        <ChevronLeft />
-        <span className="hidden sm:inline">Anterior</span>
-      </Button>
-      <div className="flex items-center gap-1" aria-label={`Página ${paginaAtual} de ${totalPaginas}`}>
-        {paginasProximas(paginaAtual, totalPaginas).map((pagina, indice) =>
-          pagina === "ellipsis" ? (
-            <span key={`ellipsis-${indice}`} className="px-1 text-sm text-muted-foreground" aria-hidden>
-              …
-            </span>
-          ) : (
-            <Button
-              key={pagina}
-              type="button"
-              variant={pagina === paginaAtual ? "default" : "ghost"}
-              size="sm"
-              className="min-w-8 px-2 tabular-nums"
-              onClick={() => onChange(pagina)}
-              aria-current={pagina === paginaAtual ? "page" : undefined}
-              aria-label={`Página ${pagina}`}
-            >
-              {pagina}
-            </Button>
-          ),
-        )}
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => onChange(paginaAtual + 1)}
-        disabled={paginaAtual === totalPaginas}
-        aria-label="Próxima página"
-      >
-        <span className="hidden sm:inline">Próxima</span>
-        <ChevronRight />
-      </Button>
-    </nav>
   );
 }
 
@@ -807,35 +738,227 @@ export function GestantesPage() {
     <div className="min-w-0">
       {exportError ? <p className="mb-4 text-sm text-destructive">{exportError}</p> : null}
 
-      <div className="mb-4 max-w-xs">
-        {prefeituras === null ? (
-          <Skeleton className="h-9 w-full" />
-        ) : (
-          <Select
-            value={selectedId ? String(selectedId) : undefined}
-            onValueChange={handleTrocarPrefeitura}
-            disabled={prefeituras.length === 0}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione a prefeitura">
-                {(value: string | null) =>
-                  prefeituras.find((prefeitura) => String(prefeitura.id) === value)?.name ??
-                  "Selecione a prefeitura"
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {prefeituras.map((prefeitura) => (
-                  <SelectItem key={prefeitura.id} value={String(prefeitura.id)}>
-                    {prefeitura.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        )}
-      </div>
+      <IndicatorToolbar
+        municipality={
+          <IndicatorFilterField label="Prefeitura">
+            {prefeituras === null ? (
+              <Skeleton className="h-8 w-full" />
+            ) : (
+              <Select
+                value={selectedId ? String(selectedId) : undefined}
+                onValueChange={handleTrocarPrefeitura}
+                disabled={prefeituras.length === 0}
+              >
+                <SelectTrigger className="w-full" aria-label="Prefeitura">
+                  <SelectValue placeholder="Selecione a prefeitura">
+                    {(value: string | null) =>
+                      prefeituras.find((prefeitura) => String(prefeitura.id) === value)?.name ??
+                      "Selecione a prefeitura"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {prefeituras.map((prefeitura) => (
+                      <SelectItem key={prefeitura.id} value={String(prefeitura.id)}>
+                        {prefeitura.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
+          </IndicatorFilterField>
+        }
+        filters={gestantes && gestantes.length > 0 ? (
+          <>
+            <IndicatorFilterField label="Período">
+              <Select value={recorte} onValueChange={handleTrocarRecorte}>
+                <SelectTrigger className="w-full" aria-label="Selecionar período">
+                  <SelectValue>
+                    {(value: RecorteGestante | null) => {
+                      if (value === "quadrimestre_anterior") return "Último quadrimestre fechado";
+                      if (value === "quadrimestre_atual") return "Quadrimestre em andamento";
+                      return "Situação atual";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="quadrimestre_anterior">Último quadrimestre fechado</SelectItem>
+                    <SelectItem value="quadrimestre_atual">Quadrimestre em andamento</SelectItem>
+                    <SelectItem value="atual">Situação atual</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </IndicatorFilterField>
+            <IndicatorFilterField label="Buscar" className="sm:col-span-2">
+              <div className="relative">
+                <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Nome, equipe, INE ou micro-área"
+                  aria-label="Buscar gestante ou equipe"
+                  className="pl-8"
+                />
+              </div>
+            </IndicatorFilterField>
+            <CatalogFilterDropdown
+              label="Equipe"
+              ariaLabel="Filtrar por equipe"
+              groupLabel="Equipes da prefeitura"
+              loadingLabel="Carregando equipes…"
+              summaryLabel={rotuloFiltroEquipe}
+              items={equipes}
+              selectedKeys={equipesSelecionadas}
+              getKey={(equipe) => equipe.chave}
+              getPrimaryLabel={(equipe) =>
+                equipe.sem_equipe ? "Sem equipe" : equipe.nome ?? "Equipe sem nome"
+              }
+              getSecondaryLabel={(equipe) =>
+                `${equipe.ine ? `INE ${equipe.ine}` : "Sem INE"} · ${equipe.total_gestantes} gestante(s)`
+              }
+              onToggle={alternarEquipe}
+            />
+            <CatalogFilterDropdown
+              label="Micro-área"
+              ariaLabel="Filtrar por micro-área"
+              groupLabel="Micro-áreas da prefeitura"
+              loadingLabel="Carregando micro-áreas…"
+              summaryLabel={rotuloFiltroMicroArea}
+              items={microAreas}
+              selectedKeys={microAreasSelecionadas}
+              getKey={(microArea) => microArea.chave}
+              getPrimaryLabel={(microArea) =>
+                microArea.sem_micro_area ? "Sem micro-área" : microArea.codigo ?? ""
+              }
+              getSecondaryLabel={(microArea) => `${microArea.total_gestantes} gestante(s)`}
+              onToggle={alternarMicroArea}
+            />
+            <IndicatorFilterField label="Parâmetro">
+              <Select
+                value={parametroFiltro}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  setParametroFiltro(value as ParametroFiltro);
+                  if (value === "todos" && ordenacao.startsWith("parametro-")) {
+                    setOrdenacao("nome-asc");
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full" aria-label="Filtrar por parâmetro">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="todos">Acompanhamento geral</SelectItem>
+                    {PRATICAS.map((pratica) => (
+                      <SelectItem key={pratica.letra} value={pratica.letra}>
+                        {pratica.letra} · {pratica.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </IndicatorFilterField>
+            <IndicatorFilterField label={parametroFiltro === "todos" ? "Status geral" : "Status do parâmetro"}>
+              <Select
+                value={statusFiltro}
+                onValueChange={(value) => value && setStatusFiltro(value as StatusFiltro)}
+              >
+                <SelectTrigger className="w-full" aria-label="Filtrar por status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="todos">Todos os status</SelectItem>
+                    <SelectItem value="completa">Completa</SelectItem>
+                    <SelectItem value="parcial">Parcial</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </IndicatorFilterField>
+            <IndicatorFilterField label="Ordenar por">
+              <Select
+                value={ordenacao}
+                onValueChange={(value) => value && setOrdenacao(value as Ordenacao)}
+              >
+                <SelectTrigger className="w-full" aria-label="Ordenar gestantes">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="nome-asc">Nome (A–Z)</SelectItem>
+                    <SelectItem value="pontuacao-desc">Maior pontuação</SelectItem>
+                    <SelectItem value="pontuacao-asc">Menor pontuação</SelectItem>
+                    {parametroFiltro !== "todos" ? (
+                      <>
+                        <SelectItem value="parametro-desc">Parâmetro: melhor resultado</SelectItem>
+                        <SelectItem value="parametro-asc">Parâmetro: pior resultado</SelectItem>
+                      </>
+                    ) : null}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </IndicatorFilterField>
+          </>
+        ) : undefined}
+        summary={gestantes ? (
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            <strong className="font-semibold text-foreground">{gestantesFiltradas.length}</strong>{" "}
+            de {gestantes.length} gestantes · Exibindo {gestantesFiltradas.length === 0 ? 0 : inicioDaPagina + 1}–
+            {Math.min(inicioDaPagina + ITENS_POR_PAGINA, gestantesFiltradas.length)}
+          </p>
+        ) : undefined}
+        actions={gestantes && gestantes.length > 0 ? (
+          <>
+            {equipes && equipes.length > 1 ? (
+              <Button
+                type="button"
+                variant={comparacaoAberta ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setComparacaoAberta((aberta) => !aberta)}
+                aria-expanded={comparacaoAberta}
+                aria-controls="comparacao-equipes"
+              >
+                <BarChart3 />
+                {comparacaoAberta ? "Ocultar comparação" : `Comparar equipes (${equipes.length})`}
+              </Button>
+            ) : null}
+            {podeExportar ? (
+              <Button variant="outline" size="sm" onClick={handleExportar} disabled={exportando}>
+                {exportando ? <Loader2 className="animate-spin" /> : <Download />}
+                Baixar planilha
+              </Button>
+            ) : null}
+          </>
+        ) : undefined}
+        activeFilters={gestantes && gestantes.length > 0 ? (
+          <>
+            <CatalogFilterChips
+              selectedKeys={equipesSelecionadas}
+              getLabel={(chave) => {
+                const equipe = equipes?.find((item) => item.chave === chave);
+                return equipe?.sem_equipe ? "Sem equipe" : equipe?.nome ?? chave;
+              }}
+              clearLabel="Limpar equipes"
+              onClear={() => atualizarEquipesSelecionadas([])}
+            />
+            <CatalogFilterChips
+              selectedKeys={microAreasSelecionadas}
+              getLabel={(chave) => {
+                const microArea = microAreas?.find((item) => item.chave === chave);
+                return microArea?.sem_micro_area ? "Sem micro-área" : microArea?.codigo ?? chave;
+              }}
+              clearLabel="Limpar micro-áreas"
+              onClear={() => atualizarMicroAreasSelecionadas([])}
+            />
+          </>
+        ) : undefined}
+      />
 
       {prefeituras !== null && prefeituras.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -886,192 +1009,6 @@ export function GestantesPage() {
         </Empty>
       ) : (
         <>
-          <div className="mb-3 flex flex-col gap-2 rounded-lg border bg-card p-2.5">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
-              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
-                Período
-                <Select value={recorte} onValueChange={handleTrocarRecorte}>
-                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Selecionar período">
-                    <SelectValue>
-                      {(value: RecorteGestante | null) => {
-                        if (value === "quadrimestre_anterior") return "Último quadrimestre fechado";
-                        if (value === "quadrimestre_atual") return "Quadrimestre em andamento";
-                        return "Situação atual";
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="quadrimestre_anterior">Último quadrimestre fechado</SelectItem>
-                      <SelectItem value="quadrimestre_atual">Quadrimestre em andamento</SelectItem>
-                      <SelectItem value="atual">Situação atual</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
-                Buscar gestante ou equipe
-                <div className="relative">
-                  <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    value={busca}
-                    onChange={(event) => setBusca(event.target.value)}
-                    placeholder="Nome, equipe, INE ou micro-área"
-                    className="h-8 pl-8 text-xs"
-                  />
-                </div>
-              </label>
-              <CatalogFilterDropdown
-                label="Equipe"
-                ariaLabel="Filtrar por equipe"
-                groupLabel="Equipes da prefeitura"
-                loadingLabel="Carregando equipes…"
-                summaryLabel={rotuloFiltroEquipe}
-                items={equipes}
-                selectedKeys={equipesSelecionadas}
-                getKey={(equipe) => equipe.chave}
-                getPrimaryLabel={(equipe) =>
-                  equipe.sem_equipe ? "Sem equipe" : equipe.nome ?? "Equipe sem nome"
-                }
-                getSecondaryLabel={(equipe) =>
-                  `${equipe.ine ? `INE ${equipe.ine}` : "Sem INE"} · ${equipe.total_gestantes} gestante(s)`
-                }
-                onToggle={alternarEquipe}
-              />
-              <CatalogFilterDropdown
-                label="Micro-área"
-                ariaLabel="Filtrar por micro-área"
-                groupLabel="Micro-áreas da prefeitura"
-                loadingLabel="Carregando micro-áreas…"
-                summaryLabel={rotuloFiltroMicroArea}
-                items={microAreas}
-                selectedKeys={microAreasSelecionadas}
-                getKey={(microArea) => microArea.chave}
-                getPrimaryLabel={(microArea) =>
-                  microArea.sem_micro_area ? "Sem micro-área" : microArea.codigo ?? ""
-                }
-                getSecondaryLabel={(microArea) => `${microArea.total_gestantes} gestante(s)`}
-                onToggle={alternarMicroArea}
-              />
-              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
-                Parâmetro
-                <Select
-                  value={parametroFiltro}
-                  onValueChange={(value) => {
-                    if (!value) return;
-                    setParametroFiltro(value as ParametroFiltro);
-                    if (value === "todos" && ordenacao.startsWith("parametro-")) {
-                      setOrdenacao("nome-asc");
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Filtrar por parâmetro">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="todos">Acompanhamento geral</SelectItem>
-                      {PRATICAS.map((pratica) => (
-                        <SelectItem key={pratica.letra} value={pratica.letra}>
-                          {pratica.letra} · {pratica.rotulo}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
-                {parametroFiltro === "todos" ? "Status do acompanhamento" : "Status do parâmetro"}
-                <Select
-                  value={statusFiltro}
-                  onValueChange={(value) => value && setStatusFiltro(value as StatusFiltro)}
-                >
-                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Filtrar por status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="todos">Todos os status</SelectItem>
-                      <SelectItem value="completa">Completa</SelectItem>
-                      <SelectItem value="parcial">Parcial</SelectItem>
-                      <SelectItem value="pendente">Pendente</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
-                Ordenar por
-                <Select
-                  value={ordenacao}
-                  onValueChange={(value) => value && setOrdenacao(value as Ordenacao)}
-                >
-                  <SelectTrigger className="h-8 w-full text-xs" aria-label="Ordenar gestantes">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="nome-asc">Nome (A–Z)</SelectItem>
-                      <SelectItem value="pontuacao-desc">Maior pontuação</SelectItem>
-                      <SelectItem value="pontuacao-asc">Menor pontuação</SelectItem>
-                      {parametroFiltro !== "todos" ? (
-                        <>
-                          <SelectItem value="parametro-desc">Parâmetro: melhor resultado</SelectItem>
-                          <SelectItem value="parametro-asc">Parâmetro: pior resultado</SelectItem>
-                        </>
-                      ) : null}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </label>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground" aria-live="polite">
-                <strong className="font-semibold text-foreground">{gestantesFiltradas.length}</strong>{" "}
-                de {gestantes.length} gestantes · Exibindo {gestantesFiltradas.length === 0 ? 0 : inicioDaPagina + 1}–
-                {Math.min(inicioDaPagina + ITENS_POR_PAGINA, gestantesFiltradas.length)}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                {equipes && equipes.length > 1 ? (
-                  <Button
-                    type="button"
-                    variant={comparacaoAberta ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setComparacaoAberta((aberta) => !aberta)}
-                    aria-expanded={comparacaoAberta}
-                    aria-controls="comparacao-equipes"
-                  >
-                    <BarChart3 />
-                    {comparacaoAberta ? "Ocultar comparação" : `Comparar equipes (${equipes.length})`}
-                  </Button>
-                ) : null}
-                {podeExportar ? (
-                  <Button variant="outline" size="sm" onClick={handleExportar} disabled={exportando}>
-                    {exportando ? <Loader2 className="animate-spin" /> : <Download />}
-                    Baixar planilha
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-            <CatalogFilterChips
-              selectedKeys={equipesSelecionadas}
-              getLabel={(chave) => {
-                const equipe = equipes?.find((item) => item.chave === chave);
-                return equipe?.sem_equipe ? "Sem equipe" : equipe?.nome ?? chave;
-              }}
-              clearLabel="Limpar equipes"
-              onClear={() => atualizarEquipesSelecionadas([])}
-            />
-            <CatalogFilterChips
-              selectedKeys={microAreasSelecionadas}
-              getLabel={(chave) => {
-                const microArea = microAreas?.find((item) => item.chave === chave);
-                return microArea?.sem_micro_area ? "Sem micro-área" : microArea?.codigo ?? chave;
-              }}
-              clearLabel="Limpar micro-áreas"
-              onClear={() => atualizarMicroAreasSelecionadas([])}
-            />
-          </div>
           {comparacaoAberta ? (
             <div id="comparacao-equipes">
               {comparacaoEquipes === null ? (
@@ -1300,10 +1237,11 @@ export function GestantesPage() {
             </Table>
             </Card>
           </div>
-          <PaginacaoGestantes
-            paginaAtual={paginaAtual}
-            totalPaginas={totalPaginas}
+          <IndicatorPagination
+            currentPage={paginaAtual}
+            totalPages={totalPaginas}
             onChange={trocarPagina}
+            ariaLabel="Paginação de gestantes"
           />
         </>
       )}

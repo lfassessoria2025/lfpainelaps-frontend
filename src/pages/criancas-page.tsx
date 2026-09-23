@@ -10,8 +10,6 @@ import {
 } from "react";
 import {
   BarChart3,
-  ChevronLeft,
-  ChevronRight,
   Download,
   Loader2,
   Search,
@@ -19,6 +17,11 @@ import {
 } from "lucide-react";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
+import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
+import {
+  IndicatorFilterField,
+  IndicatorToolbar,
+} from "@/components/indicators/indicator-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -73,7 +76,7 @@ const STATUS_CLASS: Record<Status, string> = {
   em_prazo: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
 };
 
-const ITENS_POR_PAGINA = 30;
+const ITENS_POR_PAGINA = 20;
 
 function formatarData(valor: string | null): string {
   return valor ? new Date(`${valor}T00:00:00`).toLocaleDateString("pt-BR") : "—";
@@ -247,21 +250,6 @@ function ComparacaoEquipes({
   );
 }
 
-function Paginacao({ atual, total, onChange }: { atual: number; total: number; onChange: (pagina: number) => void }) {
-  if (total <= 1) return null;
-  return (
-    <nav className="mt-3 flex items-center justify-center gap-2" aria-label="Paginação de crianças">
-      <Button variant="outline" size="sm" disabled={atual === 1} onClick={() => onChange(atual - 1)}>
-        <ChevronLeft /> Anterior
-      </Button>
-      <span className="text-xs text-muted-foreground">Página {atual} de {total}</span>
-      <Button variant="outline" size="sm" disabled={atual === total} onClick={() => onChange(atual + 1)}>
-        Próxima <ChevronRight />
-      </Button>
-    </nav>
-  );
-}
-
 export function CriancasPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
   const [prefeituraId, setPrefeituraId] = useState<number | null>(null);
@@ -393,9 +381,10 @@ export function CriancasPage() {
   }, [buscaDeferred, criancas, ordenacao, statusFiltro]);
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITENS_POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicioDaPagina = (paginaAtual - 1) * ITENS_POR_PAGINA;
   const daPagina = filtradas.slice(
-    (paginaAtual - 1) * ITENS_POR_PAGINA,
-    paginaAtual * ITENS_POR_PAGINA,
+    inicioDaPagina,
+    inicioDaPagina + ITENS_POR_PAGINA,
   );
 
   useEffect(() => setPagina(1), [buscaDeferred, equipesSelecionadas, microAreasSelecionadas, ordenacao, statusFiltro]);
@@ -470,30 +459,175 @@ export function CriancasPage() {
 
   return (
     <div className="min-w-0">
-      <div className="mb-3 max-w-xs">
-        {prefeituras === null ? <Skeleton className="h-8" /> : (
-          <Select
-            value={prefeituraId ? String(prefeituraId) : undefined}
-            onValueChange={(valor) => {
-              if (!valor) return;
-              atualizarEquipes([]);
-              atualizarMicroAreas([]);
-              setPrefeituraId(Number(valor));
-            }}
-            disabled={prefeituras.length === 0}
-          >
-            <SelectTrigger className="h-8 text-xs" aria-label="Prefeitura">
-              <SelectValue placeholder="Selecione a prefeitura">
-                {(value: string | null) =>
-                  prefeituras.find((prefeitura) => String(prefeitura.id) === value)?.name ??
-                  "Selecione a prefeitura"
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent><SelectGroup>{prefeituras.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}</SelectGroup></SelectContent>
-          </Select>
-        )}
-      </div>
+      <IndicatorToolbar
+        municipality={
+          <IndicatorFilterField label="Prefeitura">
+            {prefeituras === null ? (
+              <Skeleton className="h-8" />
+            ) : (
+              <Select
+                value={prefeituraId ? String(prefeituraId) : undefined}
+                onValueChange={(valor) => {
+                  if (!valor) return;
+                  atualizarEquipes([]);
+                  atualizarMicroAreas([]);
+                  setPrefeituraId(Number(valor));
+                }}
+                disabled={prefeituras.length === 0}
+              >
+                <SelectTrigger className="w-full" aria-label="Prefeitura">
+                  <SelectValue placeholder="Selecione a prefeitura">
+                    {(value: string | null) =>
+                      prefeituras.find((prefeitura) => String(prefeitura.id) === value)?.name ??
+                      "Selecione a prefeitura"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {prefeituras.map((item) => (
+                      <SelectItem key={item.id} value={String(item.id)}>
+                        {item.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
+          </IndicatorFilterField>
+        }
+        filters={criancas && criancas.length > 0 ? (
+          <>
+            <IndicatorFilterField label="Buscar" className="sm:col-span-2">
+              <div className="relative">
+                <Search
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  type="search"
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Nome, equipe ou micro-área"
+                  aria-label="Buscar criança ou equipe"
+                  className="pl-8"
+                />
+              </div>
+            </IndicatorFilterField>
+            <CatalogFilterDropdown
+              label="Equipe"
+              ariaLabel="Filtrar por equipe"
+              groupLabel="Equipes"
+              loadingLabel="Carregando equipes…"
+              summaryLabel={equipesSelecionadas.length ? `${equipesSelecionadas.length} equipe(s)` : "Todas as equipes"}
+              items={equipes}
+              selectedKeys={equipesSelecionadas}
+              getKey={(item) => item.chave}
+              getPrimaryLabel={(item) => item.sem_equipe ? "Sem equipe" : item.nome ?? "Equipe sem nome"}
+              getSecondaryLabel={(item) => `${item.ine ? `INE ${item.ine}` : "Sem INE"} · ${item.total_criancas} criança(s)`}
+              onToggle={(chave, selecionada) => atualizarEquipes(selecionada ? [...equipesSelecionadas, chave] : equipesSelecionadas.filter((item) => item !== chave))}
+            />
+            <CatalogFilterDropdown
+              label="Micro-área"
+              ariaLabel="Filtrar por micro-área"
+              groupLabel="Micro-áreas"
+              loadingLabel="Carregando micro-áreas…"
+              summaryLabel={microAreasSelecionadas.length ? `${microAreasSelecionadas.length} micro-área(s)` : "Todas as micro-áreas"}
+              items={microAreas}
+              selectedKeys={microAreasSelecionadas}
+              getKey={(item) => item.chave}
+              getPrimaryLabel={(item) => item.sem_micro_area ? "Sem micro-área" : item.codigo ?? ""}
+              getSecondaryLabel={(item) => `${item.total_criancas} criança(s)`}
+              onToggle={(chave, selecionada) => atualizarMicroAreas(selecionada ? [...microAreasSelecionadas, chave] : microAreasSelecionadas.filter((item) => item !== chave))}
+            />
+            <IndicatorFilterField label="Status geral">
+              <Select value={statusFiltro} onValueChange={(valor) => valor && setStatusFiltro(valor as StatusFiltro)}>
+                <SelectTrigger className="w-full" aria-label="Filtrar por status">
+                  <SelectValue>
+                    {(value: StatusFiltro | null) => {
+                      if (value === "completa") return "Completo";
+                      if (value === "parcial") return "Parcial";
+                      if (value === "pendente") return "Pendente";
+                      return "Todos os status";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="todos">Todos os status</SelectItem>
+                    <SelectItem value="completa">Completo</SelectItem>
+                    <SelectItem value="parcial">Parcial</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </IndicatorFilterField>
+            <IndicatorFilterField label="Ordenar por">
+              <Select value={ordenacao} onValueChange={(valor) => valor && setOrdenacao(valor as Ordenacao)}>
+                <SelectTrigger className="w-full" aria-label="Ordenar crianças">
+                  <SelectValue>
+                    {(value: Ordenacao | null) => {
+                      if (value === "pontuacao-desc") return "Maior pontuação";
+                      if (value === "pontuacao-asc") return "Menor pontuação";
+                      return "Nome (A–Z)";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="nome">Nome (A–Z)</SelectItem>
+                    <SelectItem value="pontuacao-desc">Maior pontuação</SelectItem>
+                    <SelectItem value="pontuacao-asc">Menor pontuação</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </IndicatorFilterField>
+          </>
+        ) : undefined}
+        summary={criancas ? (
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            <strong className="font-semibold text-foreground">{filtradas.length}</strong>{" "}
+            de {criancas.length} crianças · Exibindo {filtradas.length === 0 ? 0 : inicioDaPagina + 1}–
+            {Math.min(inicioDaPagina + ITENS_POR_PAGINA, filtradas.length)}
+          </p>
+        ) : undefined}
+        actions={criancas && criancas.length > 0 ? (
+          <>
+            {equipes && equipes.length > 1 ? (
+              <Button
+                type="button"
+                variant={comparacaoAberta ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setComparacaoAberta((atual) => !atual)}
+                aria-expanded={comparacaoAberta}
+              >
+                <BarChart3 />
+                {comparacaoAberta ? "Ocultar comparação" : `Comparar equipes (${equipes.length})`}
+              </Button>
+            ) : null}
+            <Button variant="outline" size="sm" disabled={exportando} onClick={() => void exportar()}>
+              {exportando ? <Loader2 className="animate-spin" /> : <Download />}
+              Baixar planilha
+            </Button>
+          </>
+        ) : undefined}
+        activeFilters={criancas && criancas.length > 0 ? (
+          <>
+            <CatalogFilterChips
+              selectedKeys={equipesSelecionadas}
+              getLabel={(chave) => equipes?.find((item) => item.chave === chave)?.nome ?? chave}
+              clearLabel="Limpar equipes"
+              onClear={() => atualizarEquipes([])}
+            />
+            <CatalogFilterChips
+              selectedKeys={microAreasSelecionadas}
+              getLabel={(chave) => microAreas?.find((item) => item.chave === chave)?.codigo ?? chave}
+              clearLabel="Limpar micro-áreas"
+              onClear={() => atualizarMicroAreas([])}
+            />
+          </>
+        ) : undefined}
+      />
 
       {erro ? <p role="alert" className="mb-3 text-sm text-destructive">{erro}</p> : null}
       {criancas === null && !erro ? (
@@ -502,58 +636,6 @@ export function CriancasPage() {
         <Empty><EmptyHeader><EmptyTitle>Nenhuma criança no recorte</EmptyTitle><EmptyDescription>O último backup não trouxe crianças elegíveis até 2 anos para esta prefeitura.</EmptyDescription></EmptyHeader></Empty>
       ) : criancas ? (
         <>
-          <div className="mb-3 space-y-2">
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(12rem,1fr)_12rem_12rem_10rem_11rem]">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2 size-4 text-muted-foreground" />
-                <Input type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar criança ou equipe" aria-label="Buscar criança ou equipe" className="h-8 pl-8 text-xs" />
-              </div>
-              <CatalogFilterDropdown
-                label="Equipe"
-                ariaLabel="Filtrar por equipe"
-                groupLabel="Equipes"
-                loadingLabel="Carregando equipes…"
-                summaryLabel={equipesSelecionadas.length ? `${equipesSelecionadas.length} equipe(s)` : "Todas as equipes"}
-                items={equipes}
-                selectedKeys={equipesSelecionadas}
-                getKey={(item) => item.chave}
-                getPrimaryLabel={(item) => item.sem_equipe ? "Sem equipe" : item.nome ?? "Equipe sem nome"}
-                getSecondaryLabel={(item) => `${item.ine ? `INE ${item.ine}` : "Sem INE"} · ${item.total_criancas} criança(s)`}
-                onToggle={(chave, selecionada) => atualizarEquipes(selecionada ? [...equipesSelecionadas, chave] : equipesSelecionadas.filter((item) => item !== chave))}
-              />
-              <CatalogFilterDropdown
-                label="Micro-área"
-                ariaLabel="Filtrar por micro-área"
-                groupLabel="Micro-áreas"
-                loadingLabel="Carregando micro-áreas…"
-                summaryLabel={microAreasSelecionadas.length ? `${microAreasSelecionadas.length} micro-área(s)` : "Todas as micro-áreas"}
-                items={microAreas}
-                selectedKeys={microAreasSelecionadas}
-                getKey={(item) => item.chave}
-                getPrimaryLabel={(item) => item.sem_micro_area ? "Sem micro-área" : item.codigo ?? ""}
-                getSecondaryLabel={(item) => `${item.total_criancas} criança(s)`}
-                onToggle={(chave, selecionada) => atualizarMicroAreas(selecionada ? [...microAreasSelecionadas, chave] : microAreasSelecionadas.filter((item) => item !== chave))}
-              />
-              <Select value={statusFiltro} onValueChange={(valor) => valor && setStatusFiltro(valor as StatusFiltro)}>
-                <SelectTrigger className="h-8 text-xs" aria-label="Filtrar por status"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectGroup><SelectItem value="todos">Todos os status</SelectItem><SelectItem value="completa">Completo</SelectItem><SelectItem value="parcial">Parcial</SelectItem><SelectItem value="pendente">Pendente</SelectItem></SelectGroup></SelectContent>
-              </Select>
-              <Select value={ordenacao} onValueChange={(valor) => valor && setOrdenacao(valor as Ordenacao)}>
-                <SelectTrigger className="h-8 text-xs" aria-label="Ordenar crianças"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectGroup><SelectItem value="nome">Nome (A–Z)</SelectItem><SelectItem value="pontuacao-desc">Maior pontuação</SelectItem><SelectItem value="pontuacao-asc">Menor pontuação</SelectItem></SelectGroup></SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground"><strong className="text-foreground">{filtradas.length}</strong> de {criancas.length} crianças</p>
-              <div className="flex gap-2">
-                {equipes && equipes.length > 1 ? <Button variant="outline" size="sm" onClick={() => setComparacaoAberta((atual) => !atual)}><BarChart3 />{comparacaoAberta ? "Ocultar comparação" : `Comparar equipes (${equipes.length})`}</Button> : null}
-                <Button variant="outline" size="sm" disabled={exportando} onClick={() => void exportar()}>{exportando ? <Loader2 className="animate-spin" /> : <Download />}Baixar planilha</Button>
-              </div>
-            </div>
-            <CatalogFilterChips selectedKeys={equipesSelecionadas} getLabel={(chave) => equipes?.find((item) => item.chave === chave)?.nome ?? chave} clearLabel="Limpar equipes" onClear={() => atualizarEquipes([])} />
-            <CatalogFilterChips selectedKeys={microAreasSelecionadas} getLabel={(chave) => microAreas?.find((item) => item.chave === chave)?.codigo ?? chave} clearLabel="Limpar micro-áreas" onClear={() => atualizarMicroAreas([])} />
-          </div>
-
           {comparacaoAberta ? comparacao === null ? <Skeleton className="mb-3 h-32" /> : comparacao.length > 1 ? <ComparacaoEquipes equipes={comparacao} onAbrir={(chave) => { atualizarEquipes([chave]); setComparacaoAberta(false); }} /> : <p className="mb-3 rounded-lg border p-3 text-xs text-muted-foreground">Não há duas equipes com crianças para comparar.</p> : null}
 
           <div className="grid gap-2 md:hidden" aria-label="Crianças encontradas">
@@ -567,8 +649,8 @@ export function CriancasPage() {
 
           <Card className="hidden min-w-0 max-w-full gap-0 overflow-hidden py-0 md:block">
             <Table
-              className="text-xs [&_th]:h-9 [&_th]:whitespace-normal [&_th]:px-2 [&_td]:px-2 [&_td]:py-2"
-              containerClassName={cn("max-h-[calc(100vh-11rem)] max-w-full cursor-grab overscroll-contain", arrastando && "cursor-grabbing select-none")}
+              className="text-xs [&_th]:h-8 [&_th]:whitespace-normal [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5"
+              containerClassName={cn("max-w-full cursor-grab overscroll-x-contain", arrastando && "cursor-grabbing select-none")}
               containerProps={{
                 ref: scrollRef,
                 onPointerDown: iniciarArraste,
@@ -582,7 +664,7 @@ export function CriancasPage() {
                 tabIndex: 0,
               }}
             >
-              <TableHeader className="sticky top-0 z-[3] bg-muted shadow-sm">
+              <TableHeader className="sticky top-0 z-[3] select-none bg-muted shadow-sm">
                 <TableRow className="bg-muted hover:bg-muted">
                   <TableHead className="sticky left-0 z-[4] min-w-44 border-r bg-muted">Criança</TableHead>
                   <TableHead className="min-w-32">Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Nascimento</TableHead>
@@ -603,7 +685,12 @@ export function CriancasPage() {
               </TableBody>
             </Table>
           </Card>
-          <Paginacao atual={paginaAtual} total={totalPaginas} onChange={setPagina} />
+          <IndicatorPagination
+            currentPage={paginaAtual}
+            totalPages={totalPaginas}
+            onChange={setPagina}
+            ariaLabel="Paginação de crianças"
+          />
         </>
       ) : null}
     </div>

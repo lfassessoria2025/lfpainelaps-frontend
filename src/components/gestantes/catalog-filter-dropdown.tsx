@@ -1,4 +1,5 @@
 import { ChevronDown } from "lucide-react";
+import { IndicatorFilterField } from "@/components/indicators/indicator-toolbar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -42,8 +43,7 @@ export function CatalogFilterDropdown<T>({
   onToggle,
 }: CatalogFilterDropdownProps<T>) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 text-[11px] font-medium text-muted-foreground">
-      {label}
+    <IndicatorFilterField label={label}>
       <DropdownMenu>
         <DropdownMenuTrigger
           render={<Button variant="outline" className="h-8 justify-between text-xs font-normal" />}
@@ -75,6 +75,6 @@ export function CatalogFilterDropdown<T>({
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+    </IndicatorFilterField>
   );
 }
