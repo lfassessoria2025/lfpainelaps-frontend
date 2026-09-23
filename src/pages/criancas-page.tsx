@@ -473,15 +473,23 @@ export function CriancasPage() {
       <div className="mb-3 max-w-xs">
         {prefeituras === null ? <Skeleton className="h-8" /> : (
           <Select
-            value={prefeituraId ? String(prefeituraId) : ""}
+            value={prefeituraId ? String(prefeituraId) : undefined}
             onValueChange={(valor) => {
               if (!valor) return;
               atualizarEquipes([]);
               atualizarMicroAreas([]);
               setPrefeituraId(Number(valor));
             }}
+            disabled={prefeituras.length === 0}
           >
-            <SelectTrigger className="h-8 text-xs" aria-label="Prefeitura"><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs" aria-label="Prefeitura">
+              <SelectValue placeholder="Selecione a prefeitura">
+                {(value: string | null) =>
+                  prefeituras.find((prefeitura) => String(prefeitura.id) === value)?.name ??
+                  "Selecione a prefeitura"
+                }
+              </SelectValue>
+            </SelectTrigger>
             <SelectContent><SelectGroup>{prefeituras.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}</SelectGroup></SelectContent>
           </Select>
         )}

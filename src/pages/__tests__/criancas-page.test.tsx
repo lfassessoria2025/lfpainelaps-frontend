@@ -82,6 +82,7 @@ describe("CriancasPage", () => {
     render(<CriancasPage />);
 
     expect((await screen.findAllByText("Alice da Silva")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("combobox", { name: "Prefeitura" })).toHaveTextContent("Pedregulho");
     expect(screen.getByRole("searchbox", { name: /buscar criança ou equipe/i })).toBeInTheDocument();
     expect(screen.queryAllByRole("tab")).toHaveLength(0);
     const tabela = screen.getByRole("table");
