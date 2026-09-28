@@ -7,6 +7,7 @@ import { gestanteService } from "@/services/gestante";
 import { prefeiturasService } from "@/services/prefeituras";
 import type {
   EquipeGestanteOut,
+  FechamentoC3Out,
   GestanteAcompanhamentoOut,
   MicroAreaGestanteOut,
   PrefeituraOut,
@@ -18,6 +19,7 @@ vi.mock("@/services/gestante", () => ({
     equipes: vi.fn(),
     microAreas: vi.fn(),
     compararEquipes: vi.fn(),
+    fechamento: vi.fn(),
     exportar: vi.fn(),
   },
 }));
@@ -41,6 +43,7 @@ const MICRO_AREAS: MicroAreaGestanteOut[] = [
 beforeEach(() => {
   mockedGestanteService.equipes.mockResolvedValue(EQUIPES);
   mockedGestanteService.microAreas.mockResolvedValue(MICRO_AREAS);
+  mockedGestanteService.fechamento.mockResolvedValue(FECHAMENTO);
 });
 
 afterEach(() => {
@@ -80,8 +83,95 @@ const GESTANTE: GestanteAcompanhamentoOut = {
   created_at: "2026-01-01T00:00:00Z",
 };
 
+const FECHAMENTO: FechamentoC3Out = {
+  data_referencia: "2026-09-20",
+  quadrimestre: "3º quadrimestre de 2026",
+  quadrimestre_inicio: "2026-09-01",
+  quadrimestre_fim: "2026-12-31",
+  resumo: {
+    fecham_no_quadrimestre: 2,
+    abertas: 1,
+    fechadas: 1,
+    abortos: 0,
+    total_100_pontos: 1,
+    media_pontuacao_fechadas: 100,
+  },
+  meses: [
+    {
+      ano_mes: "2026-09",
+      status: "em_andamento",
+      total_gestantes: 1,
+      total_abertas: 0,
+      total_fechadas: 1,
+      total_100_pontos: 1,
+      media_pontuacao: 100,
+    },
+    {
+      ano_mes: "2026-10",
+      status: "previsto",
+      total_gestantes: 1,
+      total_abertas: 1,
+      total_fechadas: 0,
+      total_100_pontos: 0,
+      media_pontuacao: 91,
+    },
+  ],
+  abertas: [
+    {
+      nome_cidadao: "Gestante Outubro",
+      data_nascimento: "1998-01-01",
+      equipe_nome: "ESF Centro",
+      equipe_ine: "0001",
+      micro_area: "001",
+      dt_inicio_gestacao: "2026-01-15",
+      data_fechamento: "2026-10-22",
+      data_fechamento_confirmada: false,
+      dias_restantes: 32,
+      status: "aberta",
+      pontuacao_total: 91,
+      praticas: [
+        {
+          pratica: "J",
+          titulo: "Visita domiciliar no puerpério",
+          status: "aguardar_desfecho",
+          valor: 0,
+          meta: 1,
+          pontos: 0,
+          orientacao: "Aguardar o desfecho; esta prática é realizada no puerpério.",
+        },
+      ],
+    },
+  ],
+  fechadas: [
+    {
+      nome_cidadao: "Gestante Setembro",
+      data_nascimento: "1995-01-01",
+      equipe_nome: "ESF Centro",
+      equipe_ine: "0001",
+      micro_area: "002",
+      dt_inicio_gestacao: "2025-12-01",
+      data_fechamento: "2026-09-10",
+      data_fechamento_confirmada: true,
+      dias_restantes: -10,
+      status: "fechada",
+      pontuacao_total: 100,
+      praticas: [
+        {
+          pratica: "A",
+          titulo: "Captação precoce",
+          status: "concluida",
+          valor: 1,
+          meta: 1,
+          pontos: 10,
+          orientacao: "Meta concluída.",
+        },
+      ],
+    },
+  ],
+};
+
 describe("GestantesPage", () => {
-  it("exibe somente os filtros e a lista, sem cabeçalhos auxiliares ou abas", async () => {
+  it("mantém a lista principal e oferece a aba de fechamento", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE]);
 
@@ -90,10 +180,36 @@ describe("GestantesPage", () => {
     expect((await screen.findAllByText("Maria da Silva")).length).toBeGreaterThan(0);
     expect(screen.getByRole("searchbox", { name: /buscar gestante ou equipe/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Filtrar por equipe" })).toBeInTheDocument();
-    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getByRole("tab", { name: /fechamento da gestação/i })).toBeInTheDocument();
     expect(screen.queryByText("Acompanhamento operacional da última extração")).not.toBeInTheDocument();
     expect(screen.queryByText("Validação com a planilha da cliente")).not.toBeInTheDocument();
     expect(screen.queryByText("Atenção à qualidade desta leva")).not.toBeInTheDocument();
+  });
+
+  it("mostra pontuação, abertas e fechadas e filtra a lista ao clicar no mês", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([GESTANTE]);
+    const user = userEvent.setup();
+
+    render(<GestantesPage />);
+    await user.click(await screen.findByRole("tab", { name: /fechamento da gestação/i }));
+
+    expect(await screen.findByRole("heading", { name: "Fechamento da gestação" })).toBeInTheDocument();
+    expect(screen.getAllByText("Gestante Outubro").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Gestante Setembro").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("91 pts").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: /1 gestante.*outubro de 2026/i }));
+
+    expect(screen.getAllByText("Gestante Outubro").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Gestante Setembro")).not.toBeInTheDocument();
+    expect(mockedGestanteService.fechamento).toHaveBeenCalledWith(
+      1,
+      [],
+      [],
+      expect.any(AbortSignal),
+    );
   });
 
   it("carrega a prefeitura ativa e renderiza a lista de gestantes", async () => {

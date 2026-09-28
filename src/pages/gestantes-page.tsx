@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import {
   Baby,
   BarChart3,
+  CalendarClock,
   ChevronDown,
   Download,
   Loader2,
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
+import { FechamentoC3 } from "@/components/gestantes/fechamento-c3";
 import { TeamComparison } from "@/components/gestantes/team-comparison";
 import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import {
@@ -51,8 +53,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   EquipeGestanteOut,
+  FechamentoC3Out,
   GestanteAcompanhamentoOut,
   MetricasEquipeGestanteOut,
   MicroAreaGestanteOut,
@@ -132,6 +136,7 @@ function AcaoCondicaoGestante({
 }
 
 type StatusFiltro = StatusPratica | "todos";
+type Visao = "acompanhamento" | "fechamento";
 type ParametroFiltro = "todos" | (typeof PRATICAS)[number]["letra"];
 type Ordenacao =
   | "nome-asc"
@@ -266,6 +271,9 @@ export function GestantesPage() {
   });
 
   const [gestantes, setGestantes] = useState<GestanteAcompanhamentoOut[] | null>(null);
+  const [visao, setVisao] = useState<Visao>("acompanhamento");
+  const [fechamento, setFechamento] = useState<FechamentoC3Out | null>(null);
+  const [erroFechamento, setErroFechamento] = useState<string | null>(null);
   const [equipes, setEquipes] = useState<EquipeGestanteOut[] | null>(null);
   const [equipesSelecionadas, setEquipesSelecionadas] = useState<string[]>(() =>
     [...new Set(new URLSearchParams(window.location.search).getAll("equipe"))].slice(0, 50),
@@ -473,6 +481,7 @@ export function GestantesPage() {
       setEquipes(null);
       setMicroAreas(null);
       setGestantes(null);
+      setFechamento(null);
       setSelectedId(Number(value));
     },
     [atualizarEquipesSelecionadas, atualizarMicroAreasSelecionadas],
@@ -522,7 +531,11 @@ export function GestantesPage() {
     const controller = new AbortController();
     setEquipes(null);
     gestanteService
-      .equipes(selectedId, controller.signal, recorte)
+      .equipes(
+        selectedId,
+        controller.signal,
+        visao === "fechamento" ? "quadrimestre_atual" : recorte,
+      )
       .then((catalogo) => {
         setEquipes(catalogo);
       })
@@ -531,14 +544,18 @@ export function GestantesPage() {
         setEquipes([]);
       });
     return () => controller.abort();
-  }, [recorte, selectedId]);
+  }, [recorte, selectedId, visao]);
 
   useEffect(() => {
     if (selectedId === null) return;
     const controller = new AbortController();
     setMicroAreas(null);
     gestanteService
-      .microAreas(selectedId, controller.signal, recorte)
+      .microAreas(
+        selectedId,
+        controller.signal,
+        visao === "fechamento" ? "quadrimestre_atual" : recorte,
+      )
       .then((catalogo) => {
         setMicroAreas(catalogo);
       })
@@ -547,7 +564,7 @@ export function GestantesPage() {
         setMicroAreas([]);
       });
     return () => controller.abort();
-  }, [recorte, selectedId]);
+  }, [recorte, selectedId, visao]);
 
   useEffect(() => {
     if (equipes === null) return;
@@ -601,6 +618,30 @@ export function GestantesPage() {
     void loadGestantes(controller.signal);
     return () => controller.abort();
   }, [loadGestantes]);
+
+  useEffect(() => {
+    if (visao !== "fechamento" || selectedId === null) return;
+    const controller = new AbortController();
+    setFechamento(null);
+    setErroFechamento(null);
+    gestanteService
+      .fechamento(
+        selectedId,
+        equipesSelecionadas,
+        microAreasSelecionadas,
+        controller.signal,
+      )
+      .then(setFechamento)
+      .catch((erro: unknown) => {
+        if (erro instanceof DOMException && erro.name === "AbortError") return;
+        setErroFechamento(
+          erro instanceof ApiError
+            ? erro.detail
+            : "Não foi possível carregar o fechamento C3.",
+        );
+      });
+    return () => controller.abort();
+  }, [equipesSelecionadas, microAreasSelecionadas, selectedId, visao]);
 
   useEffect(() => {
     if (!comparacaoAberta || selectedId === null) return;
@@ -772,39 +813,43 @@ export function GestantesPage() {
         }
         filters={gestantes && gestantes.length > 0 ? (
           <>
-            <IndicatorFilterField label="Período">
-              <Select value={recorte} onValueChange={handleTrocarRecorte}>
-                <SelectTrigger className="w-full" aria-label="Selecionar período">
-                  <SelectValue>
-                    {(value: RecorteGestante | null) => {
-                      if (value === "quadrimestre_anterior") return "Último quadrimestre fechado";
-                      if (value === "quadrimestre_atual") return "Quadrimestre em andamento";
-                      return "Situação atual";
-                    }}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="quadrimestre_anterior">Último quadrimestre fechado</SelectItem>
-                    <SelectItem value="quadrimestre_atual">Quadrimestre em andamento</SelectItem>
-                    <SelectItem value="atual">Situação atual</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </IndicatorFilterField>
-            <IndicatorFilterField label="Buscar" className="sm:col-span-2">
-              <div className="relative">
-                <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="search"
-                  value={busca}
-                  onChange={(event) => setBusca(event.target.value)}
-                  placeholder="Nome, equipe, INE ou micro-área"
-                  aria-label="Buscar gestante ou equipe"
-                  className="pl-8"
-                />
-              </div>
-            </IndicatorFilterField>
+            {visao === "acompanhamento" ? (
+              <>
+                <IndicatorFilterField label="Período">
+                  <Select value={recorte} onValueChange={handleTrocarRecorte}>
+                    <SelectTrigger className="w-full" aria-label="Selecionar período">
+                      <SelectValue>
+                        {(value: RecorteGestante | null) => {
+                          if (value === "quadrimestre_anterior") return "Último quadrimestre fechado";
+                          if (value === "quadrimestre_atual") return "Quadrimestre em andamento";
+                          return "Situação atual";
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="quadrimestre_anterior">Último quadrimestre fechado</SelectItem>
+                        <SelectItem value="quadrimestre_atual">Quadrimestre em andamento</SelectItem>
+                        <SelectItem value="atual">Situação atual</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </IndicatorFilterField>
+                <IndicatorFilterField label="Buscar" className="sm:col-span-2">
+                  <div className="relative">
+                    <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      value={busca}
+                      onChange={(event) => setBusca(event.target.value)}
+                      placeholder="Nome, equipe, INE ou micro-área"
+                      aria-label="Buscar gestante ou equipe"
+                      className="pl-8"
+                    />
+                  </div>
+                </IndicatorFilterField>
+              </>
+            ) : null}
             <CatalogFilterDropdown
               label="Equipe"
               ariaLabel="Filtrar por equipe"
@@ -837,7 +882,7 @@ export function GestantesPage() {
               getSecondaryLabel={(microArea) => `${microArea.total_gestantes} gestante(s)`}
               onToggle={alternarMicroArea}
             />
-            <IndicatorFilterField label="Parâmetro">
+            {visao === "acompanhamento" ? <IndicatorFilterField label="Parâmetro">
               <Select
                 value={parametroFiltro}
                 onValueChange={(value) => {
@@ -862,8 +907,8 @@ export function GestantesPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </IndicatorFilterField>
-            <IndicatorFilterField label={parametroFiltro === "todos" ? "Status geral" : "Status do parâmetro"}>
+            </IndicatorFilterField> : null}
+            {visao === "acompanhamento" ? <IndicatorFilterField label={parametroFiltro === "todos" ? "Status geral" : "Status do parâmetro"}>
               <Select
                 value={statusFiltro}
                 onValueChange={(value) => value && setStatusFiltro(value as StatusFiltro)}
@@ -880,8 +925,8 @@ export function GestantesPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </IndicatorFilterField>
-            <IndicatorFilterField label="Ordenar por">
+            </IndicatorFilterField> : null}
+            {visao === "acompanhamento" ? <IndicatorFilterField label="Ordenar por">
               <Select
                 value={ordenacao}
                 onValueChange={(value) => value && setOrdenacao(value as Ordenacao)}
@@ -903,17 +948,17 @@ export function GestantesPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </IndicatorFilterField>
+            </IndicatorFilterField> : null}
           </>
         ) : undefined}
-        summary={gestantes ? (
+        summary={visao === "acompanhamento" && gestantes ? (
           <p className="text-xs text-muted-foreground" aria-live="polite">
             <strong className="font-semibold text-foreground">{gestantesFiltradas.length}</strong>{" "}
             de {gestantes.length} gestantes · Exibindo {gestantesFiltradas.length === 0 ? 0 : inicioDaPagina + 1}–
             {Math.min(inicioDaPagina + ITENS_POR_PAGINA, gestantesFiltradas.length)}
           </p>
         ) : undefined}
-        actions={gestantes && gestantes.length > 0 ? (
+        actions={visao === "acompanhamento" && gestantes && gestantes.length > 0 ? (
           <>
             {equipes && equipes.length > 1 ? (
               <Button
@@ -959,6 +1004,15 @@ export function GestantesPage() {
           </>
         ) : undefined}
       />
+
+      <Tabs value={visao} onValueChange={(valor) => setVisao(valor as Visao)} className="gap-3">
+        <TabsList variant="line" aria-label="Visões do indicador de gestantes">
+          <TabsTrigger value="acompanhamento">Acompanhamento</TabsTrigger>
+          <TabsTrigger value="fechamento">
+            <CalendarClock /> Fechamento da gestação
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="acompanhamento">
 
       {prefeituras !== null && prefeituras.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -1245,6 +1299,15 @@ export function GestantesPage() {
           />
         </>
       )}
+        </TabsContent>
+        <TabsContent value="fechamento">
+          <FechamentoC3
+            dados={fechamento}
+            carregando={fechamento === null && erroFechamento === null}
+            erro={erroFechamento}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

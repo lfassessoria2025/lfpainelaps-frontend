@@ -381,6 +381,66 @@ export interface MetricasEquipeGestanteOut {
   praticas: MetricaPraticaOut[];
 }
 
+export type StatusPraticaFechamentoC3 =
+  | "concluida"
+  | "recuperavel"
+  | "aguardar_desfecho"
+  | "prazo_encerrado";
+export type StatusGestacaoFechamentoC3 = "aberta" | "fechada" | "aborto";
+
+export interface PraticaFechamentoC3Out {
+  pratica: "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K";
+  titulo: string;
+  status: StatusPraticaFechamentoC3;
+  valor: number;
+  meta: number;
+  pontos: number;
+  orientacao: string;
+}
+
+export interface GestanteFechamentoC3Out {
+  nome_cidadao: string;
+  data_nascimento: string | null;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  dt_inicio_gestacao: string;
+  data_fechamento: string;
+  data_fechamento_confirmada: boolean;
+  dias_restantes: number;
+  status: StatusGestacaoFechamentoC3;
+  pontuacao_total: number;
+  praticas: PraticaFechamentoC3Out[];
+}
+
+export interface MesFechamentoC3Out {
+  ano_mes: string;
+  status: "encerrado" | "em_andamento" | "previsto";
+  total_gestantes: number;
+  total_abertas: number;
+  total_fechadas: number;
+  total_100_pontos: number;
+  media_pontuacao: number;
+}
+
+export interface FechamentoC3Out {
+  data_referencia: string | null;
+  quadrimestre: string | null;
+  quadrimestre_inicio: string | null;
+  quadrimestre_fim: string | null;
+  resumo: {
+    fecham_no_quadrimestre: number;
+    abertas: number;
+    fechadas: number;
+    abortos: number;
+    total_100_pontos: number;
+    media_pontuacao_fechadas: number;
+  };
+  meses: MesFechamentoC3Out[];
+  abertas: GestanteFechamentoC3Out[];
+  fechadas: GestanteFechamentoC3Out[];
+}
+
 // ---------------------------------------------------------------------------
 // Crianças — indicador C2 (app/schemas/crianca.py)
 // ---------------------------------------------------------------------------

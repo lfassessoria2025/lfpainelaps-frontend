@@ -2,6 +2,7 @@ import { http } from "@/lib/http";
 import type {
   DiagnosticoC3Out,
   EquipeGestanteOut,
+  FechamentoC3Out,
   GestanteAcompanhamentoOut,
   MetricasEquipeGestanteOut,
   MetricasIndicadorOut,
@@ -60,6 +61,16 @@ export const gestanteService = {
   ) =>
     http.get<MetricasEquipeGestanteOut[]>(
       `/prefeituras/${prefeituraId}/indicadores/gestantes/comparacao-equipes${queryFiltros([], [], recorte)}`,
+      signal,
+    ),
+  fechamento: (
+    prefeituraId: number,
+    equipes: readonly string[] = [],
+    microAreas: readonly string[] = [],
+    signal?: AbortSignal,
+  ) =>
+    http.get<FechamentoC3Out>(
+      `/prefeituras/${prefeituraId}/indicadores/gestantes/fechamento${queryFiltros(equipes, microAreas)}`,
       signal,
     ),
   exportar: (
