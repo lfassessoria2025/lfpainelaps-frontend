@@ -28,7 +28,9 @@ function mockAuth(permissions: Array<"cargo.criar" | "cargo.editar" | "cargo.exc
 }
 
 beforeEach(() => {
-  mockedRoles.list.mockResolvedValue([{ id: 7, name: "Enfermeira", permissions: [] }]);
+  mockedRoles.list.mockResolvedValue([
+    { id: 7, name: "Enfermeira", permissions: [], scope_configured: false, scopes: [] },
+  ]);
 });
 
 describe("RolesPage — RBAC visual do FLO-55", () => {

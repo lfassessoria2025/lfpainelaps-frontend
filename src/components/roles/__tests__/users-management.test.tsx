@@ -23,7 +23,15 @@ vi.mock("@/services/prefeituras", () => ({
 
 const mockedUsers = vi.mocked(usersService);
 const mockedPrefeituras = vi.mocked(prefeiturasService);
-const ROLES: RoleOut[] = [{ id: 7, name: "Enfermeira", permissions: ["relatorio.gestante.visualizar"] }];
+const ROLES: RoleOut[] = [
+  {
+    id: 7,
+    name: "Enfermeira",
+    permissions: ["relatorio.gestante.visualizar"],
+    scope_configured: false,
+    scopes: [],
+  },
+];
 const USERS: UserSummaryOut[] = [
   { id: 1, email: "gestora@example.test", name: "Gestora", is_admin: true, status: "ativo", role_id: null, prefeitura_ids: [10], current_term_version: "1.0", current_term_accepted_at: "2026-08-15T12:00:00Z" },
   { id: 2, email: "ativa@example.test", name: "Usuária Ativa", is_admin: false, status: "ativo", role_id: 7, prefeitura_ids: [10], current_term_version: "1.0", current_term_accepted_at: null },
@@ -107,6 +115,39 @@ describe("UsersManagement — FLO-55", () => {
       prefeitura_ids: [],
       motivo: "Revisão de lotação",
     }));
+  });
+
+  it("herda prefeitura e equipe do cargo sem permitir escopo paralelo no usuário", async () => {
+    const scopedRoles: RoleOut[] = [
+      {
+        ...ROLES[0],
+        scope_configured: true,
+        scopes: [
+          {
+            prefeitura_id: 10,
+            prefeitura_name: "Jeriquara",
+            all_teams: false,
+            team_keys: ["ine:1234567"],
+          },
+        ],
+      },
+    ];
+    const user = userEvent.setup();
+    render(
+      <UsersManagement
+        currentUserId={1}
+        currentUserIsAdmin
+        roles={scopedRoles}
+        canAssignPrefeituras
+      />,
+    );
+    await screen.findByText("Usuária Ativa");
+
+    await user.click(screen.getByRole("button", { name: "Editar Usuária Ativa" }));
+    expect(await screen.findByText("Acesso aos dados")).toBeInTheDocument();
+    expect(screen.getByText("Jeriquara")).toBeInTheDocument();
+    expect(screen.getByText(/1 equipe/)).toBeInTheDocument();
+    expect(screen.queryByText("Prefeituras permitidas")).not.toBeInTheDocument();
   });
 
   it.each([

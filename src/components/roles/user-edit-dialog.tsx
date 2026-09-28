@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { RoleScopeSummary } from "@/components/roles/role-scope-summary";
 import type { PrefeituraOut, RoleOut, UserManagementUpdate, UserSummaryOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { usersService } from "@/services/users";
@@ -52,10 +53,13 @@ export function UserEditDialog({
 
   const normalizedName = name.trim();
   const selectedRoleId = roleId === "none" ? null : Number(roleId);
+  const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null;
+  const scopeComesFromRole = Boolean(selectedRole?.scope_configured);
   const sortedPrefeituraIds = Array.from(prefeituraIds).toSorted((a, b) => a - b);
   const originalPrefeituraIds = user?.prefeitura_ids.toSorted((a, b) => a - b) ?? [];
   const prefeiturasChanged =
     canAssignPrefeituras &&
+    !scopeComesFromRole &&
     (sortedPrefeituraIds.length !== originalPrefeituraIds.length ||
       sortedPrefeituraIds.some((id, index) => id !== originalPrefeituraIds[index]));
   const hasChanges = Boolean(
@@ -98,7 +102,9 @@ export function UserEditDialog({
       motivo: motivo.trim(),
       ...(normalizedName !== (user.name ?? "") ? { name: normalizedName } : {}),
       ...(!user.is_admin && selectedRoleId !== user.role_id ? { role_id: selectedRoleId } : {}),
-      ...(prefeiturasChanged ? { prefeitura_ids: sortedPrefeituraIds } : {}),
+      ...(prefeiturasChanged && !scopeComesFromRole
+        ? { prefeitura_ids: sortedPrefeituraIds }
+        : {}),
     };
     try {
       await usersService.update(user.id, payload);
@@ -160,7 +166,17 @@ export function UserEditDialog({
               </Select>
             )}
           </Field>
-          {canAssignPrefeituras ? (
+          {selectedRole?.scope_configured ? (
+            <Field>
+              <FieldLabel>Acesso aos dados</FieldLabel>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <RoleScopeSummary role={selectedRole} />
+              </div>
+              <FieldDescription>
+                Prefeituras e equipes são herdadas do cargo. Para mudar o acesso, edite o cargo.
+              </FieldDescription>
+            </Field>
+          ) : canAssignPrefeituras ? (
             <Field>
               <FieldLabel>Prefeituras permitidas</FieldLabel>
               <div className="flex flex-col gap-2">

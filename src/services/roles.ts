@@ -1,9 +1,17 @@
 import { http } from "@/lib/http";
-import type { PermissionCatalogOut, RoleCreate, RoleOut, RoleUpdate } from "@/lib/api-types";
+import type {
+  PermissionCatalogOut,
+  RoleCreate,
+  RoleOut,
+  RoleTeamCatalogOut,
+  RoleUpdate,
+} from "@/lib/api-types";
 
 export const rolesService = {
   list: (signal?: AbortSignal) => http.get<RoleOut[]>("/roles", signal),
   get: (id: number, signal?: AbortSignal) => http.get<RoleOut>(`/roles/${id}`, signal),
+  teamCatalog: (prefeituraId: number, signal?: AbortSignal) =>
+    http.get<RoleTeamCatalogOut>(`/roles/team-catalog?prefeitura_id=${prefeituraId}`, signal),
   create: (payload: RoleCreate) => http.post<RoleOut>("/roles", payload),
   update: (id: number, payload: RoleUpdate) => http.put<RoleOut>(`/roles/${id}`, payload),
   remove: (id: number) => http.delete<void>(`/roles/${id}`),

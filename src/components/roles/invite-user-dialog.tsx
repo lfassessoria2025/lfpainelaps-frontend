@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { RoleScopeSummary } from "@/components/roles/role-scope-summary";
 import type { RoleOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { usersService } from "@/services/users";
@@ -36,6 +37,7 @@ export function InviteUserDialog({ open, onOpenChange, roles, onInvited }: Invit
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invitedToken, setInvitedToken] = useState<string | null>(null);
+  const selectedRole = roles.find((role) => String(role.id) === roleId) ?? null;
 
   useEffect(() => {
     if (open) {
@@ -120,6 +122,14 @@ export function InviteUserDialog({ open, onOpenChange, roles, onInvited }: Invit
                 </SelectContent>
               </Select>
               <FieldDescription>Pode ser atribuído depois.</FieldDescription>
+              {selectedRole ? (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Acesso recebido com este cargo
+                  </p>
+                  <RoleScopeSummary role={selectedRole} />
+                </div>
+              ) : null}
             </Field>
           </FieldGroup>
         )}

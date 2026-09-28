@@ -25,10 +25,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RoleFormDialog } from "@/components/roles/role-form-dialog";
+import { RoleScopeSummary } from "@/components/roles/role-scope-summary";
 import { UsersManagement } from "@/components/roles/users-management";
 import { PageHeader } from "@/components/layout/page-header";
 import { useAuth } from "@/contexts/auth-context";
-import type { Permission, RoleOut } from "@/lib/api-types";
+import type { RoleCreate, RoleOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { rolesService } from "@/services/roles";
 
@@ -71,7 +72,7 @@ export function RolesPage() {
     setFormOpen(true);
   }
 
-  async function handleSubmit(values: { name: string; permissions: Permission[] }) {
+  async function handleSubmit(values: RoleCreate) {
     try {
       if (editingRole) {
         await rolesService.update(editingRole.id, values);
@@ -140,6 +141,7 @@ export function RolesPage() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Permissões</TableHead>
+                <TableHead>Acesso aos dados</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -149,6 +151,9 @@ export function RolesPage() {
                   <TableCell className="font-medium">{role.name}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">{role.permissions.length} permissões</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <RoleScopeSummary role={role} compact />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">

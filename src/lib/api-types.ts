@@ -100,11 +100,35 @@ export interface RoleOut {
   id: number;
   name: string;
   permissions: Permission[];
+  scope_configured: boolean;
+  scopes: RolePrefeituraScopeOut[];
+}
+
+export interface RolePrefeituraScopeIn {
+  prefeitura_id: number;
+  all_teams: boolean;
+  team_keys: string[];
+}
+
+export interface RolePrefeituraScopeOut extends RolePrefeituraScopeIn {
+  prefeitura_name: string;
+}
+
+export interface RoleTeamOut {
+  key: string;
+  name: string | null;
+  ine: string | null;
+}
+
+export interface RoleTeamCatalogOut {
+  prefeitura_id: number;
+  teams: RoleTeamOut[];
 }
 
 export interface RoleCreate {
   name: string;
   permissions: Permission[];
+  scopes?: RolePrefeituraScopeIn[];
 }
 
 export type RoleUpdate = RoleCreate;
