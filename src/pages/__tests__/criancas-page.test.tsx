@@ -165,6 +165,8 @@ describe("CriancasPage", () => {
     expect(screen.getByText("Dá tempo de agir")).toBeInTheDocument();
     expect(screen.getAllByText("Atrasada · 0 pontos").length).toBeGreaterThan(0);
     expect(screen.getAllByText("E 0/20").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0 pts").length).toBeGreaterThan(0);
+    expect(screen.queryByText("80 pts")).not.toBeInTheDocument();
     expect(screen.getAllByText(/tríplice viral 2ª dose/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/conferir caderneta e intervalos/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/3º quadrimestre de 2026/i)).toBeInTheDocument();

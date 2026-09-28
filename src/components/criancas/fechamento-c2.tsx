@@ -181,6 +181,7 @@ function LinhaCrianca({
   crianca: CriancaFechamentoC2Out;
   encerrada?: boolean;
 }) {
+  const pontosVacina = crianca.status_vacinal === "completo" ? 20 : 0;
   return (
     <TableRow>
       <TableCell className="w-56 min-w-56">
@@ -204,8 +205,8 @@ function LinhaCrianca({
         <ProximasAcoes crianca={crianca} encerrada={encerrada} />
       </TableCell>
       <TableCell className="text-right">
-        <Badge variant={crianca.pontuacao_total === 100 ? "default" : "secondary"}>
-          {crianca.pontuacao_total} pts
+        <Badge variant={pontosVacina === 20 ? "default" : "secondary"}>
+          {pontosVacina} pts
         </Badge>
       </TableCell>
     </TableRow>
@@ -253,7 +254,9 @@ function ListaCriancas({
                     <p className="font-medium">{crianca.nome_cidadao}</p>
                     <p className="text-xs text-muted-foreground">Fecha em {formatarData(crianca.data_limite)}</p>
                   </div>
-                  <Badge variant="secondary">{crianca.pontuacao_total} pts</Badge>
+                  <Badge variant="secondary">
+                    Vacina: {crianca.status_vacinal === "completo" ? 20 : 0} pts
+                  </Badge>
                 </div>
                 <Praticas praticas={crianca.praticas} />
                 <div className="mt-2"><SituacaoVacinal crianca={crianca} /></div>
@@ -285,7 +288,7 @@ function ListaCriancas({
                   <TableHead className="w-28">Cuidados A–E</TableHead>
                   <TableHead className="w-64">Situação vacinal</TableHead>
                   <TableHead className="w-80">{encerrada ? "Registro" : "Próxima ação"}</TableHead>
-                  <TableHead className="w-24 text-right">Pontuação</TableHead>
+                  <TableHead className="w-24 text-right">Pontos da vacina</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -409,8 +412,8 @@ export function FechamentoC2({
                     </div>
                     <p className="text-2xl font-semibold tabular-nums">{mes.total_criancas}</p>
                     <div className="flex justify-between gap-2 text-xs text-muted-foreground">
-                      <span>{mes.total_100_pontos} com 100 pts</span>
-                      <span>{mes.total_abaixo_100} abaixo de 100</span>
+                      <span>{mes.total_100_pontos} com C2 completo</span>
+                      <span>{mes.total_abaixo_100} com C2 incompleto</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`Média ${mes.media_pontuacao} pontos`}>
                       <div className="h-full rounded-full bg-primary" style={{ width: `${mes.media_pontuacao}%` }} />
