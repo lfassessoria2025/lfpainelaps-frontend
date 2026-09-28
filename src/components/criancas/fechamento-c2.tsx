@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, History, Target } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, History, Target, X } from "lucide-react";
 import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useHorizontalDrag } from "@/hooks/use-horizontal-drag";
 import type {
   CriancaFechamentoC2Out,
   FechamentoC2Out,
@@ -48,13 +50,20 @@ function Praticas({ praticas }: { praticas: PraticaFechamentoC2Out[] }) {
       {praticas.map((pratica) => (
         <span
           key={pratica.pratica}
-          title={`${pratica.titulo}: ${pratica.orientacao}`}
+          title={
+            pratica.pratica === "E"
+              ? `${pratica.titulo}: ${pratica.valor}/${pratica.meta} esquemas. Pontuação ${pratica.status === "concluida" ? "20/20" : "0/20"}. ${pratica.orientacao}`
+              : `${pratica.titulo}: ${pratica.orientacao}`
+          }
           className={cn(
             "inline-flex min-w-8 justify-center rounded-md border px-1.5 py-0.5 text-[11px] font-semibold",
             praticaClass[pratica.status],
           )}
         >
-          {pratica.pratica} {pratica.valor}/{pratica.meta}
+          {pratica.pratica}{" "}
+          {pratica.pratica === "E"
+            ? (pratica.status === "concluida" ? "20/20" : "0/20")
+            : `${pratica.valor}/${pratica.meta}`}
         </span>
       ))}
     </div>
@@ -65,16 +74,21 @@ const statusVacinal: Record<
   StatusVacinalC2,
   { rotulo: string; icone: typeof CheckCircle2; variante: "secondary" | "destructive" }
 > = {
-  completo: { rotulo: "Em dia", icone: CheckCircle2, variante: "secondary" },
-  atrasado: { rotulo: "Atrasada", icone: AlertTriangle, variante: "destructive" },
-  no_prazo: { rotulo: "Ainda no prazo", icone: Clock3, variante: "secondary" },
+  completo: { rotulo: "Completo · 20 pontos", icone: CheckCircle2, variante: "secondary" },
+  atrasado: { rotulo: "Atrasada · 0 pontos", icone: AlertTriangle, variante: "destructive" },
+  no_prazo: { rotulo: "Em dia para a idade · 0 pontos", icone: Clock3, variante: "secondary" },
 };
 
 function SituacaoVacinal({ crianca }: { crianca: CriancaFechamentoC2Out }) {
   const config = statusVacinal[crianca.status_vacinal];
   const Icone = config.icone;
+  const topicos = crianca.status_vacinal_descricao
+    .replace(/^(Em atraso|Próxima dose):\s*/i, "")
+    .split(";")
+    .map((item) => item.trim().replace(/\.$/, ""))
+    .filter(Boolean);
   return (
-    <div className="flex min-w-44 flex-col items-start gap-1">
+    <div className="flex w-64 max-w-64 flex-col items-start gap-1.5 whitespace-normal">
       <Badge
         variant={config.variante}
         className={cn(
@@ -85,23 +99,36 @@ function SituacaoVacinal({ crianca }: { crianca: CriancaFechamentoC2Out }) {
         <Icone data-icon="inline-start" aria-hidden />
         {config.rotulo}
       </Badge>
-      <p className="line-clamp-2 text-[11px] text-muted-foreground" title={crianca.status_vacinal_descricao}>
-        {crianca.status_vacinal_descricao}
-      </p>
+      {topicos.length > 0 ? (
+        <ul className="flex list-disc flex-col gap-0.5 pl-4 text-[11px] leading-4 text-muted-foreground">
+          {topicos.map((topico) => <li key={topico} className="break-words">{topico}</li>)}
+        </ul>
+      ) : null}
     </div>
   );
 }
 
-function proximaAcao(crianca: CriancaFechamentoC2Out): string {
+function proximasAcoes(crianca: CriancaFechamentoC2Out): PraticaFechamentoC2Out[] {
   const prioridade = { recuperavel: 0, avaliar: 1, prazo_encerrado: 2, concluida: 3 } as const;
-  const pendentes = crianca.praticas
+  return crianca.praticas
     .filter((item) => item.status !== "concluida")
-    .toSorted((a, b) => prioridade[a.status] - prioridade[b.status]);
-  if (pendentes.length === 0) return "Todos os cinco cuidados estão concluídos.";
-  return pendentes
-    .slice(0, 3)
-    .map((item) => `${item.pratica}: ${item.orientacao}`)
-    .join(" ");
+    .toSorted((a, b) => prioridade[a.status] - prioridade[b.status])
+    .slice(0, 3);
+}
+
+function ProximasAcoes({ crianca, encerrada }: { crianca: CriancaFechamentoC2Out; encerrada: boolean }) {
+  if (encerrada) return <p>Resultado preservado antes dos 2 anos.</p>;
+  const acoes = proximasAcoes(crianca);
+  if (acoes.length === 0) return <p>Todos os cuidados concluídos.</p>;
+  return (
+    <ul className="flex list-disc flex-col gap-1 pl-4">
+      {acoes.map((item) => (
+        <li key={item.pratica} className="break-words">
+          <strong className="text-foreground">{item.pratica}:</strong> {item.orientacao}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function Resumo({ dados }: { dados: FechamentoC2Out }) {
@@ -156,7 +183,7 @@ function LinhaCrianca({
 }) {
   return (
     <TableRow>
-      <TableCell className="min-w-48">
+      <TableCell className="w-56 min-w-56">
         <p className="font-medium">{crianca.nome_cidadao}</p>
         <p className="text-[11px] text-muted-foreground">
           {crianca.equipe_nome ?? "Sem equipe"}
@@ -171,12 +198,10 @@ function LinhaCrianca({
             : `${crianca.dias_restantes} dia(s) restantes`}
         </p>
       </TableCell>
-      <TableCell><Praticas praticas={crianca.praticas} /></TableCell>
-      <TableCell><SituacaoVacinal crianca={crianca} /></TableCell>
-      <TableCell className="min-w-72 text-xs text-muted-foreground">
-        {encerrada
-          ? "Resultado preservado da última extração anterior aos 2 anos."
-          : proximaAcao(crianca)}
+      <TableCell className="w-28 min-w-28"><Praticas praticas={crianca.praticas} /></TableCell>
+      <TableCell className="w-64 min-w-64 align-top"><SituacaoVacinal crianca={crianca} /></TableCell>
+      <TableCell className="w-80 min-w-80 whitespace-normal text-xs leading-4 text-muted-foreground">
+        <ProximasAcoes crianca={crianca} encerrada={encerrada} />
       </TableCell>
       <TableCell className="text-right">
         <Badge variant={crianca.pontuacao_total === 100 ? "default" : "secondary"}>
@@ -199,6 +224,7 @@ function ListaCriancas({
   encerrada?: boolean;
 }) {
   const [pagina, setPagina] = useState(1);
+  const { dragging, containerProps } = useHorizontalDrag();
   const totalPaginas = Math.max(1, Math.ceil(criancas.length / ITENS_POR_PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const itens = useMemo(
@@ -231,22 +257,35 @@ function ListaCriancas({
                 </div>
                 <Praticas praticas={crianca.praticas} />
                 <div className="mt-2"><SituacaoVacinal crianca={crianca} /></div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {encerrada ? "Fechamento preservado no histórico." : proximaAcao(crianca)}
-                </p>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {encerrada ? "Fechamento preservado no histórico." : (
+                    <ProximasAcoes crianca={crianca} encerrada={false} />
+                  )}
+                </div>
               </div>
             ))}
           </div>
-          <div className="hidden overflow-x-auto md:block">
-            <Table className="text-xs">
-              <TableHeader>
+          <div className="hidden md:block">
+            <Table
+              className="min-w-[1100px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top"
+              containerClassName={cn(
+                "max-w-full cursor-grab overscroll-x-contain",
+                dragging && "cursor-grabbing select-none",
+              )}
+              containerProps={{
+                ...containerProps,
+                role: "region",
+                "aria-label": `${titulo}; use as setas ou clique e arraste para ver as colunas`,
+              }}
+            >
+              <TableHeader className="sticky top-0 z-[3] select-none bg-muted shadow-sm">
                 <TableRow>
-                  <TableHead>Criança</TableHead>
-                  <TableHead>{encerrada ? "Fechou em" : "Completa 2 anos"}</TableHead>
-                  <TableHead>Cuidados A–E</TableHead>
-                  <TableHead>Situação vacinal</TableHead>
-                  <TableHead>{encerrada ? "Registro" : "Próxima ação"}</TableHead>
-                  <TableHead className="text-right">Pontuação</TableHead>
+                  <TableHead className="w-56">Criança</TableHead>
+                  <TableHead className="w-28">{encerrada ? "Fechou em" : "Completa 2 anos"}</TableHead>
+                  <TableHead className="w-28">Cuidados A–E</TableHead>
+                  <TableHead className="w-64">Situação vacinal</TableHead>
+                  <TableHead className="w-80">{encerrada ? "Registro" : "Próxima ação"}</TableHead>
+                  <TableHead className="w-24 text-right">Pontuação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -283,6 +322,32 @@ export function FechamentoC2({
   carregando: boolean;
   erro: string | null;
 }) {
+  const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
+  const listasRef = useRef<HTMLDivElement>(null);
+  useEffect(() => setMesSelecionado(null), [dados?.data_referencia]);
+  const emAcompanhamento = useMemo(
+    () => dados?.em_acompanhamento.filter(
+      (crianca) => mesSelecionado === null || crianca.data_limite.startsWith(mesSelecionado),
+    ) ?? [],
+    [dados?.em_acompanhamento, mesSelecionado],
+  );
+  const encerradas = useMemo(
+    () => dados?.encerradas.filter(
+      (crianca) => mesSelecionado === null || crianca.data_limite.startsWith(mesSelecionado),
+    ) ?? [],
+    [dados?.encerradas, mesSelecionado],
+  );
+
+  function selecionarMes(anoMes: string) {
+    setMesSelecionado((atual) => atual === anoMes ? null : anoMes);
+    window.requestAnimationFrame(() => {
+      const listas = listasRef.current;
+      if (listas && typeof listas.scrollIntoView === "function") {
+        listas.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+
   if (carregando) {
     return <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
   }
@@ -322,37 +387,66 @@ export function FechamentoC2({
         </div>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {dados.meses.map((mes) => (
-            <Card key={mes.ano_mes} className="gap-2 p-4 shadow-none">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-medium capitalize">{formatarMes(mes.ano_mes)}</p>
-                <Badge variant="outline">
-                  {mes.status === "encerrado" ? "Fechado" : mes.status === "em_andamento" ? "Em andamento" : "Previsto"}
-                </Badge>
-              </div>
-              <p className="text-2xl font-semibold tabular-nums">{mes.total_criancas}</p>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{mes.total_100_pontos} com 100 pts</span>
-                <span>{mes.total_abaixo_100} abaixo de 100</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`Média ${mes.media_pontuacao} pontos`}>
-                <div className="h-full rounded-full bg-primary" style={{ width: `${mes.media_pontuacao}%` }} />
-              </div>
+            <Card
+              key={mes.ano_mes}
+              size="sm"
+              className={cn("gap-0 py-0 shadow-none", mesSelecionado === mes.ano_mes && "ring-2 ring-primary")}
+            >
+              <CardHeader className="p-0">
+                <Button
+                  variant="ghost"
+                  className="h-auto w-full items-stretch whitespace-normal p-3 text-left"
+                  aria-pressed={mesSelecionado === mes.ano_mes}
+                  aria-label={`Mostrar ${mes.total_criancas} criança(s) que fecham em ${formatarMes(mes.ano_mes)}`}
+                  onClick={() => selecionarMes(mes.ano_mes)}
+                >
+                  <div className="flex w-full flex-col gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium capitalize">{formatarMes(mes.ano_mes)}</p>
+                      <Badge variant="outline">
+                        {mes.status === "encerrado" ? "Fechado" : mes.status === "em_andamento" ? "Em andamento" : "Previsto"}
+                      </Badge>
+                    </div>
+                    <p className="text-2xl font-semibold tabular-nums">{mes.total_criancas}</p>
+                    <div className="flex justify-between gap-2 text-xs text-muted-foreground">
+                      <span>{mes.total_100_pontos} com 100 pts</span>
+                      <span>{mes.total_abaixo_100} abaixo de 100</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`Média ${mes.media_pontuacao} pontos`}>
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${mes.media_pontuacao}%` }} />
+                    </div>
+                    <span className="text-xs font-medium text-primary">Ver crianças</span>
+                  </div>
+                </Button>
+              </CardHeader>
             </Card>
           ))}
         </div>
       </section>
 
-      <ListaCriancas
-        titulo="Dá tempo de agir"
-        descricao="Ordenadas pela data em que completam 2 anos e pela menor pontuação."
-        criancas={dados.em_acompanhamento}
-      />
-      <ListaCriancas
-        titulo="Fechadas neste quadrimestre"
-        descricao="Último resultado disponível antes do aniversário de 2 anos; permanece visível após sair da lista ativa."
-        criancas={dados.encerradas}
-        encerrada
-      />
+      <div ref={listasRef} className="flex scroll-mt-4 flex-col gap-3">
+        {mesSelecionado ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+            <p className="text-sm">
+              Mostrando crianças que fecham em <strong className="capitalize">{formatarMes(mesSelecionado)}</strong>
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => setMesSelecionado(null)}>
+              <X data-icon="inline-start" /> Limpar mês
+            </Button>
+          </div>
+        ) : null}
+        <ListaCriancas
+          titulo="Dá tempo de agir"
+          descricao="Ordenadas pela data em que completam 2 anos e pela menor pontuação."
+          criancas={emAcompanhamento}
+        />
+        <ListaCriancas
+          titulo="Fechadas neste quadrimestre"
+          descricao="Último resultado disponível antes do aniversário de 2 anos; permanece visível após sair da lista ativa."
+          criancas={encerradas}
+          encerrada
+        />
+      </div>
     </div>
   );
 }

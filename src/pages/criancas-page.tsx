@@ -3,10 +3,7 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
-  useRef,
   useState,
-  type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
   BarChart3,
@@ -47,6 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useHorizontalDrag } from "@/hooks/use-horizontal-drag";
 import type {
   CriancaAcompanhamentoOut,
   EquipeCriancaOut,
@@ -179,7 +177,10 @@ function valorPratica(crianca: CriancaAcompanhamentoOut, pratica: Pratica) {
   }
   return marcador(
     status,
-    crianca.pratica_e_esquema_vacinal_completo ? "Feito" : "Pendente",
+    crianca.pratica_e_esquema_vacinal_completo ? "20/20" : "0/20",
+    crianca.pratica_e_esquema_vacinal_completo
+      ? "Todos os seis esquemas vacinais estão completos: 20 pontos."
+      : "Falta pelo menos um esquema vacinal: a prática E vale 0 ponto.",
   );
 }
 
@@ -280,9 +281,7 @@ export function CriancasPage() {
   const [visao, setVisao] = useState<Visao>("acompanhamento");
   const [fechamento, setFechamento] = useState<FechamentoC2Out | null>(null);
   const [erroFechamento, setErroFechamento] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const arrasteRef = useRef<{ pointerId: number; x: number; scrollLeft: number } | null>(null);
-  const [arrastando, setArrastando] = useState(false);
+  const { dragging: arrastando, containerProps: dragContainerProps } = useHorizontalDrag();
 
   useEffect(() => {
     prefeiturasService
@@ -440,42 +439,6 @@ export function CriancasPage() {
       setExportando(false);
     }
   }, [equipesSelecionadas, microAreasSelecionadas, prefeituraId]);
-
-  function iniciarArraste(event: ReactPointerEvent<HTMLDivElement>) {
-    const area = scrollRef.current;
-    if (!area || event.button !== 0 || area.scrollWidth <= area.clientWidth) return;
-    if (event.target instanceof Element && event.target.closest("button, input, [role='button']")) return;
-    arrasteRef.current = { pointerId: event.pointerId, x: event.clientX, scrollLeft: area.scrollLeft };
-    area.setPointerCapture?.(event.pointerId);
-    setArrastando(true);
-    event.preventDefault();
-  }
-
-  function moverArraste(event: ReactPointerEvent<HTMLDivElement>) {
-    const area = scrollRef.current;
-    const arraste = arrasteRef.current;
-    if (!area || !arraste || arraste.pointerId !== event.pointerId) return;
-    area.scrollLeft = arraste.scrollLeft + arraste.x - event.clientX;
-    event.preventDefault();
-  }
-
-  function finalizarArraste(event: ReactPointerEvent<HTMLDivElement>) {
-    const area = scrollRef.current;
-    if (!area || arrasteRef.current?.pointerId !== event.pointerId) return;
-    if (area.hasPointerCapture?.(event.pointerId)) area.releasePointerCapture(event.pointerId);
-    arrasteRef.current = null;
-    setArrastando(false);
-  }
-
-  function navegar(event: KeyboardEvent<HTMLDivElement>) {
-    const area = scrollRef.current;
-    if (!area || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    const passo = Math.max(160, area.clientWidth * 0.7);
-    if (event.key === "Home") area.scrollLeft = 0;
-    else if (event.key === "End") area.scrollLeft = area.scrollWidth;
-    else area.scrollLeft += event.key === "ArrowRight" ? passo : -passo;
-    event.preventDefault();
-  }
 
   if (proibido) {
     return (
@@ -695,23 +658,16 @@ export function CriancasPage() {
               className="text-xs [&_th]:h-8 [&_th]:whitespace-normal [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5"
               containerClassName={cn("max-w-full cursor-grab overscroll-x-contain", arrastando && "cursor-grabbing select-none")}
               containerProps={{
-                ref: scrollRef,
-                onPointerDown: iniciarArraste,
-                onPointerMove: moverArraste,
-                onPointerUp: finalizarArraste,
-                onPointerCancel: finalizarArraste,
-                onLostPointerCapture: finalizarArraste,
-                onKeyDown: navegar,
+                ...dragContainerProps,
                 role: "region",
                 "aria-label": "Tabela nominal de crianças; use as setas ou clique e arraste para ver as colunas",
-                tabIndex: 0,
               }}
             >
               <TableHeader className="sticky top-0 z-[3] select-none bg-muted shadow-sm">
                 <TableRow className="bg-muted hover:bg-muted">
                   <TableHead className="sticky left-0 z-[4] min-w-44 border-r bg-muted">Criança</TableHead>
                   <TableHead className="min-w-32">Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Nascimento</TableHead>
-                  {PRATICAS.map((item) => <TableHead key={item.codigo} className="min-w-24 text-center"><span className="block text-[10px] text-muted-foreground">{item.codigo}</span>{item.rotulo}</TableHead>)}
+                  {PRATICAS.map((item) => <TableHead key={item.codigo} className="min-w-24 text-center"><span className="block text-[10px] text-muted-foreground">{item.codigo}</span>{item.rotulo}{item.codigo === "E" ? " · 20 pts" : ""}</TableHead>)}
                   <TableHead>DTP</TableHead><TableHead>Hep. B</TableHead><TableHead>Hib</TableHead><TableHead>Polio</TableHead><TableHead>Tríplice</TableHead><TableHead>Pneumo</TableHead><TableHead>Pontuação</TableHead><TableHead>Referência</TableHead>
                 </TableRow>
               </TableHeader>

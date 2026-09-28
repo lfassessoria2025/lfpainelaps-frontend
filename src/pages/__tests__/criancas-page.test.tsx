@@ -80,8 +80,8 @@ const FECHAMENTO: FechamentoC2Out = {
   },
   meses: [
     {
-      ano_mes: "2026-09",
-      status: "em_andamento",
+      ano_mes: "2026-10",
+      status: "previsto",
       total_criancas: 1,
       total_100_pontos: 0,
       total_abaixo_100: 1,
@@ -142,7 +142,11 @@ describe("CriancasPage", () => {
     const tabela = screen.getByRole("table");
     expect(within(tabela).getByText("1ª consulta até 30 dias")).toBeInTheDocument();
     expect(within(tabela).getByText("9 consultas de puericultura")).toBeInTheDocument();
-    expect(within(tabela).getByText("Esquemas vacinais")).toBeInTheDocument();
+    expect(within(tabela).getByText(/Esquemas vacinais/)).toBeInTheDocument();
+    expect(within(tabela).getByText("0/20")).toHaveAttribute(
+      "title",
+      expect.stringMatching(/vale 0 ponto/i),
+    );
     expect(tabela.querySelector("thead")).toHaveClass("sticky");
     expect(screen.getByRole("region", { name: /tabela nominal de crianças/i })).toHaveAttribute(
       "tabindex",
@@ -159,7 +163,9 @@ describe("CriancasPage", () => {
 
     expect((await screen.findAllByText("Criança perto dos 2 anos")).length).toBeGreaterThan(0);
     expect(screen.getByText("Dá tempo de agir")).toBeInTheDocument();
-    expect(screen.getAllByText("Atrasada").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Atrasada · 0 pontos").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("E 0/20").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/tríplice viral 2ª dose/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/conferir caderneta e intervalos/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/3º quadrimestre de 2026/i)).toBeInTheDocument();
     expect(service.fechamento).toHaveBeenCalledWith(
@@ -168,6 +174,21 @@ describe("CriancasPage", () => {
       [],
       expect.any(AbortSignal),
     );
+  });
+
+  it("filtra a lista ao clicar no mês de fechamento", async () => {
+    const user = userEvent.setup();
+    render(<CriancasPage />);
+    await screen.findAllByText("Alice da Silva");
+    await user.click(screen.getByRole("tab", { name: /fechamento aos 2 anos/i }));
+
+    await user.click(screen.getByRole("button", { name: /mostrar 1 criança.*outubro de 2026/i }));
+
+    expect(screen.getByText(/mostrando crianças que fecham em/i)).toHaveTextContent(
+      "outubro de 2026",
+    );
+    expect((await screen.findAllByText("Criança perto dos 2 anos")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /limpar mês/i })).toBeInTheDocument();
   });
 
   it("não marca como atrasada uma prática cuja janela ainda está aberta", async () => {
