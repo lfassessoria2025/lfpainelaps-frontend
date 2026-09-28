@@ -100,6 +100,8 @@ const FECHAMENTO: FechamentoC2Out = {
       pontuacao_total: 80,
       status: "acao_prioritaria",
       data_ultima_avaliacao: "2026-09-18",
+      status_vacinal: "atrasado",
+      status_vacinal_descricao: "Em atraso: Tríplice viral 2ª dose (desde 01/01/2026).",
       praticas: [
         {
           pratica: "E",
@@ -157,6 +159,7 @@ describe("CriancasPage", () => {
 
     expect((await screen.findAllByText("Criança perto dos 2 anos")).length).toBeGreaterThan(0);
     expect(screen.getByText("Dá tempo de agir")).toBeInTheDocument();
+    expect(screen.getAllByText("Atrasada").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/conferir caderneta e intervalos/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/3º quadrimestre de 2026/i)).toBeInTheDocument();
     expect(service.fechamento).toHaveBeenCalledWith(

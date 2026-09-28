@@ -447,6 +447,7 @@ export interface MetricasEquipeCriancaOut {
 
 export type StatusPrazoPraticaC2 = "concluida" | "recuperavel" | "avaliar" | "prazo_encerrado";
 export type StatusFechamentoC2 = "completa" | "acao_prioritaria" | "acompanhar" | "encerrada";
+export type StatusVacinalC2 = "completo" | "atrasado" | "no_prazo";
 
 export interface PraticaFechamentoC2Out {
   pratica: "A" | "B" | "C" | "D" | "E";
@@ -468,6 +469,8 @@ export interface CriancaFechamentoC2Out {
   pontuacao_total: number;
   status: StatusFechamentoC2;
   data_ultima_avaliacao: string;
+  status_vacinal: StatusVacinalC2;
+  status_vacinal_descricao: string;
   praticas: PraticaFechamentoC2Out[];
 }
 

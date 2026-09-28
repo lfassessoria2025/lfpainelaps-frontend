@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CalendarClock, CheckCircle2, History, Target } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, History, Target } from "lucide-react";
 import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import type {
   CriancaFechamentoC2Out,
   FechamentoC2Out,
   PraticaFechamentoC2Out,
+  StatusVacinalC2,
 } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,37 @@ function Praticas({ praticas }: { praticas: PraticaFechamentoC2Out[] }) {
           {pratica.pratica} {pratica.valor}/{pratica.meta}
         </span>
       ))}
+    </div>
+  );
+}
+
+const statusVacinal: Record<
+  StatusVacinalC2,
+  { rotulo: string; icone: typeof CheckCircle2; variante: "secondary" | "destructive" }
+> = {
+  completo: { rotulo: "Em dia", icone: CheckCircle2, variante: "secondary" },
+  atrasado: { rotulo: "Atrasada", icone: AlertTriangle, variante: "destructive" },
+  no_prazo: { rotulo: "Ainda no prazo", icone: Clock3, variante: "secondary" },
+};
+
+function SituacaoVacinal({ crianca }: { crianca: CriancaFechamentoC2Out }) {
+  const config = statusVacinal[crianca.status_vacinal];
+  const Icone = config.icone;
+  return (
+    <div className="flex min-w-44 flex-col items-start gap-1">
+      <Badge
+        variant={config.variante}
+        className={cn(
+          crianca.status_vacinal === "completo" &&
+            "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+        )}
+      >
+        <Icone data-icon="inline-start" aria-hidden />
+        {config.rotulo}
+      </Badge>
+      <p className="line-clamp-2 text-[11px] text-muted-foreground" title={crianca.status_vacinal_descricao}>
+        {crianca.status_vacinal_descricao}
+      </p>
     </div>
   );
 }
@@ -140,6 +172,7 @@ function LinhaCrianca({
         </p>
       </TableCell>
       <TableCell><Praticas praticas={crianca.praticas} /></TableCell>
+      <TableCell><SituacaoVacinal crianca={crianca} /></TableCell>
       <TableCell className="min-w-72 text-xs text-muted-foreground">
         {encerrada
           ? "Resultado preservado da última extração anterior aos 2 anos."
@@ -197,6 +230,7 @@ function ListaCriancas({
                   <Badge variant="secondary">{crianca.pontuacao_total} pts</Badge>
                 </div>
                 <Praticas praticas={crianca.praticas} />
+                <div className="mt-2"><SituacaoVacinal crianca={crianca} /></div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {encerrada ? "Fechamento preservado no histórico." : proximaAcao(crianca)}
                 </p>
@@ -210,6 +244,7 @@ function ListaCriancas({
                   <TableHead>Criança</TableHead>
                   <TableHead>{encerrada ? "Fechou em" : "Completa 2 anos"}</TableHead>
                   <TableHead>Cuidados A–E</TableHead>
+                  <TableHead>Situação vacinal</TableHead>
                   <TableHead>{encerrada ? "Registro" : "Próxima ação"}</TableHead>
                   <TableHead className="text-right">Pontuação</TableHead>
                 </TableRow>
