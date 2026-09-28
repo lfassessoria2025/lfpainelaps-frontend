@@ -445,6 +445,58 @@ export interface MetricasEquipeCriancaOut {
   praticas: MetricaPraticaC2Out[];
 }
 
+export type StatusPrazoPraticaC2 = "concluida" | "recuperavel" | "avaliar" | "prazo_encerrado";
+export type StatusFechamentoC2 = "completa" | "acao_prioritaria" | "acompanhar" | "encerrada";
+
+export interface PraticaFechamentoC2Out {
+  pratica: "A" | "B" | "C" | "D" | "E";
+  titulo: string;
+  status: StatusPrazoPraticaC2;
+  valor: number;
+  meta: number;
+  orientacao: string;
+}
+
+export interface CriancaFechamentoC2Out {
+  nome_cidadao: string;
+  data_nascimento: string;
+  data_limite: string;
+  dias_restantes: number;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  pontuacao_total: number;
+  status: StatusFechamentoC2;
+  data_ultima_avaliacao: string;
+  praticas: PraticaFechamentoC2Out[];
+}
+
+export interface MesFechamentoC2Out {
+  ano_mes: string;
+  status: "encerrado" | "em_andamento" | "previsto";
+  total_criancas: number;
+  total_100_pontos: number;
+  total_abaixo_100: number;
+  media_pontuacao: number;
+}
+
+export interface FechamentoC2Out {
+  data_referencia: string | null;
+  quadrimestre: string | null;
+  quadrimestre_inicio: string | null;
+  quadrimestre_fim: string | null;
+  resumo: {
+    fecham_no_quadrimestre: number;
+    precisam_acao: number;
+    completas_antes_dos_2_anos: number;
+    encerradas_no_quadrimestre: number;
+    media_pontuacao_encerradas: number;
+  };
+  meses: MesFechamentoC2Out[];
+  em_acompanhamento: CriancaFechamentoC2Out[];
+  encerradas: CriancaFechamentoC2Out[];
+}
+
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de
 // nascimento, chaves do e-SUS ou qualquer identificador individual.
 export type EstadoCoberturaPraticaC3 = "resultado_calculado_sem_rastreio_da_fonte";

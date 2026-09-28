@@ -10,11 +10,13 @@ import {
 } from "react";
 import {
   BarChart3,
+  CalendarClock,
   Download,
   Loader2,
   Search,
   ShieldAlert,
 } from "lucide-react";
+import { FechamentoC2 } from "@/components/criancas/fechamento-c2";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
 import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
@@ -44,9 +46,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   CriancaAcompanhamentoOut,
   EquipeCriancaOut,
+  FechamentoC2Out,
   MetricasEquipeCriancaOut,
   MicroAreaCriancaOut,
   PrefeituraOut,
@@ -60,6 +64,7 @@ type Status = "completa" | "parcial" | "pendente" | "em_prazo";
 type StatusFiltro = Exclude<Status, "em_prazo"> | "todos";
 type Pratica = "A" | "B" | "C" | "D" | "E";
 type Ordenacao = "nome" | "pontuacao-desc" | "pontuacao-asc";
+type Visao = "acompanhamento" | "fechamento";
 
 const PRATICAS: ReadonlyArray<{ codigo: Pratica; rotulo: string }> = [
   { codigo: "A", rotulo: "1ª consulta até 30 dias" },
@@ -272,6 +277,9 @@ export function CriancasPage() {
   const [exportando, setExportando] = useState(false);
   const [comparacaoAberta, setComparacaoAberta] = useState(false);
   const [comparacao, setComparacao] = useState<MetricasEquipeCriancaOut[] | null>(null);
+  const [visao, setVisao] = useState<Visao>("acompanhamento");
+  const [fechamento, setFechamento] = useState<FechamentoC2Out | null>(null);
+  const [erroFechamento, setErroFechamento] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const arrasteRef = useRef<{ pointerId: number; x: number; scrollLeft: number } | null>(null);
   const [arrastando, setArrastando] = useState(false);
@@ -360,6 +368,30 @@ export function CriancasPage() {
       });
     return () => controller.abort();
   }, [comparacaoAberta, prefeituraId]);
+
+  useEffect(() => {
+    if (visao !== "fechamento" || prefeituraId === null) return;
+    const controller = new AbortController();
+    setFechamento(null);
+    setErroFechamento(null);
+    criancaService
+      .fechamento(
+        prefeituraId,
+        equipesSelecionadas,
+        microAreasSelecionadas,
+        controller.signal,
+      )
+      .then(setFechamento)
+      .catch((falha: unknown) => {
+        if (falha instanceof DOMException && falha.name === "AbortError") return;
+        setErroFechamento(
+          falha instanceof ApiError
+            ? falha.detail
+            : "Não foi possível carregar o fechamento C2.",
+        );
+      });
+    return () => controller.abort();
+  }, [equipesSelecionadas, microAreasSelecionadas, prefeituraId, visao]);
 
   const filtradas = useMemo(() => {
     if (!criancas) return [];
@@ -498,6 +530,7 @@ export function CriancasPage() {
         }
         filters={criancas && criancas.length > 0 ? (
           <>
+            {visao === "acompanhamento" ? (
             <IndicatorFilterField label="Buscar" className="sm:col-span-2">
               <div className="relative">
                 <Search
@@ -514,6 +547,7 @@ export function CriancasPage() {
                 />
               </div>
             </IndicatorFilterField>
+            ) : null}
             <CatalogFilterDropdown
               label="Equipe"
               ariaLabel="Filtrar por equipe"
@@ -540,7 +574,7 @@ export function CriancasPage() {
               getSecondaryLabel={(item) => `${item.total_criancas} criança(s)`}
               onToggle={(chave, selecionada) => atualizarMicroAreas(selecionada ? [...microAreasSelecionadas, chave] : microAreasSelecionadas.filter((item) => item !== chave))}
             />
-            <IndicatorFilterField label="Status geral">
+            {visao === "acompanhamento" ? <IndicatorFilterField label="Status geral">
               <Select value={statusFiltro} onValueChange={(valor) => valor && setStatusFiltro(valor as StatusFiltro)}>
                 <SelectTrigger className="w-full" aria-label="Filtrar por status">
                   <SelectValue>
@@ -561,8 +595,8 @@ export function CriancasPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </IndicatorFilterField>
-            <IndicatorFilterField label="Ordenar por">
+            </IndicatorFilterField> : null}
+            {visao === "acompanhamento" ? <IndicatorFilterField label="Ordenar por">
               <Select value={ordenacao} onValueChange={(valor) => valor && setOrdenacao(valor as Ordenacao)}>
                 <SelectTrigger className="w-full" aria-label="Ordenar crianças">
                   <SelectValue>
@@ -581,17 +615,17 @@ export function CriancasPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </IndicatorFilterField>
+            </IndicatorFilterField> : null}
           </>
         ) : undefined}
-        summary={criancas ? (
+        summary={visao === "acompanhamento" && criancas ? (
           <p className="text-xs text-muted-foreground" aria-live="polite">
             <strong className="font-semibold text-foreground">{filtradas.length}</strong>{" "}
             de {criancas.length} crianças · Exibindo {filtradas.length === 0 ? 0 : inicioDaPagina + 1}–
             {Math.min(inicioDaPagina + ITENS_POR_PAGINA, filtradas.length)}
           </p>
         ) : undefined}
-        actions={criancas && criancas.length > 0 ? (
+        actions={visao === "acompanhamento" && criancas && criancas.length > 0 ? (
           <>
             {equipes && equipes.length > 1 ? (
               <Button
@@ -629,6 +663,15 @@ export function CriancasPage() {
         ) : undefined}
       />
 
+      <Tabs value={visao} onValueChange={(valor) => setVisao(valor as Visao)} className="gap-3">
+        <TabsList variant="line" aria-label="Visões do indicador infantil">
+          <TabsTrigger value="acompanhamento">Acompanhamento</TabsTrigger>
+          <TabsTrigger value="fechamento">
+            <CalendarClock data-icon="inline-start" />
+            Fechamento aos 2 anos
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="acompanhamento">
       {erro ? <p role="alert" className="mb-3 text-sm text-destructive">{erro}</p> : null}
       {criancas === null && !erro ? (
         <div className="space-y-2"><Skeleton className="h-10" /><Skeleton className="h-64" /></div>
@@ -693,6 +736,15 @@ export function CriancasPage() {
           />
         </>
       ) : null}
+        </TabsContent>
+        <TabsContent value="fechamento">
+          <FechamentoC2
+            dados={fechamento}
+            carregando={fechamento === null && erroFechamento === null}
+            erro={erroFechamento}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

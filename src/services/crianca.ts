@@ -2,6 +2,7 @@ import { http } from "@/lib/http";
 import type {
   CriancaAcompanhamentoOut,
   EquipeCriancaOut,
+  FechamentoC2Out,
   MetricasEquipeCriancaOut,
   MicroAreaCriancaOut,
 } from "@/lib/api-types";
@@ -38,6 +39,16 @@ export const criancaService = {
   compararEquipes: (prefeituraId: number, signal?: AbortSignal) =>
     http.get<MetricasEquipeCriancaOut[]>(
       `/prefeituras/${prefeituraId}/indicadores/criancas/comparacao-equipes`,
+      signal,
+    ),
+  fechamento: (
+    prefeituraId: number,
+    equipes: readonly string[] = [],
+    microAreas: readonly string[] = [],
+    signal?: AbortSignal,
+  ) =>
+    http.get<FechamentoC2Out>(
+      `/prefeituras/${prefeituraId}/indicadores/criancas/fechamento${filtros(equipes, microAreas)}`,
       signal,
     ),
   exportar: (

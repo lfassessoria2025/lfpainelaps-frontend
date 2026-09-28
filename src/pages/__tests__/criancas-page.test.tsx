@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import type {
   CriancaAcompanhamentoOut,
   EquipeCriancaOut,
+  FechamentoC2Out,
   PrefeituraOut,
 } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
@@ -17,6 +18,7 @@ vi.mock("@/services/crianca", () => ({
     equipes: vi.fn(),
     microAreas: vi.fn(),
     compararEquipes: vi.fn(),
+    fechamento: vi.fn(),
     exportar: vi.fn(),
   },
 }));
@@ -64,6 +66,55 @@ const CRIANCA: CriancaAcompanhamentoOut = {
   created_at: "2026-09-18T12:00:00Z",
 };
 
+const FECHAMENTO: FechamentoC2Out = {
+  data_referencia: "2026-09-18",
+  quadrimestre: "3º quadrimestre de 2026",
+  quadrimestre_inicio: "2026-09-01",
+  quadrimestre_fim: "2026-12-31",
+  resumo: {
+    fecham_no_quadrimestre: 1,
+    precisam_acao: 1,
+    completas_antes_dos_2_anos: 0,
+    encerradas_no_quadrimestre: 1,
+    media_pontuacao_encerradas: 80,
+  },
+  meses: [
+    {
+      ano_mes: "2026-09",
+      status: "em_andamento",
+      total_criancas: 1,
+      total_100_pontos: 0,
+      total_abaixo_100: 1,
+      media_pontuacao: 80,
+    },
+  ],
+  em_acompanhamento: [
+    {
+      nome_cidadao: "Criança perto dos 2 anos",
+      data_nascimento: "2024-10-01",
+      data_limite: "2026-10-01",
+      dias_restantes: 13,
+      equipe_nome: "ESF Centro",
+      equipe_ine: "0001",
+      micro_area: "001",
+      pontuacao_total: 80,
+      status: "acao_prioritaria",
+      data_ultima_avaliacao: "2026-09-18",
+      praticas: [
+        {
+          pratica: "E",
+          titulo: "Esquemas vacinais",
+          status: "avaliar",
+          valor: 5,
+          meta: 6,
+          orientacao: "Conferir caderneta e intervalos; grupo pendente: Tríplice viral.",
+        },
+      ],
+    },
+  ],
+  encerradas: [],
+};
+
 beforeEach(() => {
   prefeituraService.list.mockResolvedValue([PREFEITURA]);
   service.list.mockResolvedValue([CRIANCA]);
@@ -71,6 +122,7 @@ beforeEach(() => {
   service.microAreas.mockResolvedValue([
     { chave: "001", codigo: "001", total_criancas: 1, sem_micro_area: false },
   ]);
+  service.fechamento.mockResolvedValue(FECHAMENTO);
 });
 
 afterEach(() => {
@@ -78,13 +130,13 @@ afterEach(() => {
 });
 
 describe("CriancasPage", () => {
-  it("mostra a lista C2 simples, os cinco cuidados e o cabeçalho fixo", async () => {
+  it("mostra a lista C2, os cinco cuidados e o cabeçalho fixo", async () => {
     render(<CriancasPage />);
 
     expect((await screen.findAllByText("Alice da Silva")).length).toBeGreaterThan(0);
     expect(screen.getByRole("combobox", { name: "Prefeitura" })).toHaveTextContent("Pedregulho");
     expect(screen.getByRole("searchbox", { name: /buscar criança ou equipe/i })).toBeInTheDocument();
-    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
     const tabela = screen.getByRole("table");
     expect(within(tabela).getByText("1ª consulta até 30 dias")).toBeInTheDocument();
     expect(within(tabela).getByText("9 consultas de puericultura")).toBeInTheDocument();
@@ -93,6 +145,25 @@ describe("CriancasPage", () => {
     expect(screen.getByRole("region", { name: /tabela nominal de crianças/i })).toHaveAttribute(
       "tabindex",
       "0",
+    );
+  });
+
+  it("mostra o fechamento mensal e o que ainda pode ser feito antes dos 2 anos", async () => {
+    const user = userEvent.setup();
+    render(<CriancasPage />);
+    await screen.findAllByText("Alice da Silva");
+
+    await user.click(screen.getByRole("tab", { name: /fechamento aos 2 anos/i }));
+
+    expect((await screen.findAllByText("Criança perto dos 2 anos")).length).toBeGreaterThan(0);
+    expect(screen.getByText("Dá tempo de agir")).toBeInTheDocument();
+    expect(screen.getAllByText(/conferir caderneta e intervalos/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/3º quadrimestre de 2026/i)).toBeInTheDocument();
+    expect(service.fechamento).toHaveBeenCalledWith(
+      PREFEITURA.id,
+      [],
+      [],
+      expect.any(AbortSignal),
     );
   });
 
