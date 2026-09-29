@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Search, UsersRound } from "lucide-react";
+import { Building2, CheckCircle2, Search, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,12 +13,14 @@ import type {
   UserTeamOut,
 } from "@/lib/api-types";
 import { usersService } from "@/services/users";
+import { cn } from "@/lib/utils";
 
 interface UserAccessScopeEditorProps {
   prefeituras: PrefeituraOut[];
   scopes: UserAccessScopeIn[];
   onChange: (scopes: UserAccessScopeIn[]) => void;
   disabled?: boolean;
+  showHeading?: boolean;
 }
 
 export function UserAccessScopeEditor({
@@ -26,6 +28,7 @@ export function UserAccessScopeEditor({
   scopes,
   onChange,
   disabled = false,
+  showHeading = true,
 }: UserAccessScopeEditorProps) {
   const [catalogs, setCatalogs] = useState<Record<number, UserTeamOut[]>>({});
   const [loading, setLoading] = useState<Set<number>>(new Set());
@@ -85,11 +88,13 @@ export function UserAccessScopeEditor({
 
   return (
     <FieldSet disabled={disabled}>
-      <FieldLegend>Lotação e acesso aos dados</FieldLegend>
-      <FieldDescription>
-        Selecione a prefeitura e as equipes deste funcionário. O cargo não precisa ser duplicado por equipe.
-      </FieldDescription>
-      <div className="flex flex-col gap-3">
+      <FieldLegend className={showHeading ? undefined : "sr-only"}>Lotação e acesso aos dados</FieldLegend>
+      {showHeading ? (
+        <FieldDescription>
+          Selecione a prefeitura e as equipes deste funcionário. O cargo não precisa ser duplicado por equipe.
+        </FieldDescription>
+      ) : null}
+      <div className="flex flex-col gap-2.5">
         {prefeituras.map((prefeitura) => {
           const scope = byPrefeitura.get(prefeitura.id);
           const teams = catalogs[prefeitura.id] ?? [];
@@ -100,26 +105,45 @@ export function UserAccessScopeEditor({
           const known = new Set(teams.map((team) => team.key));
           const missing = scope?.team_keys.filter((key) => !known.has(key)) ?? [];
           return (
-            <div key={prefeitura.id} className="rounded-xl border bg-muted/20 p-3">
-              <label className="flex cursor-pointer items-center gap-3">
+            <div
+              key={prefeitura.id}
+              className={cn(
+                "overflow-hidden rounded-xl border bg-background transition-all duration-200",
+                scope ? "shadow-sm ring-1 ring-primary/15" : "hover:bg-muted/30",
+              )}
+            >
+              <label className="flex cursor-pointer items-center gap-3 px-3.5 py-3">
                 <Checkbox
                   checked={Boolean(scope)}
                   onCheckedChange={(checked) => togglePrefeitura(prefeitura.id, checked === true)}
                 />
-                <Building2 />
-                <span className="font-medium">{prefeitura.name}</span>
+                <span className={cn(
+                  "flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors",
+                  scope && "bg-primary/10 text-primary",
+                )}>
+                  <Building2 />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{prefeitura.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {scope ? "Prefeitura incluída no acesso" : "Clique para incluir"}
+                  </span>
+                </span>
                 {scope ? (
-                  <Badge variant="secondary" className="ml-auto">
-                    {scope.all_teams ? "Todas as equipes" : `${scope.team_keys.length} equipe(s)`}
+                  <Badge variant="secondary">
+                    {scope.all_teams ? "Todas" : `${scope.team_keys.length} selecionada(s)`}
                   </Badge>
                 ) : null}
               </label>
               {scope ? (
-                <div className="mt-3 ml-7 flex flex-col gap-3 border-l pl-4">
-                  <label className="flex cursor-pointer items-center justify-between gap-4">
-                    <span>
-                      <span className="block text-sm font-medium">Todas as equipes atuais e futuras</span>
-                      <span className="block text-xs text-muted-foreground">Ideal para coordenação municipal.</span>
+                <div className="animate-in fade-in-0 slide-in-from-top-2 flex flex-col gap-3 border-t bg-muted/20 p-3.5 duration-200">
+                  <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg bg-background px-3 py-2.5 ring-1 ring-foreground/10">
+                    <span className="flex items-center gap-2.5">
+                      <CheckCircle2 className="text-muted-foreground" />
+                      <span>
+                        <span className="block text-sm font-medium">Todas as equipes atuais e futuras</span>
+                        <span className="block text-xs text-muted-foreground">Recomendado para coordenação municipal.</span>
+                      </span>
                     </span>
                     <Switch
                       checked={scope.all_teams}
@@ -130,9 +154,14 @@ export function UserAccessScopeEditor({
                     />
                   </label>
                   {!scope.all_teams ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <UsersRound /> Equipes específicas
+                    <div className="animate-in fade-in-0 slide-in-from-top-1 flex flex-col gap-2.5 duration-150">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <UsersRound /> Equipes específicas
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {scope.team_keys.length} selecionada(s)
+                        </span>
                       </div>
                       <div className="relative">
                         <Search className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" />
@@ -150,9 +179,9 @@ export function UserAccessScopeEditor({
                       {loading.has(prefeitura.id) ? <Spinner /> : (
                         <>
                           {filtered.length > 0 ? (
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs text-muted-foreground">{filtered.length} encontrada(s)</span>
-                              <div className="flex gap-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-xs text-muted-foreground">{filtered.length} equipe(s) exibida(s)</span>
+                              <div className="flex flex-wrap gap-1">
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -173,9 +202,15 @@ export function UserAccessScopeEditor({
                               </div>
                             </div>
                           ) : null}
-                          <div className="grid max-h-56 gap-2 overflow-y-auto sm:grid-cols-2">
+                          <div className="grid max-h-64 gap-1 overflow-y-auto rounded-lg bg-background p-1 ring-1 ring-foreground/10 sm:grid-cols-2 xl:grid-cols-3">
                             {filtered.map((team) => (
-                              <label key={team.key} className="flex cursor-pointer items-start gap-2 rounded-lg border bg-background p-2.5 text-sm">
+                              <label
+                                key={team.key}
+                                className={cn(
+                                  "flex cursor-pointer items-start gap-2 rounded-md px-2.5 py-2 text-sm transition-colors hover:bg-muted",
+                                  scope.team_keys.includes(team.key) && "bg-primary/5",
+                                )}
+                              >
                                 <Checkbox
                                   checked={scope.team_keys.includes(team.key)}
                                   onCheckedChange={(checked) => toggleTeam(prefeitura.id, team.key, checked === true)}
@@ -187,7 +222,7 @@ export function UserAccessScopeEditor({
                               </label>
                             ))}
                             {missing.map((key) => (
-                              <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed p-2.5 text-sm">
+                              <label key={key} className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-2.5 py-2 text-sm">
                                 <Checkbox checked onCheckedChange={(checked) => toggleTeam(prefeitura.id, key, checked === true)} />
                                 Equipe preservada ({key})
                               </label>
@@ -205,6 +240,11 @@ export function UserAccessScopeEditor({
             </div>
           );
         })}
+        {prefeituras.length === 0 ? (
+          <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            Nenhuma prefeitura está disponível para atribuição.
+          </p>
+        ) : null}
       </div>
     </FieldSet>
   );

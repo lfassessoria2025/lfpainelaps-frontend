@@ -109,11 +109,35 @@ describe("UsersManagement — FLO-55", () => {
 
     await user.click(screen.getByRole("button", { name: "Convidar funcionário" }));
     await user.type(screen.getByLabelText("E-mail"), "teste");
-    await user.click(screen.getByRole("button", { name: "Convidar" }));
+    await user.click(screen.getByRole("button", { name: "Enviar convite" }));
 
     expect(await screen.findByText("Informe um e-mail válido, como nome@prefeitura.gov.br.")).toBeInTheDocument();
     expect(mockedUsers.invite).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog", { name: "Convidar funcionário" })).toBeInTheDocument();
+  });
+
+  it("organiza o convite em uma janela ampla com lotação por equipe", async () => {
+    const user = userEvent.setup();
+    render(
+      <UsersManagement
+        currentUserId={1}
+        currentUserIsAdmin
+        roles={ROLES}
+        canAssignPrefeituras
+      />,
+    );
+    await screen.findByText("Usuária Ativa");
+
+    await user.click(screen.getByRole("button", { name: "Convidar funcionário" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Convidar funcionário" });
+    expect(dialog).toHaveClass("max-w-6xl");
+    expect(screen.getByText("Dados do convite")).toBeInTheDocument();
+    expect(screen.getByText("Lotação e acesso")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: /Jeriquara/ }));
+    expect(await screen.findByText("Equipes específicas")).toBeInTheDocument();
+    expect(await screen.findByText("ESF Centro")).toBeInTheDocument();
   });
 
   it("envia lotação por prefeitura e equipe somente quando a capability foi concedida", async () => {
