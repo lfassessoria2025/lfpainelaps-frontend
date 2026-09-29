@@ -131,7 +131,8 @@ describe("UsersManagement — FLO-55", () => {
     await user.click(screen.getByRole("button", { name: "Convidar funcionário" }));
 
     const dialog = screen.getByRole("dialog", { name: "Convidar funcionário" });
-    expect(dialog).toHaveClass("max-w-6xl");
+    expect(dialog).toHaveClass("sm:max-w-6xl");
+    expect(dialog).toHaveClass("sm:w-[calc(100vw-3rem)]");
     expect(screen.getByText("Dados do convite")).toBeInTheDocument();
     expect(screen.getByText("Lotação e acesso")).toBeInTheDocument();
 

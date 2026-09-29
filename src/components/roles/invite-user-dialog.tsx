@@ -110,7 +110,7 @@ export function InviteUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-1.5rem)] max-w-6xl gap-0 overflow-hidden p-0">
+      <DialogContent className="h-[min(54rem,calc(100vh-1.5rem))] w-[calc(100vw-1.5rem)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 duration-200 sm:w-[calc(100vw-3rem)] sm:max-w-6xl">
         <DialogHeader className="border-b bg-muted/30 px-6 py-5 pr-14">
           <div className="flex items-center gap-3">
             <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -125,7 +125,7 @@ export function InviteUserDialog({
           </div>
         </DialogHeader>
 
-        <div className="min-h-0 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {invitedToken ? (
             <Card className="mx-auto max-w-2xl animate-in fade-in-0 zoom-in-95 duration-200">
               <CardHeader>
@@ -141,7 +141,7 @@ export function InviteUserDialog({
               </CardContent>
             </Card>
           ) : (
-            <div className="grid items-start gap-5 lg:grid-cols-[minmax(18rem,0.75fr)_minmax(0,1.45fr)]">
+            <div className="grid items-start gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
