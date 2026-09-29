@@ -68,6 +68,12 @@ export function InviteUserDialog({
   }, [open]);
 
   async function handleSubmit() {
+    const normalizedEmail = email.trim().toLocaleLowerCase("pt-BR");
+    const [local, domain = ""] = normalizedEmail.split("@");
+    if (!local || !domain.includes(".")) {
+      setError("Informe um e-mail válido, como nome@prefeitura.gov.br.");
+      return;
+    }
     if (scopes.some((scope) => !scope.all_teams && scope.team_keys.length === 0)) {
       setError("Escolha ao menos uma equipe nas prefeituras selecionadas.");
       return;
@@ -76,7 +82,7 @@ export function InviteUserDialog({
     setIsSubmitting(true);
     try {
       const invitation = await usersService.invite({
-        email,
+        email: normalizedEmail,
         role_id: roleId === "none" ? null : Number(roleId),
         ...(canAssignPrefeituras ? { access_scopes: scopes } : {}),
       });

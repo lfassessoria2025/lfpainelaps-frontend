@@ -22,6 +22,25 @@ function notifyIfTermGate(status: number, detail: string) {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+function normalizeErrorDetail(body: unknown, status: number): string {
+  const detail = typeof body === "object" && body !== null && "detail" in body
+    ? (body as { detail?: unknown }).detail
+    : undefined;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => (
+        typeof item === "object" && item !== null && "msg" in item
+          ? (item as { msg?: unknown }).msg
+          : undefined
+      ))
+      .filter((message): message is string => typeof message === "string" && Boolean(message.trim()))
+      .map((message) => message.replace(/^Value error,\s*/i, ""));
+    if (messages.length > 0) return Array.from(new Set(messages)).join(" ");
+  }
+  return `Erro inesperado (HTTP ${status}).`;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly detail: string;
@@ -94,8 +113,7 @@ async function request<T>(
   const data = isJson ? await response.json() : undefined;
 
   if (!response.ok) {
-    const detail =
-      (data as ApiErrorBody | undefined)?.detail ?? `Erro inesperado (HTTP ${response.status}).`;
+    const detail = normalizeErrorDetail(data as ApiErrorBody | undefined, response.status);
     notifyIfTermGate(response.status, detail);
     throw new ApiError(response.status, detail);
   }
@@ -129,7 +147,7 @@ async function getBlob(
   if (!response.ok) {
     const isJson = response.headers.get("content-type")?.includes("application/json");
     const data = isJson ? ((await response.json()) as ApiErrorBody) : undefined;
-    const detail = data?.detail ?? `Erro inesperado (HTTP ${response.status}).`;
+    const detail = normalizeErrorDetail(data, response.status);
     notifyIfTermGate(response.status, detail);
     throw new ApiError(response.status, detail);
   }

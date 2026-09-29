@@ -669,5 +669,5 @@ export interface IndicadoresCatalogoOut {
 
 /** Corpo de erro de qualquer resposta 4xx/5xx do FastAPI. */
 export interface ApiErrorBody {
-  detail: string;
+  detail: unknown;
 }

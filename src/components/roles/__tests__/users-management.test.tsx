@@ -102,6 +102,20 @@ describe("UsersManagement — FLO-55", () => {
     }));
   });
 
+  it("mantém o convite aberto e orienta quando o e-mail é inválido", async () => {
+    const user = userEvent.setup();
+    render(<UsersManagement currentUserId={1} currentUserIsAdmin roles={ROLES} canAssignPrefeituras={false} />);
+    await screen.findByText("Usuária Ativa");
+
+    await user.click(screen.getByRole("button", { name: "Convidar funcionário" }));
+    await user.type(screen.getByLabelText("E-mail"), "teste");
+    await user.click(screen.getByRole("button", { name: "Convidar" }));
+
+    expect(await screen.findByText("Informe um e-mail válido, como nome@prefeitura.gov.br.")).toBeInTheDocument();
+    expect(mockedUsers.invite).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Convidar funcionário" })).toBeInTheDocument();
+  });
+
   it("envia lotação por prefeitura e equipe somente quando a capability foi concedida", async () => {
     const user = userEvent.setup();
     render(<UsersManagement currentUserId={1} currentUserIsAdmin roles={ROLES} canAssignPrefeituras />);
