@@ -37,6 +37,21 @@ function termStatus(user: UserSummaryOut) {
   return `Versão ${user.current_term_version} · ${acceptedAt}`;
 }
 
+function accessSummary(user: UserSummaryOut) {
+  if (user.is_admin) return <Badge variant="secondary">Todas as prefeituras</Badge>;
+  if (user.access_scopes.length === 0) return <Badge variant="outline">Sem lotação</Badge>;
+
+  return (
+    <div className="flex max-w-sm flex-wrap gap-1.5">
+      {user.access_scopes.map((scope) => (
+        <Badge key={scope.prefeitura_id} variant="secondary" className="font-normal">
+          {scope.prefeitura_name}: {scope.all_teams ? "todas as equipes" : `${scope.team_keys.length} equipe(s)`}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 interface UsersManagementProps {
   currentUserId: number;
   currentUserIsAdmin: boolean;
@@ -131,7 +146,7 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
               <TableRow>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Cargo</TableHead>
-                <TableHead>Prefeituras</TableHead>
+                <TableHead>Lotação</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Termo</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -151,7 +166,7 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
                       </div>
                     </TableCell>
                     <TableCell>{managedUser.is_admin ? "Administrador" : role?.name ?? "Sem cargo"}</TableCell>
-                    <TableCell>{managedUser.is_admin ? "Todas" : managedUser.prefeitura_ids.length}</TableCell>
+                    <TableCell>{accessSummary(managedUser)}</TableCell>
                     <TableCell><Badge variant="secondary">{STATUS_COPY[managedUser.status]}</Badge></TableCell>
                     <TableCell>{termStatus(managedUser)}</TableCell>
                     <TableCell>
@@ -208,6 +223,9 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
         open={inviteOpen}
         onOpenChange={setInviteOpen}
         roles={roles}
+        prefeituras={prefeituras}
+        users={users ?? []}
+        canAssignPrefeituras={canAssignPrefeituras}
         onInvited={() => handleSaved("Convite criado.")}
       />
       <UserEditDialog
@@ -216,6 +234,7 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
         user={editingUser}
         roles={roles}
         prefeituras={prefeituras}
+        users={users ?? []}
         canAssignPrefeituras={canAssignPrefeituras}
         onSaved={() => handleSaved("Usuário atualizado.")}
       />

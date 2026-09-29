@@ -6,10 +6,13 @@ import type {
   UserManagementUpdate,
   UserSummaryOut,
   UserStatusChange,
+  UserTeamCatalogOut,
 } from "@/lib/api-types";
 
 export const usersService = {
   list: (signal?: AbortSignal) => http.get<UserSummaryOut[]>("/users", signal),
+  teamCatalog: (prefeituraId: number, signal?: AbortSignal) =>
+    http.get<UserTeamCatalogOut>(`/users/team-catalog?prefeitura_id=${prefeituraId}`, signal),
   invite: (payload: InvitationCreate) => http.post<InvitationOut>("/users/invitations", payload),
   assignRole: (userId: number, payload: RoleAssignment) =>
     http.put<void>(`/users/${userId}/role`, payload),

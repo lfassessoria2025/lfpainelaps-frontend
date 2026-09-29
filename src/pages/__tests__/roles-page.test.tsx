@@ -29,7 +29,7 @@ function mockAuth(permissions: Array<"cargo.criar" | "cargo.editar" | "cargo.exc
 
 beforeEach(() => {
   mockedRoles.list.mockResolvedValue([
-    { id: 7, name: "Enfermeira", permissions: [], scope_configured: false, scopes: [] },
+    { id: 7, name: "Enfermeira", permissions: [] },
   ]);
 });
 

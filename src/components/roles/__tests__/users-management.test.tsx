@@ -15,6 +15,7 @@ vi.mock("@/services/users", () => ({
     deactivate: vi.fn(),
     reactivate: vi.fn(),
     cancelInvitation: vi.fn(),
+    teamCatalog: vi.fn(),
   },
 }));
 vi.mock("@/services/prefeituras", () => ({
@@ -28,15 +29,13 @@ const ROLES: RoleOut[] = [
     id: 7,
     name: "Enfermeira",
     permissions: ["relatorio.gestante.visualizar"],
-    scope_configured: false,
-    scopes: [],
   },
 ];
 const USERS: UserSummaryOut[] = [
-  { id: 1, email: "gestora@example.test", name: "Gestora", is_admin: true, status: "ativo", role_id: null, prefeitura_ids: [10], current_term_version: "1.0", current_term_accepted_at: "2026-08-15T12:00:00Z" },
-  { id: 2, email: "ativa@example.test", name: "Usuária Ativa", is_admin: false, status: "ativo", role_id: 7, prefeitura_ids: [10], current_term_version: "1.0", current_term_accepted_at: null },
-  { id: 3, email: "convite@example.test", name: null, is_admin: false, status: "convidado", role_id: 7, prefeitura_ids: [], current_term_version: "1.0", current_term_accepted_at: null },
-  { id: 4, email: "inativa@example.test", name: "Usuária Inativa", is_admin: false, status: "desativado", role_id: null, prefeitura_ids: [], current_term_version: null, current_term_accepted_at: null },
+  { id: 1, email: "gestora@example.test", name: "Gestora", is_admin: true, status: "ativo", role_id: null, prefeitura_ids: [10], access_scopes: [{ prefeitura_id: 10, prefeitura_name: "Jeriquara", all_teams: true, team_keys: [] }], current_term_version: "1.0", current_term_accepted_at: "2026-08-15T12:00:00Z" },
+  { id: 2, email: "ativa@example.test", name: "Usuária Ativa", is_admin: false, status: "ativo", role_id: 7, prefeitura_ids: [10], access_scopes: [{ prefeitura_id: 10, prefeitura_name: "Jeriquara", all_teams: false, team_keys: ["ine:1234567"] }], current_term_version: "1.0", current_term_accepted_at: null },
+  { id: 3, email: "convite@example.test", name: null, is_admin: false, status: "convidado", role_id: 7, prefeitura_ids: [], access_scopes: [], current_term_version: "1.0", current_term_accepted_at: null },
+  { id: 4, email: "inativa@example.test", name: "Usuária Inativa", is_admin: false, status: "desativado", role_id: null, prefeitura_ids: [], access_scopes: [], current_term_version: null, current_term_accepted_at: null },
 ];
 
 beforeEach(() => {
@@ -46,6 +45,10 @@ beforeEach(() => {
   mockedUsers.deactivate.mockResolvedValue(undefined);
   mockedUsers.reactivate.mockResolvedValue(undefined);
   mockedUsers.cancelInvitation.mockResolvedValue(undefined);
+  mockedUsers.teamCatalog.mockResolvedValue({
+    prefeitura_id: 10,
+    teams: [{ key: "ine:1234567", name: "ESF Centro", ine: "1234567" }],
+  });
   mockedPrefeituras.list.mockResolvedValue([{ id: 10, ibge_code: "3500000", name: "Jeriquara", active: true }]);
 });
 
@@ -99,55 +102,40 @@ describe("UsersManagement — FLO-55", () => {
     }));
   });
 
-  it("envia prefeituras somente quando a capability foi concedida pelo backend", async () => {
+  it("envia lotação por prefeitura e equipe somente quando a capability foi concedida", async () => {
     const user = userEvent.setup();
     render(<UsersManagement currentUserId={1} currentUserIsAdmin roles={ROLES} canAssignPrefeituras />);
     await screen.findByText("Usuária Ativa");
 
     await user.click(screen.getByRole("button", { name: "Editar Usuária Ativa" }));
-    expect(await screen.findByText("Prefeituras permitidas")).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Jeriquara" })).toBeChecked();
-    await user.click(screen.getByRole("checkbox", { name: "Jeriquara" }));
+    expect(await screen.findByText("Lotação e acesso aos dados")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Jeriquara/ })).toBeChecked();
+    await user.click(screen.getByRole("checkbox", { name: /Jeriquara/ }));
     await user.type(screen.getByLabelText("Motivo da alteração"), "Revisão de lotação");
     await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
 
     await waitFor(() => expect(mockedUsers.update).toHaveBeenCalledWith(2, {
-      prefeitura_ids: [],
+      access_scopes: [],
       motivo: "Revisão de lotação",
     }));
   });
 
-  it("herda prefeitura e equipe do cargo sem permitir escopo paralelo no usuário", async () => {
-    const scopedRoles: RoleOut[] = [
-      {
-        ...ROLES[0],
-        scope_configured: true,
-        scopes: [
-          {
-            prefeitura_id: 10,
-            prefeitura_name: "Jeriquara",
-            all_teams: false,
-            team_keys: ["ine:1234567"],
-          },
-        ],
-      },
-    ];
+  it("permite reutilizar o mesmo cargo e copiar a lotação de outro funcionário", async () => {
     const user = userEvent.setup();
     render(
       <UsersManagement
         currentUserId={1}
         currentUserIsAdmin
-        roles={scopedRoles}
+        roles={ROLES}
         canAssignPrefeituras
       />,
     );
     await screen.findByText("Usuária Ativa");
 
     await user.click(screen.getByRole("button", { name: "Editar Usuária Ativa" }));
-    expect(await screen.findByText("Acesso aos dados")).toBeInTheDocument();
-    expect(screen.getByText("Jeriquara")).toBeInTheDocument();
-    expect(screen.getByText(/1 equipe/)).toBeInTheDocument();
-    expect(screen.queryByText("Prefeituras permitidas")).not.toBeInTheDocument();
+    expect(await screen.findByText("Copiar lotação de outro funcionário")).toBeInTheDocument();
+    expect(screen.getByText("Lotação e acesso aos dados")).toBeInTheDocument();
+    expect(screen.getAllByText(/1 equipe/).length).toBeGreaterThan(0);
   });
 
   it.each([

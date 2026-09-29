@@ -25,7 +25,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RoleFormDialog } from "@/components/roles/role-form-dialog";
-import { RoleScopeSummary } from "@/components/roles/role-scope-summary";
 import { UsersManagement } from "@/components/roles/users-management";
 import { PageHeader } from "@/components/layout/page-header";
 import { useAuth } from "@/contexts/auth-context";
@@ -103,7 +102,7 @@ export function RolesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Cargos e permissões"
-        description="Gerencie cargos e o que cada um pode acessar."
+        description="Crie cargos reutilizáveis. A prefeitura e as equipes são definidas na lotação de cada funcionário."
         actions={canCreateRole ? (
             <Button onClick={openCreate}>
               <Plus data-icon="inline-start" />
@@ -141,7 +140,7 @@ export function RolesPage() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Permissões</TableHead>
-                <TableHead>Acesso aos dados</TableHead>
+                <TableHead>Uso</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -153,7 +152,7 @@ export function RolesPage() {
                     <Badge variant="secondary">{role.permissions.length} permissões</Badge>
                   </TableCell>
                   <TableCell>
-                    <RoleScopeSummary role={role} compact />
+                    <Badge variant="outline">Reutilizável em qualquer equipe</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">

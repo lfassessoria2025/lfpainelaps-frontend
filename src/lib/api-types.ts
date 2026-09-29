@@ -30,6 +30,7 @@ export interface UserSummaryOut {
   status: UserStatus;
   role_id: number | null;
   prefeitura_ids: number[];
+  access_scopes: UserAccessScopeOut[];
   current_term_version: string | null;
   current_term_accepted_at: string | null;
 }
@@ -100,35 +101,32 @@ export interface RoleOut {
   id: number;
   name: string;
   permissions: Permission[];
-  scope_configured: boolean;
-  scopes: RolePrefeituraScopeOut[];
 }
 
-export interface RolePrefeituraScopeIn {
+export interface UserAccessScopeIn {
   prefeitura_id: number;
   all_teams: boolean;
   team_keys: string[];
 }
 
-export interface RolePrefeituraScopeOut extends RolePrefeituraScopeIn {
+export interface UserAccessScopeOut extends UserAccessScopeIn {
   prefeitura_name: string;
 }
 
-export interface RoleTeamOut {
+export interface UserTeamOut {
   key: string;
   name: string | null;
   ine: string | null;
 }
 
-export interface RoleTeamCatalogOut {
+export interface UserTeamCatalogOut {
   prefeitura_id: number;
-  teams: RoleTeamOut[];
+  teams: UserTeamOut[];
 }
 
 export interface RoleCreate {
   name: string;
   permissions: Permission[];
-  scopes?: RolePrefeituraScopeIn[];
 }
 
 export type RoleUpdate = RoleCreate;
@@ -145,6 +143,7 @@ export interface UserManagementUpdate {
   name?: string | null;
   role_id?: number | null;
   prefeitura_ids?: number[];
+  access_scopes?: UserAccessScopeIn[];
   motivo: string;
 }
 
@@ -155,6 +154,7 @@ export interface UserStatusChange {
 export interface InvitationCreate {
   email: string;
   role_id: number | null;
+  access_scopes?: UserAccessScopeIn[];
 }
 
 export interface InvitationOut {

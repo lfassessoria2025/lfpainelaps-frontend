@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,8 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { RoleScopeSummary } from "@/components/roles/role-scope-summary";
-import type { PrefeituraOut, RoleOut, UserManagementUpdate, UserSummaryOut } from "@/lib/api-types";
+import { UserAccessScopeEditor } from "@/components/roles/user-access-scope-editor";
+import type {
+  PrefeituraOut,
+  RoleOut,
+  UserAccessScopeIn,
+  UserManagementUpdate,
+  UserSummaryOut,
+} from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { usersService } from "@/services/users";
 
@@ -31,6 +36,7 @@ interface UserEditDialogProps {
   user: UserSummaryOut | null;
   roles: RoleOut[];
   prefeituras: PrefeituraOut[];
+  users: UserSummaryOut[];
   canAssignPrefeituras: boolean;
   onSaved: () => void | Promise<void>;
 }
@@ -41,51 +47,47 @@ export function UserEditDialog({
   user,
   roles,
   prefeituras,
+  users,
   canAssignPrefeituras,
   onSaved,
 }: UserEditDialogProps) {
   const [name, setName] = useState("");
   const [roleId, setRoleId] = useState("none");
-  const [prefeituraIds, setPrefeituraIds] = useState<Set<number>>(new Set());
+  const [scopes, setScopes] = useState<UserAccessScopeIn[]>([]);
+  const [copyFrom, setCopyFrom] = useState("none");
   const [motivo, setMotivo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const normalizedName = name.trim();
   const selectedRoleId = roleId === "none" ? null : Number(roleId);
-  const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? null;
-  const scopeComesFromRole = Boolean(selectedRole?.scope_configured);
-  const sortedPrefeituraIds = Array.from(prefeituraIds).toSorted((a, b) => a - b);
-  const originalPrefeituraIds = user?.prefeitura_ids.toSorted((a, b) => a - b) ?? [];
-  const prefeiturasChanged =
-    canAssignPrefeituras &&
-    !scopeComesFromRole &&
-    (sortedPrefeituraIds.length !== originalPrefeituraIds.length ||
-      sortedPrefeituraIds.some((id, index) => id !== originalPrefeituraIds[index]));
+  const serializeScopes = (values: UserAccessScopeIn[]) => JSON.stringify(
+    values
+      .map((scope) => ({ ...scope, team_keys: [...scope.team_keys].toSorted() }))
+      .toSorted((a, b) => a.prefeitura_id - b.prefeitura_id),
+  );
+  const scopesChanged = canAssignPrefeituras
+    && serializeScopes(scopes) !== serializeScopes(user?.access_scopes ?? []);
   const hasChanges = Boolean(
     user &&
       (normalizedName !== (user.name ?? "") ||
         (!user.is_admin && selectedRoleId !== user.role_id) ||
-        prefeiturasChanged),
+        scopesChanged),
   );
 
   useEffect(() => {
     if (!open || !user) return;
     setName(user.name ?? "");
     setRoleId(user.role_id === null ? "none" : String(user.role_id));
-    setPrefeituraIds(new Set(user.prefeitura_ids));
+    setScopes(user.access_scopes.map((scope) => ({
+      prefeitura_id: scope.prefeitura_id,
+      all_teams: scope.all_teams,
+      team_keys: [...scope.team_keys],
+    })));
+    setCopyFrom("none");
     setMotivo("");
     setError(null);
   }, [open, user]);
-
-  function togglePrefeitura(id: number, checked: boolean) {
-    setPrefeituraIds((current) => {
-      const next = new Set(current);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }
 
   async function handleSubmit() {
     if (!user || !normalizedName || motivo.trim().length < 3) {
@@ -96,15 +98,17 @@ export function UserEditDialog({
       setError("Faça ao menos uma alteração antes de salvar.");
       return;
     }
+    if (scopes.some((scope) => !scope.all_teams && scope.team_keys.length === 0)) {
+      setError("Escolha ao menos uma equipe nas prefeituras selecionadas.");
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     const payload: UserManagementUpdate = {
       motivo: motivo.trim(),
       ...(normalizedName !== (user.name ?? "") ? { name: normalizedName } : {}),
       ...(!user.is_admin && selectedRoleId !== user.role_id ? { role_id: selectedRoleId } : {}),
-      ...(prefeiturasChanged && !scopeComesFromRole
-        ? { prefeitura_ids: sortedPrefeituraIds }
-        : {}),
+      ...(scopesChanged ? { access_scopes: scopes } : {}),
     };
     try {
       await usersService.update(user.id, payload);
@@ -119,7 +123,7 @@ export function UserEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar usuário</DialogTitle>
           <DialogDescription>
@@ -166,32 +170,43 @@ export function UserEditDialog({
               </Select>
             )}
           </Field>
-          {selectedRole?.scope_configured ? (
-            <Field>
-              <FieldLabel>Acesso aos dados</FieldLabel>
-              <div className="rounded-lg border bg-muted/30 p-3">
-                <RoleScopeSummary role={selectedRole} />
-              </div>
-              <FieldDescription>
-                Prefeituras e equipes são herdadas do cargo. Para mudar o acesso, edite o cargo.
-              </FieldDescription>
-            </Field>
-          ) : canAssignPrefeituras ? (
-            <Field>
-              <FieldLabel>Prefeituras permitidas</FieldLabel>
-              <div className="flex flex-col gap-2">
-                {prefeituras.map((prefeitura) => (
-                  <label key={prefeitura.id} className="flex cursor-pointer items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={prefeituraIds.has(prefeitura.id)}
-                      onCheckedChange={(checked) => togglePrefeitura(prefeitura.id, checked === true)}
-                    />
-                    {prefeitura.name}
-                  </label>
-                ))}
-              </div>
-              <FieldDescription>O backend valida se você pode atribuir cada prefeitura.</FieldDescription>
-            </Field>
+          {canAssignPrefeituras ? (
+            <>
+              <Field>
+                <FieldLabel htmlFor="edit-copy-access">Copiar lotação de outro funcionário</FieldLabel>
+                <Select
+                  value={copyFrom}
+                  onValueChange={(value) => {
+                    const next = value ?? "none";
+                    setCopyFrom(next);
+                    const source = users.find((item) => String(item.id) === next);
+                    if (source) setScopes(source.access_scopes.map((scope) => ({
+                      prefeitura_id: scope.prefeitura_id,
+                      all_teams: scope.all_teams,
+                      team_keys: [...scope.team_keys],
+                    })));
+                  }}
+                >
+                  <SelectTrigger id="edit-copy-access" className="w-full">
+                    <SelectValue placeholder="Manter lotação atual" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="none">Manter lotação atual</SelectItem>
+                      {users.filter((item) => item.id !== user?.id && !item.is_admin && item.access_scopes.length > 0).map((item) => (
+                        <SelectItem key={item.id} value={String(item.id)}>{item.name || item.email}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <FieldDescription>Use como modelo e ajuste as equipes abaixo.</FieldDescription>
+              </Field>
+              <UserAccessScopeEditor
+                prefeituras={prefeituras}
+                scopes={scopes}
+                onChange={setScopes}
+              />
+            </>
           ) : null}
           <Field data-invalid={Boolean(error)}>
             <FieldLabel htmlFor="edit-user-reason">Motivo da alteração</FieldLabel>
