@@ -80,6 +80,7 @@ export type Permission =
   | "relatorio.baixar"
   | "relatorio.gestante.visualizar"
   | "relatorio.crianca.visualizar"
+  | "relatorio.mulher.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -582,6 +583,94 @@ export interface FechamentoC2Out {
   meses: MesFechamentoC2Out[];
   em_acompanhamento: CriancaFechamentoC2Out[];
   encerradas: CriancaFechamentoC2Out[];
+}
+
+// ---------------------------------------------------------------------------
+// Mulheres — indicador C7 (app/schemas/mulher.py)
+// ---------------------------------------------------------------------------
+
+export interface MulherAcompanhamentoOut {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  pratica_a_aplicavel: boolean;
+  pratica_a_concluida: boolean;
+  pratica_a_evidencia_data: string | null;
+  pratica_a_valida_ate: string | null;
+  pratica_b_aplicavel: boolean;
+  pratica_b_concluida: boolean;
+  pratica_b_evidencia_data: string | null;
+  pratica_c_aplicavel: boolean;
+  pratica_c_concluida: boolean;
+  pratica_c_evidencia_data: string | null;
+  pratica_c_valida_ate: string | null;
+  pratica_d_aplicavel: boolean;
+  pratica_d_concluida: boolean;
+  pratica_d_evidencia_data: string | null;
+  pratica_d_valida_ate: string | null;
+  pontos_obtidos: number;
+  pontos_aplicaveis: number;
+  created_at: string;
+}
+
+export interface EquipeMulherOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_mulheres: number;
+  sem_equipe: boolean;
+}
+
+export interface MicroAreaMulherOut {
+  chave: string;
+  codigo: string | null;
+  total_mulheres: number;
+  sem_micro_area: boolean;
+}
+
+export interface ResumoFechamentoC7Out {
+  total_mulheres: number;
+  total_completas: number;
+  total_pendentes: number;
+  pontuacao_indicador: number;
+}
+
+export interface PraticaFechamentoC7Out {
+  pratica: "A" | "B" | "C" | "D";
+  titulo: string;
+  peso: number;
+  total_aplicaveis: number;
+  total_concluidas: number;
+  percentual_cobertura: number;
+  contribuicao_pontos: number;
+}
+
+export interface MulherFechamentoC7Out {
+  id: number;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  pontos_obtidos: number;
+  pontos_aplicaveis: number;
+  status: "completa" | "pendente";
+  praticas_pendentes: Array<"A" | "B" | "C" | "D">;
+}
+
+export interface FechamentoC7Out {
+  data_referencia: string | null;
+  quadrimestre: string | null;
+  quadrimestre_inicio: string | null;
+  quadrimestre_fim: string | null;
+  resumo: ResumoFechamentoC7Out;
+  praticas: PraticaFechamentoC7Out[];
+  itens: MulherFechamentoC7Out[];
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de

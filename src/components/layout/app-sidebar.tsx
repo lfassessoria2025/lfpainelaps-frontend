@@ -1,4 +1,4 @@
-import { Baby, BarChart3, Blocks, Building2, LayoutDashboard, ShieldCheck, UploadCloud } from "lucide-react";
+import { Baby, BarChart3, Blocks, Building2, LayoutDashboard, ShieldCheck, UploadCloud, Venus } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -24,6 +24,7 @@ const PAINEL_ITEM: NavItem = { to: "/", label: "Painel", icon: LayoutDashboard }
 const INDICADORES_ITEMS: NavItem[] = [
   { to: "/gestantes", label: "Gestantes", icon: Baby },
   { to: "/criancas", label: "Crianças", icon: Blocks },
+  { to: "/mulheres", label: "Mulheres", icon: Venus },
 ];
 
 const ADMINISTRATIVO_ITEMS: NavItem[] = [
