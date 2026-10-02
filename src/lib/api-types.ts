@@ -81,6 +81,7 @@ export type Permission =
   | "relatorio.gestante.visualizar"
   | "relatorio.crianca.visualizar"
   | "relatorio.mulher.visualizar"
+  | "relatorio.idoso.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -671,6 +672,81 @@ export interface FechamentoC7Out {
   resumo: ResumoFechamentoC7Out;
   praticas: PraticaFechamentoC7Out[];
   itens: MulherFechamentoC7Out[];
+}
+
+export interface IdosoAcompanhamentoOut {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  pratica_a_consulta: boolean;
+  pratica_a_evidencia_data: string | null;
+  pratica_b_peso_altura: boolean;
+  pratica_c_visitas: boolean;
+  pratica_c_primeira_visita_data: string | null;
+  pratica_c_segunda_visita_data: string | null;
+  pratica_c_automatica_eap: boolean;
+  pratica_d_influenza: boolean;
+  pratica_d_evidencia_data: string | null;
+  pontos_obtidos: number;
+  created_at: string;
+}
+
+export interface EquipeIdosoOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_idosos: number;
+  sem_equipe: boolean;
+}
+
+export interface MicroAreaIdosoOut {
+  chave: string;
+  codigo: string | null;
+  total_idosos: number;
+  sem_micro_area: boolean;
+}
+
+export interface PraticaFechamentoC6Out {
+  pratica: "A" | "B" | "C" | "D";
+  titulo: string;
+  peso: number;
+  total_aplicaveis: number;
+  total_concluidas: number;
+  percentual_cobertura: number;
+  contribuicao_pontos: number;
+}
+
+export interface IdosoFechamentoC6Out {
+  id: number;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  pontos_obtidos: number;
+  status: "completo" | "pendente";
+  praticas_pendentes: Array<"A" | "B" | "C" | "D">;
+}
+
+export interface FechamentoC6Out {
+  data_referencia: string | null;
+  quadrimestre: string | null;
+  quadrimestre_inicio: string | null;
+  quadrimestre_fim: string | null;
+  resumo: {
+    total_idosos: number;
+    total_completos: number;
+    total_pendentes: number;
+    pontuacao_indicador: number;
+    classificacao: "otimo" | "bom" | "suficiente" | "regular";
+  };
+  praticas: PraticaFechamentoC6Out[];
+  itens: IdosoFechamentoC6Out[];
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de
