@@ -179,6 +179,58 @@ function DeleteImportDialog({
   );
 }
 
+function ReprocessImportDialog({
+  importacao,
+  onOpenChange,
+  onReprocessed,
+}: {
+  importacao: ImportacaoComPrefeitura;
+  onOpenChange: (open: boolean) => void;
+  onReprocessed: () => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await importacoesService.reprocess(importacao.prefeituraId, importacao.id);
+      onOpenChange(false);
+      onReprocessed();
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.detail : "Não foi possível recalcular os indicadores.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <AlertDialog open onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Recalcular indicadores?</AlertDialogTitle>
+          <AlertDialogDescription>
+            O backup &quot;{importacao.display_name}&quot; será restaurado novamente para calcular
+            todos os indicadores ativos, incluindo os adicionados depois da importação. Nenhum
+            novo envio será necessário.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {error ? <FieldError>{error}</FieldError> : null}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={submitting}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction disabled={submitting} onClick={() => void submit()}>
+            {submitting ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
+            Recalcular
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export function ImportacoesPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -191,6 +243,7 @@ export function ImportacoesPage() {
   const [renameTarget, setRenameTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [reuploadTarget, setReuploadTarget] = useState<ImportacaoComPrefeitura | null>(null);
+  const [reprocessTarget, setReprocessTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -399,6 +452,16 @@ export function ImportacoesPage() {
                                 Excluir e enviar novo
                               </Button>
                             ) : null}
+                            {importacao.status === "concluido" && comPrefeitura ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setReprocessTarget(comPrefeitura)}
+                              >
+                                <RefreshCw data-icon="inline-start" />
+                                Recalcular indicadores
+                              </Button>
+                            ) : null}
                             <Tooltip>
                               <TooltipTrigger
                                 render={
@@ -510,6 +573,13 @@ export function ImportacoesPage() {
             void loadImports();
           }}
           reuploadAfterDelete
+        />
+      ) : null}
+      {reprocessTarget ? (
+        <ReprocessImportDialog
+          importacao={reprocessTarget}
+          onOpenChange={(open) => !open && setReprocessTarget(null)}
+          onReprocessed={() => void loadImports()}
         />
       ) : null}
     </div>

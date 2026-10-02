@@ -41,6 +41,8 @@ export const importacoesService = {
     }),
   retry: (prefeituraId: number, publicId: string) =>
     http.post<ImportacaoOut>(`/prefeituras/${prefeituraId}/imports/${publicId}/retry`),
+  reprocess: (prefeituraId: number, publicId: string) =>
+    http.post<ImportacaoOut>(`/prefeituras/${prefeituraId}/imports/${publicId}/reprocess`),
   remove: (prefeituraId: number, publicId: string) =>
     http.delete<void>(`/prefeituras/${prefeituraId}/imports/${publicId}`),
   /**

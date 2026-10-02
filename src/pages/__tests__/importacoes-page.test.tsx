@@ -22,6 +22,7 @@ vi.mock("@/services/importacoes", () => ({
     abortMultipart: vi.fn(),
     rename: vi.fn(),
     retry: vi.fn(),
+    reprocess: vi.fn(),
     remove: vi.fn(),
   },
 }));
@@ -243,6 +244,31 @@ describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
     await screen.findByText("backup semana 32");
 
     expect(screen.getByRole("button", { name: /excluir backup semana 32/i })).toBeDisabled();
+  });
+
+  it("recalcula os indicadores de uma importação concluída após confirmação", async () => {
+    const concluida = importacao({ status: "concluido", last_failure_code: null });
+    mockedImportacoesService.list.mockResolvedValue([concluida]);
+    mockedImportacoesService.reprocess.mockResolvedValue(
+      importacao({ status: "pronto_para_restaurar", last_failure_code: null }),
+    );
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+    await screen.findByText("backup semana 32");
+
+    await user.click(screen.getByRole("button", { name: "Recalcular indicadores" }));
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByText(/incluindo os adicionados depois da importação/i)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Recalcular" }));
+
+    await waitFor(() => {
+      expect(mockedImportacoesService.reprocess).toHaveBeenCalledWith(
+        PREFEITURA.id,
+        concluida.id,
+      );
+    });
+    expect(mockedImportacoesService.list).toHaveBeenCalledTimes(2);
   });
 
   it("retoma após refresh sem reenviar partes já aceitas e completa com todos os ETags", async () => {
