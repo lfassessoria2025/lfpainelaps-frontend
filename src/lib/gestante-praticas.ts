@@ -111,26 +111,29 @@ export const PRATICAS: PraticaDef[] = [
   },
 ];
 
-export type StatusPratica = "completa" | "parcial" | "pendente";
+export type StatusPratica = "completa" | "parcial" | "pendente" | "fora_do_prazo";
 
 export const STATUS_PRATICA_ROTULO: Record<StatusPratica, string> = {
   completa: "Completa",
   parcial: "Parcial",
   pendente: "Pendente",
+  fora_do_prazo: "Fora do prazo",
 };
 
 export function statusDaPratica(
   gestante: GestanteAcompanhamentoOut,
   def: PraticaDef,
 ): { status: StatusPratica; texto: string } {
+  const status = gestante.situacao_praticas[def.letra];
+  if (status === "fora_do_prazo") {
+    return { status, texto: "Fora do prazo" };
+  }
   if (def.tipo === "bool") {
     const feito = Boolean(gestante[def.campo]);
-    return feito ? { status: "completa", texto: "Feito" } : { status: "pendente", texto: "Pendente" };
+    return { status, texto: feito ? "Feito" : "Pendente" };
   }
   const valor = Number(gestante[def.campo] ?? 0);
-  if (valor >= def.meta) return { status: "completa", texto: `${valor}/${def.meta}` };
-  if (valor > 0) return { status: "parcial", texto: `${valor}/${def.meta}` };
-  return { status: "pendente", texto: `${valor}/${def.meta}` };
+  return { status, texto: `${valor}/${def.meta}` };
 }
 
 /**
@@ -143,6 +146,7 @@ export function statusGeralDaGestante(
 ): StatusPratica {
   const status = PRATICAS.map((pratica) => statusDaPratica(gestante, pratica).status);
   if (status.every((item) => item === "completa")) return "completa";
-  if (status.some((item) => item !== "pendente")) return "parcial";
+  if (status.some((item) => item === "completa" || item === "parcial")) return "parcial";
+  if (status.every((item) => item === "fora_do_prazo")) return "fora_do_prazo";
   return "pendente";
 }

@@ -61,9 +61,11 @@ function Praticas({ praticas }: { praticas: PraticaFechamentoC2Out[] }) {
           )}
         >
           {pratica.pratica}{" "}
-          {pratica.pratica === "E"
-            ? (pratica.status === "concluida" ? "20/20" : "0/20")
-            : `${pratica.valor}/${pratica.meta}`}
+          {pratica.status === "prazo_encerrado"
+            ? "Fora do prazo"
+            : pratica.pratica === "E"
+              ? (pratica.status === "concluida" ? "20/20" : "0/20")
+              : `${pratica.valor}/${pratica.meta}`}
         </span>
       ))}
     </div>

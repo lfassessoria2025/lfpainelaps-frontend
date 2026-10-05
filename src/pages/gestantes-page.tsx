@@ -80,7 +80,8 @@ import { prefeiturasService } from "@/services/prefeituras";
 const STATUS_CLASSNAME: Record<StatusPratica, string> = {
   completa: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   parcial: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  pendente: "bg-muted text-muted-foreground",
+  pendente: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  fora_do_prazo: "bg-muted text-muted-foreground",
 };
 
 function formatDate(value: string | null): string {
@@ -738,7 +739,12 @@ export function GestantesPage() {
       if (ordenacao === "pontuacao-asc") return a.pontuacao_total - b.pontuacao_total;
       const praticaSelecionada = PRATICAS.find((pratica) => pratica.letra === parametroFiltro);
       if (praticaSelecionada && ordenacao.startsWith("parametro-")) {
-        const ordemStatus: Record<StatusPratica, number> = { completa: 2, parcial: 1, pendente: 0 };
+        const ordemStatus: Record<StatusPratica, number> = {
+          completa: 3,
+          parcial: 2,
+          pendente: 1,
+          fora_do_prazo: 0,
+        };
         const statusA = statusDaPratica(a, praticaSelecionada).status;
         const statusB = statusDaPratica(b, praticaSelecionada).status;
         const diferenca = ordemStatus[statusA] - ordemStatus[statusB];
@@ -922,6 +928,7 @@ export function GestantesPage() {
                     <SelectItem value="completa">Completa</SelectItem>
                     <SelectItem value="parcial">Parcial</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="fora_do_prazo">Fora do prazo</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -1143,7 +1150,7 @@ export function GestantesPage() {
                           return (
                             <div key={pratica.letra} className="flex items-center justify-between gap-3">
                               <dt>{pratica.letra} · {pratica.rotulo}</dt>
-                              <dd><span className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", STATUS_CLASSNAME[status])}>{texto}</span></dd>
+                              <dd><span title={status === "fora_do_prazo" ? `${pratica.titulo}: fora do prazo.` : pratica.titulo} className={cn("inline-flex min-w-9 justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums", STATUS_CLASSNAME[status])}>{texto}</span></dd>
                             </div>
                           );
                         })}
@@ -1260,6 +1267,7 @@ export function GestantesPage() {
                       return (
                         <TableCell key={pratica.letra} className="text-center">
                           <span
+                            title={status === "fora_do_prazo" ? `${pratica.titulo}: fora do prazo.` : pratica.titulo}
                             className={cn(
                               "inline-flex min-w-9 items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums",
                               STATUS_CLASSNAME[status],

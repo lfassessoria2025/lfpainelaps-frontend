@@ -65,7 +65,12 @@ function Praticas({ praticas }: { praticas: PraticaFechamentoC3Out[] }) {
             praticaClass[pratica.status],
           )}
         >
-          {pratica.pratica} {pratica.pontos > 0 ? `+${pratica.pontos}` : "0"}
+          {pratica.pratica}{" "}
+          {pratica.status === "prazo_encerrado"
+            ? "Fora do prazo"
+            : pratica.pontos > 0
+              ? `+${pratica.pontos}`
+              : "0"}
         </span>
       ))}
     </div>

@@ -81,6 +81,19 @@ const GESTANTE: GestanteAcompanhamentoOut = {
   condicao_gestante_data_referencia: "2026-08-15",
   condicao_gestante_em_alguma_fci: true,
   created_at: "2026-01-01T00:00:00Z",
+  situacao_praticas: {
+    A: "completa",
+    B: "parcial",
+    C: "completa",
+    D: "pendente",
+    E: "parcial",
+    F: "pendente",
+    G: "completa",
+    H: "pendente",
+    I: "pendente",
+    J: "pendente",
+    K: "pendente",
+  },
 };
 
 const FECHAMENTO: FechamentoC3Out = {
@@ -231,6 +244,24 @@ describe("GestantesPage", () => {
     expect(within(tabelaDesktop).getByText("Fim puerpério")).toBeInTheDocument();
   });
 
+  it("troca pendente por fora do prazo quando a janela clínica encerrou", async () => {
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+    mockedGestanteService.list.mockResolvedValue([
+      {
+        ...GESTANTE,
+        pratica_a_captacao_precoce: false,
+        situacao_praticas: { ...GESTANTE.situacao_praticas, A: "fora_do_prazo" },
+      },
+    ]);
+
+    render(<GestantesPage />);
+
+    const marcadores = await screen.findAllByText("Fora do prazo");
+    expect(marcadores.length).toBeGreaterThanOrEqual(1);
+    expect(marcadores[0]).toHaveClass("bg-muted");
+    expect(marcadores[0]).toHaveAttribute("title", expect.stringMatching(/fora do prazo/i));
+  });
+
   it("identifica aborto encerrado sem retirar a gestante da lista operacional", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([
@@ -288,6 +319,19 @@ describe("GestantesPage", () => {
       pratica_j_vd_puerperio: false,
       pratica_k_saude_bucal: false,
       pontuacao_total: 0,
+      situacao_praticas: {
+        A: "pendente",
+        B: "pendente",
+        C: "pendente",
+        D: "pendente",
+        E: "pendente",
+        F: "pendente",
+        G: "pendente",
+        H: "pendente",
+        I: "pendente",
+        J: "pendente",
+        K: "pendente",
+      },
     };
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE, gestantePendente]);
@@ -546,6 +590,7 @@ describe("GestantesPage", () => {
       nome_cidadao: "Ana Souza",
       pratica_b_consultas: 0,
       pontuacao_total: 10,
+      situacao_praticas: { ...GESTANTE.situacao_praticas, B: "pendente" },
     };
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE, gestantePendente]);

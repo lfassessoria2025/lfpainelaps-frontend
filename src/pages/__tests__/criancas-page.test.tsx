@@ -64,6 +64,13 @@ const CRIANCA: CriancaAcompanhamentoOut = {
   pratica_e_esquema_vacinal_completo: false,
   pontuacao_total: 0,
   created_at: "2026-09-18T12:00:00Z",
+  situacao_praticas: {
+    A: "pendente",
+    B: "parcial",
+    C: "parcial",
+    D: "pendente",
+    E: "parcial",
+  },
 };
 
 const FECHAMENTO: FechamentoC2Out = {
@@ -142,6 +149,7 @@ describe("CriancasPage", () => {
     const tabela = screen.getByRole("table");
     expect(within(tabela).getByText("1ª consulta até 30 dias")).toBeInTheDocument();
     expect(within(tabela).getByText("9 consultas de puericultura")).toBeInTheDocument();
+    expect(within(tabela).getByText("2 visitas do agente comunitário de saúde (ACS)")).toBeInTheDocument();
     expect(within(tabela).getByText(/Esquemas vacinais/)).toBeInTheDocument();
     expect(within(tabela).getByText("0/20")).toHaveAttribute(
       "title",
@@ -193,10 +201,32 @@ describe("CriancasPage", () => {
     expect(screen.getByRole("button", { name: /limpar mês/i })).toBeInTheDocument();
   });
 
-  it("não marca como atrasada uma prática cuja janela ainda está aberta", async () => {
+  it("mantém amarela a prática cuja janela ainda está aberta", async () => {
     render(<CriancasPage />);
 
-    expect((await screen.findAllByText("Em prazo")).length).toBeGreaterThanOrEqual(2);
+    const pendentes = await screen.findAllByText("Pendente");
+    expect(pendentes.length).toBeGreaterThanOrEqual(1);
+    expect(pendentes[0]).toHaveClass("bg-amber-500/15");
+  });
+
+  it("mostra fora do prazo quando a primeira visita do ACS não foi feita em 30 dias", async () => {
+    service.list.mockResolvedValue([
+      {
+        ...CRIANCA,
+        data_nascimento: "2026-07-01",
+        situacao_praticas: {
+          ...CRIANCA.situacao_praticas,
+          A: "fora_do_prazo",
+          D: "fora_do_prazo",
+        },
+      },
+    ]);
+
+    render(<CriancasPage />);
+
+    const marcadores = await screen.findAllByText("Fora do prazo");
+    expect(marcadores.length).toBeGreaterThanOrEqual(2);
+    expect(marcadores.some((item) => item.title.includes("não pode mais ser concluída"))).toBe(true);
   });
 
   it("explica a pontuação automática da visita para equipe eAP", async () => {

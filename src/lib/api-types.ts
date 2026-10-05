@@ -333,6 +333,12 @@ export type RecorteGestante =
   | "quadrimestre_atual"
   | "quadrimestre_anterior";
 
+export type StatusAcompanhamentoPratica =
+  | "completa"
+  | "parcial"
+  | "pendente"
+  | "fora_do_prazo";
+
 export interface GestanteAcompanhamentoOut {
   id: number;
   nome_cidadao: string;
@@ -364,6 +370,10 @@ export interface GestanteAcompanhamentoOut {
   condicao_gestante_data_referencia: string | null; // ISO date do dump
   condicao_gestante_em_alguma_fci: boolean;
   created_at: string; // ISO datetime
+  situacao_praticas: Record<
+    "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K",
+    StatusAcompanhamentoPratica
+  >;
 }
 
 export interface EquipeGestanteOut {
@@ -497,6 +507,7 @@ export interface CriancaAcompanhamentoOut {
   pratica_e_esquema_vacinal_completo: boolean;
   pontuacao_total: number;
   created_at: string;
+  situacao_praticas: Record<"A" | "B" | "C" | "D" | "E", StatusAcompanhamentoPratica>;
 }
 
 export interface EquipeCriancaOut {

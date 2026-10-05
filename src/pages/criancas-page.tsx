@@ -52,14 +52,15 @@ import type {
   MetricasEquipeCriancaOut,
   MicroAreaCriancaOut,
   PrefeituraOut,
+  StatusAcompanhamentoPratica,
 } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
 import { cn } from "@/lib/utils";
 import { criancaService } from "@/services/crianca";
 import { prefeiturasService } from "@/services/prefeituras";
 
-type Status = "completa" | "parcial" | "pendente" | "em_prazo";
-type StatusFiltro = Exclude<Status, "em_prazo"> | "todos";
+type Status = StatusAcompanhamentoPratica;
+type StatusFiltro = Status | "todos";
 type Pratica = "A" | "B" | "C" | "D" | "E";
 type Ordenacao = "nome" | "pontuacao-desc" | "pontuacao-asc";
 type Visao = "acompanhamento" | "fechamento";
@@ -68,15 +69,15 @@ const PRATICAS: ReadonlyArray<{ codigo: Pratica; rotulo: string }> = [
   { codigo: "A", rotulo: "1ª consulta até 30 dias" },
   { codigo: "B", rotulo: "9 consultas de puericultura" },
   { codigo: "C", rotulo: "9 registros de peso e altura" },
-  { codigo: "D", rotulo: "2 visitas nas janelas" },
+  { codigo: "D", rotulo: "2 visitas do agente comunitário de saúde (ACS)" },
   { codigo: "E", rotulo: "Esquemas vacinais" },
 ];
 
 const STATUS_CLASS: Record<Status, string> = {
   completa: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   parcial: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  pendente: "bg-muted text-muted-foreground",
-  em_prazo: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  pendente: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  fora_do_prazo: "bg-muted text-muted-foreground",
 };
 
 const ITENS_POR_PAGINA = 20;
@@ -85,54 +86,22 @@ function formatarData(valor: string | null): string {
   return valor ? new Date(`${valor}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 }
 
-function diasEntre(inicio: string, fim: string): number {
-  return Math.floor(
-    (new Date(`${fim}T00:00:00`).getTime() - new Date(`${inicio}T00:00:00`).getTime()) /
-      86_400_000,
-  );
-}
-
 function statusPratica(crianca: CriancaAcompanhamentoOut, pratica: Pratica): Status {
-  if (pratica === "A") {
-    if (crianca.pratica_a_primeira_consulta_30_dias) return "completa";
-    return diasEntre(crianca.data_nascimento, crianca.data_referencia) <= 30
-      ? "em_prazo"
-      : "pendente";
-  }
-  if (pratica === "B") {
-    if (crianca.pratica_b_consultas_puericultura >= 9) return "completa";
-    return crianca.pratica_b_consultas_puericultura > 0 ? "parcial" : "pendente";
-  }
-  if (pratica === "C") {
-    if (crianca.pratica_c_peso_altura >= 9) return "completa";
-    return crianca.pratica_c_peso_altura > 0 ? "parcial" : "pendente";
-  }
-  if (pratica === "D") {
-    if (crianca.pratica_d_visitas_completas) return "completa";
-    const idadeDias = diasEntre(crianca.data_nascimento, crianca.data_referencia);
-    if (idadeDias <= 30 || (idadeDias <= 183 && crianca.pratica_d_primeira_visita_30_dias)) {
-      return "em_prazo";
-    }
-    return crianca.pratica_d_total_visitas_6_meses > 0 ? "parcial" : "pendente";
-  }
-  if (crianca.pratica_e_esquema_vacinal_completo) return "completa";
-  const doses =
-    crianca.vacina_dtp_doses +
-    crianca.vacina_hepatite_b_doses +
-    crianca.vacina_hib_doses +
-    crianca.vacina_polio_doses +
-    crianca.vacina_triplice_viral_doses +
-    crianca.vacina_pneumococica_doses;
-  return doses > 0 ? "parcial" : "pendente";
+  return crianca.situacao_praticas[pratica];
 }
 
 function statusGeral(crianca: CriancaAcompanhamentoOut): StatusFiltro {
   if (crianca.pontuacao_total === 100) return "completa";
-  return crianca.pontuacao_total > 0 ? "parcial" : "pendente";
+  if (crianca.pontuacao_total > 0) return "parcial";
+  return Object.values(crianca.situacao_praticas).every(
+    (status) => status === "fora_do_prazo",
+  )
+    ? "fora_do_prazo"
+    : "pendente";
 }
 
 function marcador(status: Status, texto: string, titulo?: string) {
-  const rotulo = status === "em_prazo" ? "Em prazo" : texto;
+  const rotulo = status === "fora_do_prazo" ? "Fora do prazo" : texto;
   return (
     <span
       className={cn(
@@ -151,7 +120,7 @@ function valorPratica(crianca: CriancaAcompanhamentoOut, pratica: Pratica) {
   if (pratica === "A") {
     return marcador(
       status,
-      crianca.pratica_a_primeira_consulta_30_dias ? "Feito" : "Fora do prazo",
+      crianca.pratica_a_primeira_consulta_30_dias ? "Feito" : "Pendente",
       crianca.primeira_consulta_data
         ? `Primeira consulta presencial: ${formatarData(crianca.primeira_consulta_data)}`
         : "Nenhuma consulta presencial de puericultura localizada",
@@ -169,10 +138,15 @@ function valorPratica(crianca: CriancaAcompanhamentoOut, pratica: Pratica) {
         "Pontuação integral automática para equipe eAP tipo 76, conforme a nota C2.",
       );
     }
+    const titulo = status === "fora_do_prazo"
+      ? crianca.pratica_d_primeira_visita_30_dias
+        ? "1ª visita do ACS feita. 2ª visita do ACS: fora do prazo."
+        : "1ª visita do ACS: fora do prazo. A prática não pode mais ser concluída."
+      : `Até 30 dias: ${crianca.pratica_d_primeira_visita_30_dias ? "feito" : "pendente"}. Até 6 meses: ${crianca.pratica_d_segunda_visita_6_meses ? "feito" : "pendente"}.`;
     return marcador(
       status,
       `${Number(crianca.pratica_d_primeira_visita_30_dias) + Number(crianca.pratica_d_segunda_visita_6_meses)}/2`,
-      `Até 30 dias: ${crianca.pratica_d_primeira_visita_30_dias ? "feito" : "pendente"}. Até 6 meses: ${crianca.pratica_d_segunda_visita_6_meses ? "feito" : "pendente"}.`,
+      titulo,
     );
   }
   return marcador(
@@ -555,6 +529,7 @@ export function CriancasPage() {
                     <SelectItem value="completa">Completo</SelectItem>
                     <SelectItem value="parcial">Parcial</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="fora_do_prazo">Fora do prazo</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
