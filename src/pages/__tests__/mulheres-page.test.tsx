@@ -13,6 +13,7 @@ vi.mock("@/services/mulher", () => ({
     equipes: vi.fn(),
     microAreas: vi.fn(),
     fechamento: vi.fn(),
+    exportar: vi.fn(),
   },
 }));
 vi.mock("@/services/prefeituras", () => ({ prefeiturasService: { list: vi.fn() } }));
@@ -64,6 +65,10 @@ beforeEach(() => {
   service.equipes.mockResolvedValue([{ chave: "ine:001", nome: "ESF Centro", ine: "001", total_mulheres: 1, sem_equipe: false }]);
   service.microAreas.mockResolvedValue([{ chave: "01", codigo: "01", total_mulheres: 1, sem_micro_area: false }]);
   service.fechamento.mockResolvedValue(FECHAMENTO);
+  service.exportar.mockResolvedValue({
+    blob: new Blob(["xlsx"]),
+    filename: "mulheres_c7_20261005.xlsx",
+  });
 });
 
 afterEach(() => {
@@ -96,6 +101,21 @@ describe("MulheresPage", () => {
 
     expect(await screen.findByText("Pontuação do indicador")).toBeInTheDocument();
     expect(service.fechamento).toHaveBeenCalledWith(1, ["ine:001"], ["01"], expect.any(AbortSignal));
+  });
+
+  it("baixa a planilha C7 com os filtros selecionados", async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => "blob:mulheres");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
+    window.history.replaceState({}, "", "/mulheres?equipe=ine%3A001&micro_area=01");
+    render(<MulheresPage />);
+
+    await user.click(await screen.findByRole("button", { name: "Baixar planilha" }));
+
+    expect(service.exportar).toHaveBeenCalledWith(1, ["ine:001"], ["01"]);
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:mulheres");
   });
 
   it("explica a ausência da permissão C7", async () => {

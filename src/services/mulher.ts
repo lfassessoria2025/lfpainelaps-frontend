@@ -45,4 +45,14 @@ export const mulherService = {
       `/prefeituras/${prefeituraId}/indicadores/mulheres/fechamento${filtros(equipes, microAreas)}`,
       signal,
     ),
+  exportar: (
+    prefeituraId: number,
+    equipes: readonly string[] = [],
+    microAreas: readonly string[] = [],
+    signal?: AbortSignal,
+  ) =>
+    http.getBlob(
+      `/prefeituras/${prefeituraId}/indicadores/mulheres/exportar${filtros(equipes, microAreas)}`,
+      signal,
+    ),
 };

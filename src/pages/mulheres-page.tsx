@@ -1,11 +1,12 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { CalendarClock, Search, ShieldAlert } from "lucide-react";
+import { CalendarClock, Download, Loader2, Search, ShieldAlert } from "lucide-react";
 import { FechamentoC7 } from "@/components/mulheres/fechamento-c7";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
 import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import { IndicatorFilterField, IndicatorToolbar } from "@/components/indicators/indicator-toolbar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
@@ -101,6 +102,7 @@ export function MulheresPage() {
   const [proibido, setProibido] = useState(false);
   const [fechamento, setFechamento] = useState<FechamentoC7Out | null>(null);
   const [erroFechamento, setErroFechamento] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
   const { dragging, containerProps } = useHorizontalDrag();
 
   useEffect(() => {
@@ -202,6 +204,29 @@ export function MulheresPage() {
 
   useEffect(() => setPagina(1), [buscaDeferred, equipesSelecionadas, microAreasSelecionadas, ordenacao, statusFiltro]);
 
+  const exportar = useCallback(async () => {
+    if (prefeituraId === null) return;
+    setExportando(true);
+    setErro(null);
+    try {
+      const { blob, filename } = await mulherService.exportar(
+        prefeituraId,
+        equipesSelecionadas,
+        microAreasSelecionadas,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (falha: unknown) {
+      setErro(falha instanceof ApiError ? falha.detail : "Não foi possível baixar a planilha de mulheres.");
+    } finally {
+      setExportando(false);
+    }
+  }, [equipesSelecionadas, microAreasSelecionadas, prefeituraId]);
+
   if (proibido) {
     return (
       <Empty>
@@ -242,6 +267,12 @@ export function MulheresPage() {
           </>
         ) : undefined}
         summary={visao === "acompanhamento" && mulheres ? <p className="text-xs text-muted-foreground" aria-live="polite"><strong className="font-semibold text-foreground">{filtradas.length}</strong> de {mulheres.length} mulheres · Exibindo {filtradas.length === 0 ? 0 : inicioDaPagina + 1}–{Math.min(inicioDaPagina + ITENS_POR_PAGINA, filtradas.length)}</p> : undefined}
+        actions={visao === "acompanhamento" && mulheres && mulheres.length > 0 ? (
+          <Button variant="outline" size="sm" disabled={exportando} onClick={() => void exportar()}>
+            {exportando ? <Loader2 className="animate-spin" /> : <Download />}
+            Baixar planilha
+          </Button>
+        ) : undefined}
         activeFilters={<><CatalogFilterChips selectedKeys={equipesSelecionadas} getLabel={(chave) => equipes?.find((item) => item.chave === chave)?.nome ?? chave} clearLabel="Limpar equipes" onClear={() => atualizarEquipes([])} /><CatalogFilterChips selectedKeys={microAreasSelecionadas} getLabel={(chave) => microAreas?.find((item) => item.chave === chave)?.codigo ?? chave} clearLabel="Limpar micro-áreas" onClear={() => atualizarMicroAreas([])} /></>}
       />
 

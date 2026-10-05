@@ -1,11 +1,12 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { CalendarClock, Search, ShieldAlert } from "lucide-react";
+import { CalendarClock, Download, Loader2, Search, ShieldAlert } from "lucide-react";
 import { FechamentoC6 } from "@/components/idosos/fechamento-c6";
 import { CatalogFilterChips } from "@/components/gestantes/catalog-filter-chips";
 import { CatalogFilterDropdown } from "@/components/gestantes/catalog-filter-dropdown";
 import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import { IndicatorFilterField, IndicatorToolbar } from "@/components/indicators/indicator-toolbar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
@@ -64,6 +65,7 @@ export function IdososPage() {
   const [proibido, setProibido] = useState(false);
   const [fechamento, setFechamento] = useState<FechamentoC6Out | null>(null);
   const [erroFechamento, setErroFechamento] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
   const { dragging, containerProps } = useHorizontalDrag();
 
   useEffect(() => {
@@ -129,6 +131,29 @@ export function IdososPage() {
   const daPagina = filtrados.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA);
   useEffect(() => setPagina(1), [buscaDeferred, equipesSelecionadas, microAreasSelecionadas, statusFiltro]);
 
+  const exportar = useCallback(async () => {
+    if (prefeituraId === null) return;
+    setExportando(true);
+    setErro(null);
+    try {
+      const { blob, filename } = await idosoService.exportar(
+        prefeituraId,
+        equipesSelecionadas,
+        microAreasSelecionadas,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (falha: unknown) {
+      setErro(falha instanceof ApiError ? falha.detail : "Não foi possível baixar a planilha de pessoas idosas.");
+    } finally {
+      setExportando(false);
+    }
+  }, [equipesSelecionadas, microAreasSelecionadas, prefeituraId]);
+
   if (proibido) return <Empty><EmptyHeader><EmptyMedia variant="icon"><ShieldAlert /></EmptyMedia><EmptyTitle>Sem permissão para ver este indicador</EmptyTitle><EmptyDescription>Você não tem a permissão “Visualizar indicador de pessoas idosas (C6)”.</EmptyDescription></EmptyHeader></Empty>;
 
   return (
@@ -137,6 +162,12 @@ export function IdososPage() {
         municipality={<IndicatorFilterField label="Prefeitura">{prefeituras === null ? <Skeleton className="h-8" /> : <Select value={prefeituraId ? String(prefeituraId) : undefined} onValueChange={(valor) => { if (valor) { atualizarEquipes([]); atualizarMicroAreas([]); setPrefeituraId(Number(valor)); } }}><SelectTrigger aria-label="Prefeitura"><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent><SelectGroup>{prefeituras.map((item) => <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>)}</SelectGroup></SelectContent></Select>}</IndicatorFilterField>}
         filters={prefeituraId !== null ? <><IndicatorFilterField label="Buscar" className="sm:col-span-2"><div className="relative"><Search className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground" /><Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Nome ou equipe" className="pl-8" /></div></IndicatorFilterField><CatalogFilterDropdown label="Equipe" ariaLabel="Filtrar por equipe" groupLabel="Equipes" loadingLabel="Carregando equipes…" summaryLabel={equipesSelecionadas.length ? `${equipesSelecionadas.length} equipe(s)` : "Todas as equipes"} items={equipes} selectedKeys={equipesSelecionadas} getKey={(item) => item.chave} getPrimaryLabel={(item) => item.sem_equipe ? "Sem equipe" : item.nome ?? "Equipe sem nome"} getSecondaryLabel={(item) => `${item.ine ? `INE ${item.ine}` : "Sem INE"} · ${item.total_idosos} pessoa(s)`} onToggle={(chave, selecionada) => atualizarEquipes(selecionada ? [...equipesSelecionadas, chave] : equipesSelecionadas.filter((item) => item !== chave))} /><CatalogFilterDropdown label="Micro-área" ariaLabel="Filtrar por micro-área" groupLabel="Micro-áreas" loadingLabel="Carregando micro-áreas…" summaryLabel={microAreasSelecionadas.length ? `${microAreasSelecionadas.length} micro-área(s)` : "Todas as micro-áreas"} items={microAreas} selectedKeys={microAreasSelecionadas} getKey={(item) => item.chave} getPrimaryLabel={(item) => item.sem_micro_area ? "Sem micro-área" : item.codigo ?? ""} getSecondaryLabel={(item) => `${item.total_idosos} pessoa(s)`} onToggle={(chave, selecionada) => atualizarMicroAreas(selecionada ? [...microAreasSelecionadas, chave] : microAreasSelecionadas.filter((item) => item !== chave))} /><IndicatorFilterField label="Status"><Select value={statusFiltro} onValueChange={(valor) => valor && setStatusFiltro(valor as StatusFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="todos">Todos</SelectItem><SelectItem value="completo">Completo</SelectItem><SelectItem value="pendente">Pendente</SelectItem></SelectGroup></SelectContent></Select></IndicatorFilterField></> : undefined}
         summary={idosos ? <p className="text-xs text-muted-foreground"><strong className="text-foreground">{filtrados.length}</strong> de {idosos.length} pessoas idosas</p> : undefined}
+        actions={visao === "acompanhamento" && idosos && idosos.length > 0 ? (
+          <Button variant="outline" size="sm" disabled={exportando} onClick={() => void exportar()}>
+            {exportando ? <Loader2 className="animate-spin" /> : <Download />}
+            Baixar planilha
+          </Button>
+        ) : undefined}
         activeFilters={<><CatalogFilterChips selectedKeys={equipesSelecionadas} getLabel={(chave) => equipes?.find((item) => item.chave === chave)?.nome ?? chave} clearLabel="Limpar equipes" onClear={() => atualizarEquipes([])} /><CatalogFilterChips selectedKeys={microAreasSelecionadas} getLabel={(chave) => microAreas?.find((item) => item.chave === chave)?.codigo ?? chave} clearLabel="Limpar micro-áreas" onClear={() => atualizarMicroAreas([])} /></>}
       />
       <Tabs value={visao} onValueChange={(valor) => setVisao(valor as Visao)} className="gap-3">

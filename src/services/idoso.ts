@@ -38,7 +38,16 @@ export const idosoService = {
     microAreas: readonly string[] = [],
     signal?: AbortSignal,
   ) => http.get<FechamentoC6Out>(
-    `/prefeituras/${prefeituraId}/indicadores/idosos/fechamento${filtros(equipes, microAreas)}`,
+      `/prefeituras/${prefeituraId}/indicadores/idosos/fechamento${filtros(equipes, microAreas)}`,
+      signal,
+    ),
+  exportar: (
+    prefeituraId: number,
+    equipes: readonly string[] = [],
+    microAreas: readonly string[] = [],
+    signal?: AbortSignal,
+  ) => http.getBlob(
+    `/prefeituras/${prefeituraId}/indicadores/idosos/exportar${filtros(equipes, microAreas)}`,
     signal,
   ),
 };
