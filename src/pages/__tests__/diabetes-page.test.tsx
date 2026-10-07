@@ -42,7 +42,7 @@ const PESSOA: DiabetesAcompanhamentoOut = {
   pratica_b_pressao: true,
   pratica_c_peso_altura: true,
   pratica_d_visitas: false,
-  pratica_d_primeira_visita_data: null,
+  pratica_d_primeira_visita_data: "2026-08-01",
   pratica_d_segunda_visita_data: null,
   pratica_d_automatica_eap: false,
   pratica_e_hemoglobina_glicada: true,
@@ -81,6 +81,7 @@ describe("DiabetesPage", () => {
 
     expect(await screen.findAllByText(/CID-10 E11/)).toHaveLength(2);
     expect(screen.getAllByText("Prática F").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1 visita em 01/08/2026").length).toBeGreaterThan(0);
     await user.click(screen.getByRole("button", { name: "Baixar planilha" }));
 
     expect(service.exportar).toHaveBeenCalledWith(1, [], []);

@@ -42,7 +42,7 @@ function situacao(pessoa: DiabetesAcompanhamentoOut, pratica: Pratica) {
   if (pratica === "A") return { concluida: pessoa.pratica_a_consulta, detalhe: pessoa.pratica_a_evidencia_data ? `Em ${formatarData(pessoa.pratica_a_evidencia_data)}` : null };
   if (pratica === "B") return { concluida: pessoa.pratica_b_pressao, detalhe: null };
   if (pratica === "C") return { concluida: pessoa.pratica_c_peso_altura, detalhe: null };
-  if (pratica === "D") return { concluida: pessoa.pratica_d_visitas, detalhe: pessoa.pratica_d_automatica_eap ? "Automática para eAP" : pessoa.pratica_d_primeira_visita_data && pessoa.pratica_d_segunda_visita_data ? `${formatarData(pessoa.pratica_d_primeira_visita_data)} e ${formatarData(pessoa.pratica_d_segunda_visita_data)}` : null };
+  if (pratica === "D") return { concluida: pessoa.pratica_d_visitas, detalhe: pessoa.pratica_d_automatica_eap ? "Automática para eAP" : pessoa.pratica_d_primeira_visita_data && pessoa.pratica_d_segunda_visita_data ? `${formatarData(pessoa.pratica_d_primeira_visita_data)} e ${formatarData(pessoa.pratica_d_segunda_visita_data)}` : pessoa.pratica_d_primeira_visita_data ? `1 visita em ${formatarData(pessoa.pratica_d_primeira_visita_data)}` : null };
   if (pratica === "E") return { concluida: pessoa.pratica_e_hemoglobina_glicada, detalhe: pessoa.pratica_e_evidencia_data ? `${formatarData(pessoa.pratica_e_evidencia_data)}${pessoa.pratica_e_procedimento ? ` · ${pessoa.pratica_e_procedimento}` : ""}` : null };
   return { concluida: pessoa.pratica_f_avaliacao_pes, detalhe: pessoa.pratica_f_evidencia_data ? `Em ${formatarData(pessoa.pratica_f_evidencia_data)}` : null };
 }
