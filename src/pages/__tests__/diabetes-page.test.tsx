@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { DiabetesAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
 import { DiabetesPage } from "@/pages/diabetes-page";
@@ -23,6 +23,12 @@ const PREFEITURA: PrefeituraOut = {
   id: 1,
   ibge_code: "3500000",
   name: "Pedregulho",
+  active: true,
+};
+const OUTRA_PREFEITURA: PrefeituraOut = {
+  id: 2,
+  ibge_code: "3521903",
+  name: "Jeriquara",
   active: true,
 };
 const PESSOA: DiabetesAcompanhamentoOut = {
@@ -71,6 +77,26 @@ afterEach(() => {
 });
 
 describe("DiabetesPage", () => {
+  it("exibe o nome da prefeitura ao carregar e ao trocar o município", async () => {
+    prefeituraService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    const user = userEvent.setup();
+    render(<DiabetesPage />);
+
+    const seletor = await screen.findByRole("combobox", { name: "Prefeitura" });
+    expect(seletor).toHaveTextContent("Pedregulho");
+
+    await user.click(seletor);
+    await user.click(await screen.findByRole("option", { name: "Jeriquara" }));
+
+    expect(seletor).toHaveTextContent("Jeriquara");
+    await waitFor(() => expect(service.list).toHaveBeenLastCalledWith(
+      2,
+      [],
+      [],
+      expect.any(AbortSignal),
+    ));
+  });
+
   it("exibe diagnóstico, seis práticas e baixa o recorte atual", async () => {
     const user = userEvent.setup();
     const createObjectURL = vi.fn(() => "blob:diabetes");

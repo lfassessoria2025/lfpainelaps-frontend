@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { IdosoAcompanhamentoOut, PrefeituraOut } from "@/lib/api-types";
 import { IdososPage } from "@/pages/idosos-page";
@@ -23,6 +23,12 @@ const PREFEITURA: PrefeituraOut = {
   id: 1,
   ibge_code: "3500000",
   name: "Pedregulho",
+  active: true,
+};
+const OUTRA_PREFEITURA: PrefeituraOut = {
+  id: 2,
+  ibge_code: "3521903",
+  name: "Jeriquara",
   active: true,
 };
 const IDOSO: IdosoAcompanhamentoOut = {
@@ -64,6 +70,26 @@ afterEach(() => {
 });
 
 describe("IdososPage", () => {
+  it("exibe o nome da prefeitura ao carregar e ao trocar o município", async () => {
+    prefeituraService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    const user = userEvent.setup();
+    render(<IdososPage />);
+
+    const seletor = await screen.findByRole("combobox", { name: "Prefeitura" });
+    expect(seletor).toHaveTextContent("Pedregulho");
+
+    await user.click(seletor);
+    await user.click(await screen.findByRole("option", { name: "Jeriquara" }));
+
+    expect(seletor).toHaveTextContent("Jeriquara");
+    await waitFor(() => expect(service.list).toHaveBeenLastCalledWith(
+      2,
+      [],
+      [],
+      expect.any(AbortSignal),
+    ));
+  });
+
   it("baixa a planilha C6 do recorte atual", async () => {
     const user = userEvent.setup();
     const createObjectURL = vi.fn(() => "blob:idosos");
