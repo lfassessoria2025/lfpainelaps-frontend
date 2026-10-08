@@ -83,6 +83,7 @@ export type Permission =
   | "relatorio.mulher.visualizar"
   | "relatorio.idoso.visualizar"
   | "relatorio.diabetes.visualizar"
+  | "relatorio.hipertensao.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -841,6 +842,83 @@ export interface FechamentoC4Out {
   };
   praticas: PraticaFechamentoC4Out[];
   itens: PessoaFechamentoC4Out[];
+}
+
+export interface HipertensaoAcompanhamentoOut {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  diagnostico_codigo: string;
+  diagnostico_sistema: string;
+  diagnostico_evidencia_data: string;
+  pratica_a_consulta: boolean;
+  pratica_a_evidencia_data: string | null;
+  pratica_b_pressao: boolean;
+  pratica_c_peso_altura: boolean;
+  pratica_d_visitas: boolean;
+  pratica_d_primeira_visita_data: string | null;
+  pratica_d_segunda_visita_data: string | null;
+  pratica_d_automatica_eap: boolean;
+  pontos_obtidos: number;
+  created_at: string;
+}
+
+export interface EquipeHipertensaoOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_pessoas: number;
+  sem_equipe: boolean;
+}
+
+export interface MicroAreaHipertensaoOut {
+  chave: string;
+  codigo: string | null;
+  total_pessoas: number;
+  sem_micro_area: boolean;
+}
+
+export interface PraticaFechamentoC5Out {
+  pratica: "A" | "B" | "C" | "D";
+  titulo: string;
+  peso: number;
+  total_aplicaveis: number;
+  total_concluidas: number;
+  percentual_cobertura: number;
+  contribuicao_pontos: number;
+}
+
+export interface PessoaFechamentoC5Out {
+  id: number;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  pontos_obtidos: number;
+  status: "completa" | "pendente";
+  praticas_pendentes: Array<"A" | "B" | "C" | "D">;
+}
+
+export interface FechamentoC5Out {
+  data_referencia: string | null;
+  quadrimestre: string | null;
+  quadrimestre_inicio: string | null;
+  quadrimestre_fim: string | null;
+  resumo: {
+    total_pessoas: number;
+    total_completas: number;
+    total_pendentes: number;
+    pontuacao_indicador: number;
+    classificacao: "otimo" | "bom" | "suficiente" | "regular";
+  };
+  praticas: PraticaFechamentoC5Out[];
+  itens: PessoaFechamentoC5Out[];
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de
