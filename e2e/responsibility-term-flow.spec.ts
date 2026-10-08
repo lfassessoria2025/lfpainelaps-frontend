@@ -63,7 +63,7 @@ test("um 428 exige reaceite, preserva a rota e não cria loop", async ({ page })
   await button.click();
 
   await expect(page).toHaveURL(/\/gestantes\?equipe=ine%3A0001$/);
-  await expect(page.getByRole("heading", { name: "Gestantes e puerpério" })).toBeVisible();
+  await expect(page.getByText("Nenhuma gestante em acompanhamento")).toBeVisible();
   expect(acceptancePayload).toEqual({
     term_id: 9,
     content_sha256: "b".repeat(64),
