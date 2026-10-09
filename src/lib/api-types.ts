@@ -84,6 +84,7 @@ export type Permission =
   | "relatorio.idoso.visualizar"
   | "relatorio.diabetes.visualizar"
   | "relatorio.hipertensao.visualizar"
+  | "relatorio.saude_bucal.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -919,6 +920,61 @@ export interface FechamentoC5Out {
   };
   praticas: PraticaFechamentoC5Out[];
   itens: PessoaFechamentoC5Out[];
+}
+
+export interface SaudeBucalAcompanhamentoOut {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  primeira_consulta_programada: boolean;
+  primeira_consulta_data: string | null;
+  tratamento_concluido: boolean;
+  tratamento_concluido_data: string | null;
+  created_at: string;
+}
+
+export interface EquipeSaudeBucalOut {
+  chave: string;
+  nome: string | null;
+  ine: string | null;
+  total_pessoas: number;
+  sem_equipe: boolean;
+}
+
+export interface MicroAreaSaudeBucalOut {
+  chave: string;
+  codigo: string | null;
+  total_pessoas: number;
+  sem_micro_area: boolean;
+}
+
+export interface PessoaFechamentoBucalOut {
+  id: number;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string | null;
+  equipe_ine: string | null;
+  micro_area: string | null;
+  primeira_consulta_programada: boolean;
+  primeira_consulta_data: string | null;
+  tratamento_concluido: boolean;
+  tratamento_concluido_data: string | null;
+  status: "concluido" | "pendente" | "nao_aplicavel";
+}
+
+export interface FechamentoBucalOut {
+  indicador: "B1" | "B2";
+  data_referencia: string | null;
+  numerador: number;
+  denominador: number;
+  percentual: number;
+  classificacao: "otimo" | "bom" | "suficiente" | "regular";
+  itens: PessoaFechamentoBucalOut[];
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de

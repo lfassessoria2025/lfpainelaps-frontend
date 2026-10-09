@@ -48,6 +48,9 @@ const DiabetesPage = lazy(() =>
 const HipertensaoPage = lazy(() =>
   import("@/pages/hipertensao-page").then((m) => ({ default: m.HipertensaoPage })),
 );
+const SaudeBucalPage = lazy(() =>
+  import("@/pages/saude-bucal-page").then((m) => ({ default: m.SaudeBucalPage })),
+);
 const AnalyticsPage = lazy(() =>
   import("@/pages/analytics-page").then((m) => ({ default: m.AnalyticsPage })),
 );
@@ -98,6 +101,7 @@ function App() {
               <Route path="/idosos" element={<IdososPage />} />
               <Route path="/diabetes" element={<DiabetesPage />} />
               <Route path="/hipertensao" element={<HipertensaoPage />} />
+              <Route path="/saude-bucal" element={<SaudeBucalPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
               <Route path="/termo-responsabilidade" element={<ResponsibilityTermPage />} />
