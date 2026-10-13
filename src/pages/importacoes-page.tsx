@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Pencil, Plus, RefreshCw, Trash2, UploadCloud } from "lucide-react";
 import {
   AlertDialog,
@@ -245,6 +245,7 @@ export function ImportacoesPage() {
   const [reuploadTarget, setReuploadTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [reprocessTarget, setReprocessTarget] = useState<ImportacaoComPrefeitura | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const importsRequestRef = useRef(0);
 
   useEffect(() => {
     prefeiturasService
@@ -257,14 +258,20 @@ export function ImportacoesPage() {
       .catch(() => setPrefeituras([]));
   }, []);
 
-  const loadImports = useCallback(async () => {
+  const loadImports = useCallback(async (signal?: AbortSignal) => {
     if (selectedId === null) return;
+    const requestId = ++importsRequestRef.current;
     try {
-      const data = await importacoesService.list(selectedId);
+      const data = await importacoesService.list(selectedId, signal);
+      // A resposta de uma prefeitura anterior nunca pode sobrescrever a
+      // prefeitura atualmente selecionada (a rede pode devolver requisições
+      // fora de ordem, mesmo quando o componente aborta a anterior).
+      if (signal?.aborted || requestId !== importsRequestRef.current) return;
       setImports(data);
       setImportsUpdatedAt(new Date());
       setLoadError(null);
     } catch (err) {
+      if (signal?.aborted || requestId !== importsRequestRef.current) return;
       setLoadError(
         err instanceof ApiError ? err.detail : "Não foi possível carregar as importações.",
       );
@@ -272,9 +279,11 @@ export function ImportacoesPage() {
   }, [selectedId]);
 
   useEffect(() => {
+    const controller = new AbortController();
     setImports(null);
     setImportsUpdatedAt(null);
-    void loadImports();
+    void loadImports(controller.signal);
+    return () => controller.abort();
   }, [loadImports]);
 
   // Polling leve enquanto houver importação em andamento — evita o usuário

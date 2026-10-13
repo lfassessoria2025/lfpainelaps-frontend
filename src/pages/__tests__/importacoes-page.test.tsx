@@ -34,6 +34,7 @@ const mockedImportacoesService = vi.mocked(importacoesService);
 const mockedPrefeiturasService = vi.mocked(prefeiturasService);
 
 const PREFEITURA: PrefeituraOut = { id: 1, ibge_code: "3500000", name: "Jeriquara", active: true };
+const OUTRA_PREFEITURA: PrefeituraOut = { id: 3, ibge_code: "3500001", name: "Pedregulho", active: true };
 
 function importacao(overrides: Partial<ImportacaoOut> = {}): ImportacaoOut {
   return {
@@ -55,6 +56,32 @@ beforeEach(() => {
 });
 
 describe("ImportacoesPage — renomear, excluir e continuar envio", () => {
+  it("não deixa a resposta atrasada de Jeriquara aparecer em Pedregulho", async () => {
+    let liberarJeriquara!: (dados: ImportacaoOut[]) => void;
+    const respostaJeriquara = new Promise<ImportacaoOut[]>((resolve) => {
+      liberarJeriquara = resolve;
+    });
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
+    mockedImportacoesService.list.mockImplementation((prefeituraId) =>
+      prefeituraId === PREFEITURA.id
+        ? respostaJeriquara
+        : Promise.resolve([importacao({ display_name: "backup Pedregulho" })]),
+    );
+    const user = userEvent.setup();
+
+    render(<ImportacoesPage />);
+    const seletor = await screen.findByRole("combobox");
+    await user.click(seletor);
+    await user.click(await screen.findByRole("option", { name: OUTRA_PREFEITURA.name }));
+
+    expect(await screen.findByText("backup Pedregulho")).toBeInTheDocument();
+    liberarJeriquara([importacao({ display_name: "backup Jeriquara atrasado" })]);
+    await waitFor(() => {
+      expect(screen.queryByText("backup Jeriquara atrasado")).not.toBeInTheDocument();
+    });
+    expect(mockedImportacoesService.list).toHaveBeenCalledWith(OUTRA_PREFEITURA.id, expect.any(AbortSignal));
+  });
+
   it("exige revisão explícita da prefeitura antes de liberar um novo upload", async () => {
     mockedImportacoesService.list.mockResolvedValue([]);
     mockedImportacoesService.start.mockResolvedValue(importacao({ id: "bbbbbbbb-0000-0000-0000-000000000001" }));
