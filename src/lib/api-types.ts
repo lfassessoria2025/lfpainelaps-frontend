@@ -968,13 +968,25 @@ export interface PessoaFechamentoBucalOut {
 }
 
 export interface FechamentoBucalOut {
-  indicador: "B1" | "B2";
+  indicador: "B1" | "B2" | "B3" | "B4";
   data_referencia: string | null;
   numerador: number;
   denominador: number;
   percentual: number;
   classificacao: "otimo" | "bom" | "suficiente" | "regular";
   itens: PessoaFechamentoBucalOut[];
+  equipes: ProducaoSaudeBucalOut[];
+}
+
+export interface ProducaoSaudeBucalOut {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  indicador: "B3" | "B4";
+  equipe_nome: string;
+  equipe_ine: string;
+  numerador: number;
+  denominador: number;
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de
