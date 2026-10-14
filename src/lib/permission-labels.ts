@@ -10,7 +10,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   "relatorio.idoso.visualizar": "Visualizar indicador de pessoas idosas (C6)",
   "relatorio.diabetes.visualizar": "Visualizar indicador de diabetes (C4)",
   "relatorio.hipertensao.visualizar": "Visualizar indicador de hipertensão (C5)",
-  "relatorio.saude_bucal.visualizar": "Visualizar indicadores de saúde bucal (B1/B2)",
+  "relatorio.saude_bucal.visualizar": "Visualizar indicadores de saúde bucal (B1–B6)",
   "dump.upload": "Enviar backup (dump)",
   "cargo.criar": "Criar cargos",
   "cargo.editar": "Editar cargos",

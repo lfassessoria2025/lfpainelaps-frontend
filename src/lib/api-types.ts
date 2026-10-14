@@ -968,7 +968,7 @@ export interface PessoaFechamentoBucalOut {
 }
 
 export interface FechamentoBucalOut {
-  indicador: "B1" | "B2" | "B3" | "B4";
+  indicador: "B1" | "B2" | "B3" | "B4" | "B5" | "B6";
   data_referencia: string | null;
   numerador: number;
   denominador: number;
@@ -982,7 +982,7 @@ export interface ProducaoSaudeBucalOut {
   id: number;
   data_referencia: string;
   versao_calculo: string;
-  indicador: "B3" | "B4";
+  indicador: "B3" | "B4" | "B5" | "B6";
   equipe_nome: string;
   equipe_ine: string;
   numerador: number;
