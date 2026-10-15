@@ -86,6 +86,7 @@ export type Permission =
   | "relatorio.hipertensao.visualizar"
   | "relatorio.saude_bucal.visualizar"
   | "relatorio.emulti.visualizar"
+  | "relatorio.c1.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -1011,6 +1012,29 @@ export interface FechamentoEmultiM1Out {
   media: number;
   classificacao: "otimo" | "bom" | "suficiente" | "regular";
   equipes: EmultiM1Out[];
+}
+
+export interface MaisAcessoC1Out {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  indicador: "C1";
+  equipe_nome: string;
+  equipe_ine: string;
+  numerador: number;
+  denominador: number;
+  percentual: number;
+  created_at: string;
+}
+
+export interface FechamentoMaisAcessoC1Out {
+  indicador: "C1";
+  data_referencia: string | null;
+  numerador: number;
+  denominador: number;
+  percentual: number;
+  classificacao: "otimo" | "bom" | "suficiente" | "regular";
+  equipes: MaisAcessoC1Out[];
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de

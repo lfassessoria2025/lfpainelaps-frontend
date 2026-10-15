@@ -1,4 +1,4 @@
-import { Accessibility, Activity, Baby, BarChart3, Blocks, Building2, HeartPulse, LayoutDashboard, ShieldCheck, Smile, UploadCloud, Venus, UsersRound } from "lucide-react";
+import { Accessibility, Activity, Baby, BarChart3, Blocks, Building2, HeartPulse, LayoutDashboard, ShieldCheck, Smile, UploadCloud, Venus, UsersRound, CalendarCheck } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -30,6 +30,7 @@ const INDICADORES_ITEMS: NavItem[] = [
   { to: "/hipertensao", label: "Hipertensão", icon: HeartPulse },
   { to: "/saude-bucal", label: "Saúde bucal", icon: Smile },
   { to: "/emulti", label: "eMulti", icon: UsersRound },
+  { to: "/mais-acesso", label: "Mais acesso APS", icon: CalendarCheck },
 ];
 
 const ADMINISTRATIVO_ITEMS: NavItem[] = [
