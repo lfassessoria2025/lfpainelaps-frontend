@@ -85,6 +85,7 @@ export type Permission =
   | "relatorio.diabetes.visualizar"
   | "relatorio.hipertensao.visualizar"
   | "relatorio.saude_bucal.visualizar"
+  | "relatorio.emulti.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"
@@ -987,6 +988,29 @@ export interface ProducaoSaudeBucalOut {
   equipe_ine: string;
   numerador: number;
   denominador: number;
+}
+
+export interface EmultiM1Out {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  indicador: "M1";
+  equipe_nome: string;
+  equipe_ine: string;
+  numerador: number;
+  denominador: number;
+  media: number;
+  created_at: string;
+}
+
+export interface FechamentoEmultiM1Out {
+  indicador: "M1";
+  data_referencia: string | null;
+  numerador: number;
+  denominador: number;
+  media: number;
+  classificacao: "otimo" | "bom" | "suficiente" | "regular";
+  equipes: EmultiM1Out[];
 }
 
 // Diagnóstico agregado da última leva C3. Não inclui nome, datas de
