@@ -1110,6 +1110,8 @@ export interface IndicadorCatalogoOut {
   possui_historico: boolean;
   granularidade_historico: "importacao" | null;
   possui_lista_nominal: boolean;
+  /** Só é true quando há contrato agregado próprio para o Analytics. */
+  analytics_disponivel?: boolean;
 }
 
 export interface IndicadoresCatalogoOut {

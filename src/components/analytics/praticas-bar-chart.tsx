@@ -21,18 +21,21 @@ import { corDaSerie } from "@/components/analytics/chart-colors";
 interface PraticasBarChartProps {
   /** Uma entrada por prefeitura — 1 para visão única, 2+ para comparação. */
   dados: MetricasIndicadorOut[];
+  /** Barras horizontais preservam rótulos longos; verticais ajudam a comparar poucos recortes. */
+  orientation?: "horizontal" | "vertical";
 }
 
-export function PraticasBarChart({ dados }: PraticasBarChartProps) {
+export function PraticasBarChart({ dados, orientation = "horizontal" }: PraticasBarChartProps) {
   if (dados.length === 0) return null;
 
   const linhas = montarLinhasDoGrafico(dados);
+  const horizontal = orientation === "horizontal";
 
   // Barras horizontais: o nome completo da prática cabe por extenso no
   // eixo Y, sem precisar rotacionar texto ou truncar (11 categorias com
   // nomes longos não cabem legíveis num eixo X vertical).
   const alturaPorLinha = dados.length > 1 ? 44 : 32;
-  const altura = Math.max(360, linhas.length * alturaPorLinha);
+  const altura = horizontal ? Math.max(360, linhas.length * alturaPorLinha) : 380;
 
   return (
     <>
@@ -40,19 +43,27 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
       <ResponsiveContainer width="100%" height={altura} minWidth={0}>
         <BarChart
           data={linhas}
-          layout="vertical"
-          margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+          layout={horizontal ? "vertical" : "horizontal"}
+          margin={horizontal ? { top: 8, right: 24, left: 8, bottom: 8 } : { top: 16, right: 16, left: 8, bottom: 48 }}
           barCategoryGap={dados.length > 1 ? 12 : 6}
         >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
-          <XAxis
+          <CartesianGrid strokeDasharray="3 3" horizontal={horizontal} vertical={!horizontal} className="stroke-border" />
+          {horizontal ? <XAxis
             type="number"
             domain={[0, 100]}
             tickLine={false}
             axisLine={false}
             tickFormatter={(value: number) => `${value}%`}
-          />
-          <YAxis
+          /> : <XAxis
+            type="category"
+            dataKey="rotulo"
+            interval={0}
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 11 }}
+            tickFormatter={(value: string) => String(value).split(" · ")[0] ?? value}
+          />}
+          {horizontal ? <YAxis
             type="category"
             dataKey="rotulo"
             tickLine={false}
@@ -60,7 +71,13 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
             width={42}
             tick={{ fontSize: 12 }}
             tickFormatter={(value: string) => String(value).split(" · ")[0] ?? value}
-          />
+          /> : <YAxis
+            type="number"
+            domain={[0, 100]}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value: number) => `${value}%`}
+          />}
           <Tooltip formatter={(value) => (value === null ? "sem dado" : `${value}%`)} />
           {dados.map((prefeitura, indice) => (
             <Bar
@@ -68,12 +85,12 @@ export function PraticasBarChart({ dados }: PraticasBarChartProps) {
               dataKey={chaveDaSerie(prefeitura.prefeitura_id)}
               name={prefeitura.prefeitura_nome}
               fill={corDaSerie(indice)}
-              radius={[0, 4, 4, 0]}
+              radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
             />
           ))}
         </BarChart>
       </ResponsiveContainer>
-      <p className="mt-2 text-xs text-muted-foreground">Os eixos usam A–K para caber na tela; o tooltip e a tabela trazem o nome completo.</p>
+      <p className="mt-2 text-xs text-muted-foreground">Os eixos usam os códigos dos parâmetros; o tooltip e a tabela trazem o nome completo.</p>
       <ChartDataSummary dados={dados} />
     </>
   );

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BarChart3, ChartNoAxesCombined, Lock, ShieldAlert, TableProperties, X } from "lucide-react";
+import { ArrowDownUp, BarChart3, ChartNoAxesCombined, Columns3, Filter, LayoutDashboard, Lock, RotateCcw, Rows3, ShieldAlert, TableProperties, X } from "lucide-react";
 import { EvolucaoLineChart } from "@/components/analytics/evolucao-line-chart";
 import { PraticasBarChart } from "@/components/analytics/praticas-bar-chart";
 import { PraticasPieChart } from "@/components/analytics/praticas-pie-chart";
@@ -63,6 +63,7 @@ export function AnalyticsPage() {
   const [parametrosSelecionados, setParametrosSelecionados] = useState<Set<string>>(new Set(queryInicial.parametros));
   const [secao, setSecao] = useState<Secao>(queryInicial.secao);
   const [tipoGrafico, setTipoGrafico] = useState<VisualizacaoIndicador>(queryInicial.grafico);
+  const [orientacaoBarras, setOrientacaoBarras] = useState<"horizontal" | "vertical">("horizontal");
   const [dados, setDados] = useState<MetricasIndicadorOut[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
@@ -74,6 +75,7 @@ export function AnalyticsPage() {
   const visualizacoes = indicador?.visualizacoes ?? [];
   const dimensoesDisponiveis = indicador?.dimensoes_comparacao ?? [];
   const comparandoPrefeituras = compararPor === "prefeitura";
+  const analyticsDisponivel = indicador?.analytics_disponivel !== false;
 
   useEffect(() => {
     if (!indicador) return;
@@ -126,8 +128,9 @@ export function AnalyticsPage() {
 
   const carregar = useCallback(async () => {
     if (!indicador) return;
+    if (!analyticsDisponivel) { setDados([]); return; }
     const ids = comparandoPrefeituras ? [...selectedIds] : selectedId !== null ? [selectedId] : [];
-    if (ids.length === 0) { setDados([]); return; }
+    if (ids.length === 0) return;
     try {
       const resultado = comparandoPrefeituras ? await gestanteService.comparar(ids) : [await gestanteService.metricas(ids[0])];
       setDados(resultado); setLoadError(null); setForbidden(false);
@@ -138,13 +141,13 @@ export function AnalyticsPage() {
       setForbidden(false);
       setLoadError(error instanceof ApiError ? error.detail : "Não foi possível carregar as métricas.");
     }
-  }, [comparandoPrefeituras, indicador, selectedId, selectedIds]);
+  }, [analyticsDisponivel, comparandoPrefeituras, indicador, selectedId, selectedIds]);
 
   useEffect(() => { setDados(null); setForbidden(false); void carregar(); }, [carregar]);
 
   useEffect(() => {
     const precisaHistorico = compararPor === "periodo" || (secao === "visualizacoes" && tipoGrafico === "evolucao");
-    if (!precisaHistorico || prefeituras === null) return;
+    if (!analyticsDisponivel || !precisaHistorico || prefeituras === null) return;
     const ids = comparandoPrefeituras ? [...selectedIds].toSorted((a, b) => a - b) : selectedId ? [selectedId] : [];
     const chave = ids.join(",");
     if (chave === historicoKey) return;
@@ -167,7 +170,7 @@ export function AnalyticsPage() {
       }
     })
       .catch((error) => { setHistoricoError(error instanceof ApiError ? error.detail : "Não foi possível carregar o histórico."); setHistorico([]); });
-  }, [comparandoPrefeituras, compararPor, historicoKey, prefeituras, secao, selectedId, selectedIds, tipoGrafico]);
+  }, [analyticsDisponivel, comparandoPrefeituras, compararPor, historicoKey, prefeituras, secao, selectedId, selectedIds, tipoGrafico]);
 
   const toggleSelecionada = (id: number, marcada: boolean) => setSelectedIds((atual) => {
     const proximo = new Set(atual); if (marcada) proximo.add(id); else proximo.delete(id); return proximo;
@@ -197,16 +200,24 @@ export function AnalyticsPage() {
     return dados;
   }, [compararPor, dados, historico, indicador?.parametros, parametrosSelecionados, periodosSelecionados]);
   const totalGestantes = dadosExibidos?.reduce((soma, item) => soma + item.total_gestantes, 0) ?? 0;
+  const totalCumpridas = dadosExibidos?.reduce((soma, item) => soma + item.praticas.reduce((subtotal, pratica) => subtotal + pratica.total_cumprida, 0), 0) ?? 0;
+  const totalOcorrencias = dadosExibidos?.reduce((soma, item) => soma + item.praticas.reduce((subtotal, pratica) => subtotal + pratica.total_gestantes, 0), 0) ?? 0;
+  const percentualGeral = totalOcorrencias > 0 ? Math.round((totalCumpridas / totalOcorrencias) * 1000) / 10 : null;
 
   return <div className="flex flex-col gap-6">
     <PageHeader title="Analytics" description="Explore, compare e detalhe os indicadores de saúde disponíveis." />
 
-    <Card>
-      <CardHeader>
-        <CardTitle>Filtros da análise</CardTitle>
-        <CardDescription>Escolha o indicador e o recorte. Seus filtros ficam salvos no endereço da página.</CardDescription>
+    <Card className="border-primary/15 shadow-sm">
+      <CardHeader className="gap-3 border-b bg-muted/20 pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <span className="rounded-lg bg-primary/10 p-2 text-primary"><Filter aria-hidden /></span>
+            <div><CardTitle>Filtros da análise</CardTitle><CardDescription>Comece pelo indicador e refine o recorte visualmente.</CardDescription></div>
+          </div>
+          {(compararPor !== "nenhuma" || selectedIds.size > 1 || periodosSelecionados.size > 0 || parametrosSelecionados.size > 0) ? <Button type="button" variant="ghost" size="sm" onClick={() => { setCompararPor("nenhuma"); setPeriodosSelecionados(new Set()); setParametrosSelecionados(new Set()); setSelectedIds(new Set(selectedId ? [selectedId] : [])); }}><RotateCcw data-icon="inline-start" />Limpar filtros</Button> : null}
+        </div>
       </CardHeader>
-      <CardContent className="grid gap-4 lg:grid-cols-3">
+      <CardContent className="grid gap-4 pt-5 lg:grid-cols-3">
         <label className="flex flex-col gap-2 text-sm font-medium">Tipo de indicador
           {catalogo === null ? <Skeleton className="h-9 w-full" /> : <Select value={indicador?.codigo} onValueChange={setIndicadorCodigo}>
             <SelectTrigger className="w-full"><SelectValue placeholder="Selecione um indicador" /></SelectTrigger>
@@ -241,30 +252,31 @@ export function AnalyticsPage() {
         {compararPor === "parametro" ? <div className="flex flex-col gap-2 lg:col-span-2"><span className="text-sm font-medium">Parâmetros</span><div className="grid max-h-36 gap-2 overflow-auto rounded-lg border p-3 sm:grid-cols-2">
           {indicador?.parametros.map((item) => <label key={item.codigo} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={parametrosSelecionados.has(item.codigo)} onCheckedChange={(checked) => toggleParametro(item.codigo, checked === true)} />{item.rotulo}</label>)}
         </div></div> : null}
-        <div className="flex flex-wrap items-center gap-2 lg:col-span-3" aria-label="Filtros ativos">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/35 p-3 lg:col-span-3" aria-label="Filtros ativos">
+          <span className="mr-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Filter aria-hidden />Ativos</span>
           {indicador ? <Badge variant="secondary">Indicador: {indicador.codigo.toUpperCase()}</Badge> : null}
           {(comparandoPrefeituras ? [...selectedIds] : selectedId ? [selectedId] : []).map((id) => { const nome = prefeituras?.find((item) => item.id === id)?.name; return nome ? <Badge key={id} variant="outline" className="gap-1">{nome}<button type="button" aria-label={`Remover filtro ${nome}`} onClick={() => comparandoPrefeituras ? toggleSelecionada(id, false) : setSelectedId(null)}><X className="size-3" /></button></Badge> : null; })}
           {compararPor !== "nenhuma" ? <Badge variant="outline">Comparar por: {compararPor === "periodo" ? "período" : compararPor}</Badge> : null}
           {compararPor === "periodo" ? periodosDisponiveis.filter((ponto) => periodosSelecionados.has(ponto.importacao_id)).map((ponto) => { const rotulo = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(ponto.data_referencia)); return <Badge key={ponto.importacao_id} variant="outline" className="gap-1">Período: {rotulo}<button type="button" aria-label={`Remover período ${rotulo}`} onClick={() => togglePeriodo(ponto.importacao_id, false)}><X className="size-3" /></button></Badge>; }) : null}
           {compararPor === "parametro" ? indicador?.parametros.filter((item) => parametrosSelecionados.has(item.codigo)).map((item) => <Badge key={item.codigo} variant="outline" className="gap-1">{item.rotulo}<button type="button" aria-label={`Remover parâmetro ${item.rotulo}`} onClick={() => toggleParametro(item.codigo, false)}><X className="size-3" /></button></Badge>) : null}
-          {(compararPor !== "nenhuma" || selectedIds.size > 1 || periodosSelecionados.size > 0 || parametrosSelecionados.size > 0) ? <Button type="button" variant="ghost" size="sm" onClick={() => { setCompararPor("nenhuma"); setPeriodosSelecionados(new Set()); setParametrosSelecionados(new Set()); setSelectedIds(new Set(selectedId ? [selectedId] : [])); }}>Limpar filtros</Button> : null}
         </div>
       </CardContent>
     </Card>
 
-    {indicador ? <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h2 className="text-xl font-semibold">{indicador.nome}</h2><Badge variant="secondary">{indicador.codigo.toUpperCase()}</Badge></div><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{indicador.descricao}</p></div><Badge variant="outline">{indicador.categoria}</Badge></div> : null}
+    {indicador ? <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><h2 className="text-xl font-semibold tracking-tight">{indicador.nome}</h2><Badge variant="secondary">{indicador.codigo.toUpperCase()}</Badge></div><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{indicador.descricao}</p></div><Badge variant="outline">{indicador.categoria}</Badge></div> : null}
 
     {indicador?.codigo === "c3" ? <C3ScopeBoundary /> : null}
 
-    <Tabs value={secao} onValueChange={(value) => setSecao(value as Secao)}><TabsList variant="line" className="w-full justify-start overflow-x-auto"><TabsTrigger value="visao-geral"><ChartNoAxesCombined data-icon="inline-start" />Visão geral</TabsTrigger><TabsTrigger value="visualizacoes"><BarChart3 data-icon="inline-start" />Visualizações</TabsTrigger><TabsTrigger value="tabela"><TableProperties data-icon="inline-start" />Tabela</TabsTrigger></TabsList></Tabs>
+    <Tabs value={secao} onValueChange={(value) => setSecao(value as Secao)}><TabsList variant="line" className="w-full justify-start overflow-x-auto border-b"><TabsTrigger value="visao-geral"><LayoutDashboard data-icon="inline-start" />Visão geral</TabsTrigger><TabsTrigger value="visualizacoes"><BarChart3 data-icon="inline-start" />Visualizações</TabsTrigger><TabsTrigger value="tabela"><TableProperties data-icon="inline-start" />Tabela</TabsTrigger></TabsList></Tabs>
 
     {prefeituras !== null && prefeituras.length === 0 ? <p className="text-sm text-muted-foreground">Cadastre uma prefeitura para visualizar o Analytics.</p>
+    : !analyticsDisponivel ? <Empty><EmptyHeader><EmptyMedia variant="icon"><ChartNoAxesCombined /></EmptyMedia><EmptyTitle>Analytics deste indicador em preparação</EmptyTitle><EmptyDescription>Este indicador ainda não possui um contrato agregado próprio. Os dados de outro indicador não serão reutilizados aqui.</EmptyDescription></EmptyHeader></Empty>
     : forbidden ? <Empty><EmptyHeader><EmptyMedia variant="icon"><Lock /></EmptyMedia><EmptyTitle>Sem permissão para ver este indicador</EmptyTitle><EmptyDescription>Peça a um administrador acesso ao indicador selecionado.</EmptyDescription></EmptyHeader></Empty>
     : loadError ? <Empty><EmptyHeader><EmptyMedia variant="icon"><ShieldAlert /></EmptyMedia><EmptyTitle>Não foi possível carregar</EmptyTitle><EmptyDescription>{loadError}</EmptyDescription></EmptyHeader></Empty>
     : dadosExibidos === null || catalogo === null ? <Skeleton className="h-90 w-full" />
     : dadosExibidos.length === 0 || totalGestantes === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><BarChart3 /></EmptyMedia><EmptyTitle>Sem dado suficiente</EmptyTitle><EmptyDescription>{comparandoPrefeituras ? "Selecione ao menos uma prefeitura com dados." : compararPor === "periodo" ? "Selecione ao menos uma importação com dados." : "Não há dados nesta prefeitura para gerar a análise."}</EmptyDescription></EmptyHeader></Empty>
-    : secao === "visao-geral" ? <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Card><CardHeader><CardDescription>Total acompanhado</CardDescription><CardTitle className="text-3xl">{totalGestantes.toLocaleString("pt-BR")}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Parâmetros monitorados</CardDescription><CardTitle className="text-3xl">{indicador?.parametros.length ?? 0}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Recortes comparados</CardDescription><CardTitle className="text-3xl">{dadosExibidos.length}</CardTitle></CardHeader></Card><Card className="sm:col-span-2 lg:col-span-3"><CardHeader><CardTitle>Cumprimento por parâmetro</CardTitle><CardDescription>Visão rápida do desempenho no recorte selecionado.</CardDescription></CardHeader><CardContent><PraticasBarChart dados={dadosExibidos} /></CardContent></Card></div>
+    : secao === "visao-geral" ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Card><CardHeader className="pb-2"><CardDescription>Pessoas na coorte</CardDescription><CardTitle className="text-3xl tabular-nums">{totalGestantes.toLocaleString("pt-BR")}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Denominador do recorte</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Cumprimento ponderado</CardDescription><CardTitle className="text-3xl tabular-nums">{percentualGeral === null ? "—" : `${percentualGeral.toLocaleString("pt-BR")} %`}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">{totalCumpridas.toLocaleString("pt-BR")} de {totalOcorrencias.toLocaleString("pt-BR")} ocorrências</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Parâmetros monitorados</CardDescription><CardTitle className="text-3xl tabular-nums">{indicador?.parametros.length ?? 0}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Critérios do indicador</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Recortes comparados</CardDescription><CardTitle className="text-3xl tabular-nums">{dadosExibidos.length}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Prefeitura, período ou parâmetro</p></CardContent></Card><Card className="xl:col-span-3"><CardHeader><CardTitle>Cumprimento por parâmetro</CardTitle><CardDescription>Use as barras horizontais para ler nomes longos e compare percentuais de forma direta.</CardDescription></CardHeader><CardContent><PraticasBarChart dados={dadosExibidos} orientation="horizontal" /></CardContent></Card><Card className="xl:col-span-1"><CardHeader><CardTitle>Composição do resultado</CardTitle><CardDescription>Ocorrências cumpridas e não cumpridas no recorte.</CardDescription></CardHeader><CardContent><PraticasPieChart dados={dadosExibidos} /></CardContent></Card></div>
     : secao === "tabela" ? <Card><CardHeader><CardTitle>Todos os parâmetros</CardTitle><CardDescription>Metas, totais e percentuais lado a lado para facilitar leitura e comparação.</CardDescription></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Parâmetro</TableHead><TableHead>Descrição</TableHead><TableHead>Meta</TableHead>{dadosExibidos.map((item) => <TableHead key={item.prefeitura_id}>{item.prefeitura_nome}</TableHead>)}</TableRow></TableHeader><TableBody>{indicador?.parametros.map((parametro) => <TableRow key={parametro.codigo}><TableCell className="font-medium">{parametro.rotulo}</TableCell><TableCell className="min-w-60 text-muted-foreground">{parametro.descricao}</TableCell><TableCell>{parametro.meta === null ? "—" : parametro.tipo === "booleano" ? parametro.meta > 0 ? "Sim" : "Não" : parametro.meta}</TableCell>{dadosExibidos.map((item) => { const metrica = item.praticas.find((pratica) => pratica.pratica.toLowerCase() === parametro.codigo.toLowerCase()); return <TableCell key={item.prefeitura_id}>{metrica ? <div className="flex flex-col"><span className="font-medium">{metrica.percentual_cumprido.toLocaleString("pt-BR")}%</span><span className="text-xs text-muted-foreground">{metrica.total_cumprida}/{metrica.total_gestantes}</span></div> : "—"}</TableCell>; })}</TableRow>)}</TableBody></Table></CardContent></Card>
-    : <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]"><Card><CardHeader><CardTitle>Galeria de gráficos</CardTitle><CardDescription>Alterne a leitura sem buscar as métricas novamente.</CardDescription></CardHeader><CardContent><Tabs value={tipoGrafico} onValueChange={(value) => setTipoGrafico(value as VisualizacaoIndicador)} orientation="vertical"><TabsList variant="line" className="w-full">{visualizacoes.map((item) => <TabsTrigger key={item} value={item} disabled={item === "radar" && dadosExibidos.length < 2} className="capitalize">{item === "evolucao" ? "Evolução" : item}</TabsTrigger>)}</TabsList></Tabs></CardContent></Card><Card><CardHeader><CardTitle>{tipoGrafico === "evolucao" ? "Evolução histórica" : `Gráfico de ${tipoGrafico}`}</CardTitle><CardDescription>Resultado agregado do recorte selecionado.</CardDescription></CardHeader><CardContent>{tipoGrafico === "barra" ? <PraticasBarChart dados={dadosExibidos} /> : tipoGrafico === "pizza" ? <PraticasPieChart dados={dadosExibidos} /> : tipoGrafico === "ranking" ? <PrefeiturasRankingChart dados={dadosExibidos} /> : tipoGrafico === "evolucao" ? historicoError ? <p className="text-sm text-destructive">{historicoError}</p> : historico === null ? <Skeleton className="h-95 w-full" /> : <EvolucaoLineChart series={historico} /> : dadosExibidos.length > 1 ? <PraticasRadarChart dados={dadosExibidos} /> : <p className="text-sm text-muted-foreground">Selecione dois ou mais recortes para usar o radar.</p>}</CardContent></Card></div>}
+    : <div className="grid gap-4"><Card><CardHeader className="gap-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>Escolha a leitura</CardTitle><CardDescription>Alterne o gráfico sem refazer a consulta das métricas.</CardDescription></div><Badge variant="outline" className="gap-1"><ArrowDownUp aria-hidden />Dados agregados</Badge></div><Tabs value={tipoGrafico} onValueChange={(value) => setTipoGrafico(value as VisualizacaoIndicador)}><TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted/50 p-1">{visualizacoes.map((item) => <TabsTrigger key={item} value={item} disabled={item === "radar" && dadosExibidos.length < 2} className="capitalize">{item === "evolucao" ? "Evolução" : item}</TabsTrigger>)}</TabsList></Tabs>{tipoGrafico === "barra" ? <div className="flex flex-wrap items-center gap-2" aria-label="Orientação das barras"><span className="text-xs font-medium text-muted-foreground">Orientação</span><Button type="button" size="sm" variant={orientacaoBarras === "horizontal" ? "secondary" : "ghost"} aria-pressed={orientacaoBarras === "horizontal"} onClick={() => setOrientacaoBarras("horizontal")}><Rows3 data-icon="inline-start" />Horizontal</Button><Button type="button" size="sm" variant={orientacaoBarras === "vertical" ? "secondary" : "ghost"} aria-pressed={orientacaoBarras === "vertical"} onClick={() => setOrientacaoBarras("vertical")}><Columns3 data-icon="inline-start" />Vertical</Button></div> : null}</CardHeader></Card><Card><CardHeader><CardTitle>{tipoGrafico === "evolucao" ? "Evolução histórica" : `Gráfico de ${tipoGrafico}`}</CardTitle><CardDescription>Resultado agregado do recorte selecionado.</CardDescription></CardHeader><CardContent>{tipoGrafico === "barra" ? <PraticasBarChart dados={dadosExibidos} orientation={orientacaoBarras} /> : tipoGrafico === "pizza" ? <PraticasPieChart dados={dadosExibidos} /> : tipoGrafico === "ranking" ? <PrefeiturasRankingChart dados={dadosExibidos} /> : tipoGrafico === "evolucao" ? historicoError ? <p className="text-sm text-destructive">{historicoError}</p> : historico === null ? <Skeleton className="h-95 w-full" /> : <EvolucaoLineChart series={historico} /> : dadosExibidos.length > 1 ? <PraticasRadarChart dados={dadosExibidos} /> : <p className="text-sm text-muted-foreground">Selecione dois ou mais recortes para usar o radar.</p>}</CardContent></Card></div>}
   </div>;
 }

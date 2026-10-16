@@ -347,6 +347,19 @@ describe("AnalyticsPage", () => {
     expect(screen.queryByRole("tab", { name: "Evolução" })).not.toBeInTheDocument();
   });
 
+  it("não consulta C3 quando o catálogo marca o indicador sem analytics", async () => {
+    mockedIndicadoresService.catalogo.mockResolvedValue({
+      indicadores: [{ ...INDICADOR, codigo: "c5", analytics_disponivel: false, visualizacoes: [] }],
+    });
+    mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
+
+    render(<AnalyticsPage />);
+
+    expect(await screen.findByText("Analytics deste indicador em preparação")).toBeInTheDocument();
+    expect(mockedGestanteService.metricas).not.toHaveBeenCalled();
+    expect(screen.getByText(/dados de outro indicador não serão reutilizados/i)).toBeInTheDocument();
+  });
+
   it("permite operar comparação e seções somente pelo teclado", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA, OUTRA_PREFEITURA]);
     mockedGestanteService.metricas.mockResolvedValue(METRICAS);
