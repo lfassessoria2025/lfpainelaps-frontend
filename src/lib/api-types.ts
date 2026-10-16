@@ -413,6 +413,30 @@ export interface MetricasIndicadorOut {
   praticas: MetricaPraticaOut[];
 }
 
+export interface AnalyticsMetricOut {
+  codigo: string;
+  titulo: string;
+  unidade: "percentual" | "contagem" | "media" | "pontuacao";
+  valor: number | null;
+  numerador?: number | null;
+  denominador?: number | null;
+  percentual?: number | null;
+  total_aplicaveis?: number | null;
+  total_concluidas?: number | null;
+}
+
+export interface AnalyticsSnapshotOut {
+  indicador: string;
+  indicador_nome: string;
+  prefeitura_id: number;
+  prefeitura_nome: string;
+  data_referencia: string | null;
+  total_elegiveis: number | null;
+  valor_total: number | null;
+  unidade: "percentual" | "contagem" | "media" | "pontuacao";
+  praticas: AnalyticsMetricOut[];
+}
+
 export interface MetricasEquipeGestanteOut {
   chave: string;
   nome: string | null;

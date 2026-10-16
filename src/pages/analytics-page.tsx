@@ -19,6 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DimensaoComparacaoIndicador, IndicadorCatalogoOut, MetricasIndicadorOut, PrefeituraOut, VisualizacaoIndicador } from "@/lib/api-types";
 import type { SerieHistoricaPrefeitura } from "@/lib/analytics-chart-data";
 import { ApiError } from "@/lib/http";
+import { analyticsService } from "@/services/analytics";
 import { gestanteService } from "@/services/gestante";
 import { indicadoresService } from "@/services/indicadores";
 import { prefeiturasService } from "@/services/prefeituras";
@@ -132,7 +133,7 @@ export function AnalyticsPage() {
     const ids = comparandoPrefeituras ? [...selectedIds] : selectedId !== null ? [selectedId] : [];
     if (ids.length === 0) return;
     try {
-      const resultado = comparandoPrefeituras ? await gestanteService.comparar(ids) : [await gestanteService.metricas(ids[0])];
+      const resultado = comparandoPrefeituras ? await analyticsService.comparar(indicador.codigo, ids) : [await analyticsService.metricas(indicador.codigo, ids[0])];
       setDados(resultado); setLoadError(null); setForbidden(false);
     } catch (error) {
       if (error instanceof ApiError && error.status === 403) {
