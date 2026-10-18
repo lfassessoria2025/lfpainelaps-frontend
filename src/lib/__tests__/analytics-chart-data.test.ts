@@ -171,4 +171,29 @@ describe("montarLinhasEvolucao", () => {
       },
     ]);
   });
+
+  it("mantém a média da eMulti sem convertê-la em percentual", () => {
+    const ponto: SerieHistoricaPontoOut = {
+      importacao_id: 30,
+      data_referencia: "2026-02-15T12:00:00Z",
+      total_gestantes: 4,
+      unidade: "media",
+      valor_total: 2.25,
+      praticas: [{
+        pratica: "M1",
+        titulo: "Atendimentos por pessoa",
+        total_gestantes: 4,
+        total_cumprida: 9,
+        percentual_cumprido: 2.25,
+      }],
+    };
+
+    expect(montarLinhasEvolucao([
+      { prefeitura_id: 1, prefeitura_nome: "Jeriquara", pontos: [ponto] },
+    ])).toEqual([{
+      data: "2026-02-15T12:00:00Z",
+      data_rotulo: "15/02/2026",
+      [chaveDaSerie(1)]: 2.25,
+    }]);
+  });
 });
