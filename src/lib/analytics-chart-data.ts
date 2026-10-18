@@ -1,5 +1,23 @@
 import type { MetricasIndicadorOut, SerieHistoricaPontoOut } from "@/lib/api-types";
 
+export type UnidadeAnalytics = "percentual" | "media" | "contagem" | "pontuacao" | "misto";
+
+export function unidadeDosDados(dados: MetricasIndicadorOut[]): UnidadeAnalytics {
+  const unidades = new Set(dados.flatMap((item) => item.praticas.map((pratica) => pratica.unidade ?? item.unidade ?? "percentual")));
+  if (unidades.size === 0) return dados[0]?.unidade ?? "percentual";
+  return unidades.size === 1 ? [...unidades][0] as UnidadeAnalytics : "misto";
+}
+
+export function formatarValorAnalytics(valor: number | null | undefined, unidade: UnidadeAnalytics): string {
+  if (valor === null || valor === undefined) return "Sem dado";
+  const numero = valor.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+  if (unidade === "percentual") return `${numero}%`;
+  if (unidade === "media") return `${numero} por pessoa`;
+  if (unidade === "pontuacao") return `${numero} ponto(s)`;
+  if (unidade === "contagem") return `${numero} registro(s)`;
+  return numero;
+}
+
 // Chave por prefeitura_id (único de fato), nunca por nome — duas prefeituras
 // podem ter o mesmo `name` (só `ibge_code` é único no banco), e uma chave
 // por nome faria uma sobrescrever a outra silenciosamente no gráfico de
@@ -62,6 +80,7 @@ export interface CumpridaSlice {
  * (total_gestantes = 0) simplesmente não soma nada, não gera NaN.
  */
 export function montarFatiasCumprimento(dados: MetricasIndicadorOut[]): CumpridaSlice[] {
+  if (unidadeDosDados(dados) !== "percentual") return [];
   let totalCumprida = 0;
   let totalOcorrencias = 0;
 

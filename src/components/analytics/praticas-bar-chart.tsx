@@ -7,7 +7,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { chaveDaSerie, montarLinhasDoGrafico } from "@/lib/analytics-chart-data";
+import { chaveDaSerie, formatarValorAnalytics, montarLinhasDoGrafico, unidadeDosDados } from "@/lib/analytics-chart-data";
 import type { MetricasIndicadorOut } from "@/lib/api-types";
 import { ChartLegend } from "@/components/analytics/chart-legend";
 import { ChartDataSummary } from "@/components/analytics/chart-data-summary";
@@ -29,6 +29,10 @@ export function PraticasBarChart({ dados, orientation = "horizontal" }: Praticas
   if (dados.length === 0) return null;
 
   const linhas = montarLinhasDoGrafico(dados);
+  const unidade = unidadeDosDados(dados);
+  const valores = linhas.flatMap((linha) => Object.entries(linha).filter(([chave]) => chave.startsWith("serie_")).map(([, valor]) => typeof valor === "number" ? valor : 0));
+  const maximo = Math.max(1, ...valores);
+  const dominio = unidade === "percentual" ? [0, 100] : [0, Math.ceil(maximo * 1.1)];
   const horizontal = orientation === "horizontal";
 
   // Barras horizontais: o nome completo da prática cabe por extenso no
@@ -50,10 +54,10 @@ export function PraticasBarChart({ dados, orientation = "horizontal" }: Praticas
           <CartesianGrid strokeDasharray="3 3" horizontal={horizontal} vertical={!horizontal} className="stroke-border" />
           {horizontal ? <XAxis
             type="number"
-            domain={[0, 100]}
+            domain={dominio}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value: number) => `${value}%`}
+            tickFormatter={(value: number) => unidade === "percentual" ? `${value}%` : String(value)}
           /> : <XAxis
             type="category"
             dataKey="rotulo"
@@ -73,12 +77,12 @@ export function PraticasBarChart({ dados, orientation = "horizontal" }: Praticas
             tickFormatter={(value: string) => String(value).split(" · ")[0] ?? value}
           /> : <YAxis
             type="number"
-            domain={[0, 100]}
+            domain={dominio}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value: number) => `${value}%`}
+            tickFormatter={(value: number) => unidade === "percentual" ? `${value}%` : String(value)}
           />}
-          <Tooltip formatter={(value) => (value === null ? "sem dado" : `${value}%`)} />
+          <Tooltip formatter={(value) => formatarValorAnalytics(typeof value === "number" ? value : null, unidade)} />
           {dados.map((prefeitura, indice) => (
             <Bar
               key={prefeitura.prefeitura_id}

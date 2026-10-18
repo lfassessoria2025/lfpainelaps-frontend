@@ -7,12 +7,18 @@ function adaptar(snapshot: AnalyticsSnapshotOut): MetricasIndicadorOut {
     prefeitura_id: snapshot.prefeitura_id,
     prefeitura_nome: snapshot.prefeitura_nome,
     total_gestantes: snapshot.total_elegiveis ?? 0,
+    unidade: snapshot.unidade,
+    valor_total: snapshot.valor_total,
     praticas: snapshot.praticas.map((metrica) => ({
       pratica: metrica.codigo,
       titulo: metrica.titulo,
       total_gestantes: metrica.denominador ?? 0,
       total_cumprida: metrica.numerador ?? 0,
-      percentual_cumprido: metrica.percentual ?? metrica.valor ?? 0,
+      percentual_cumprido: metrica.unidade === "media" || metrica.unidade === "contagem" || metrica.unidade === "pontuacao"
+        ? metrica.valor ?? 0
+        : metrica.percentual ?? metrica.valor ?? 0,
+      unidade: metrica.unidade,
+      valor: metrica.valor,
     })),
   };
 }

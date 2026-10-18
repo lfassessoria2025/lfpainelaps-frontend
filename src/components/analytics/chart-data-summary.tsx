@@ -1,4 +1,5 @@
 import type { MetricasIndicadorOut } from "@/lib/api-types";
+import { formatarValorAnalytics, unidadeDosDados } from "@/lib/analytics-chart-data";
 
 /**
  * Alternativa textual aos gráficos para telas estreitas e leitores de tela.
@@ -7,6 +8,7 @@ import type { MetricasIndicadorOut } from "@/lib/api-types";
  */
 export function ChartDataSummary({ dados }: { dados: MetricasIndicadorOut[] }) {
   if (dados.length === 0) return null;
+  const unidade = unidadeDosDados(dados);
 
   return (
     <details className="mt-3 rounded-lg border bg-muted/20 p-3 md:hidden">
@@ -27,7 +29,7 @@ export function ChartDataSummary({ dados }: { dados: MetricasIndicadorOut[] }) {
                 <th scope="row" className="p-2 font-medium">{pratica.pratica} · {pratica.titulo}</th>
                 {dados.map((item) => {
                   const metrica = item.praticas.find((candidate) => candidate.pratica === pratica.pratica);
-                  return <td key={item.prefeitura_id} className="p-2 tabular-nums">{metrica ? `${metrica.percentual_cumprido}% (${metrica.total_cumprida}/${metrica.total_gestantes})` : "Sem dados validados"}</td>;
+                  return <td key={item.prefeitura_id} className="p-2 tabular-nums">{metrica ? `${formatarValorAnalytics(metrica.valor ?? metrica.percentual_cumprido, metrica.unidade ?? unidade)} (${metrica.total_cumprida}/${metrica.total_gestantes})` : "Sem dados validados"}</td>;
                 })}
               </tr>
             ))}

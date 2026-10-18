@@ -405,6 +405,8 @@ export interface MetricaPraticaOut {
   total_gestantes: number;
   total_cumprida: number;
   percentual_cumprido: number;
+  unidade?: "percentual" | "contagem" | "media" | "pontuacao";
+  valor?: number | null;
 }
 
 export interface MetricasIndicadorOut {
@@ -412,6 +414,8 @@ export interface MetricasIndicadorOut {
   prefeitura_nome: string;
   total_gestantes: number;
   praticas: MetricaPraticaOut[];
+  unidade?: "percentual" | "contagem" | "media" | "pontuacao" | "misto";
+  valor_total?: number | null;
 }
 
 export interface AnalyticsMetricOut {
@@ -434,7 +438,7 @@ export interface AnalyticsSnapshotOut {
   data_referencia: string | null;
   total_elegiveis: number | null;
   valor_total: number | null;
-  unidade: "percentual" | "contagem" | "media" | "pontuacao";
+  unidade: "percentual" | "contagem" | "media" | "pontuacao" | "misto";
   praticas: AnalyticsMetricOut[];
 }
 
@@ -1041,6 +1045,29 @@ export interface FechamentoEmultiM1Out {
   equipes: EmultiM1Out[];
 }
 
+export interface EmultiM2Out {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  indicador: "M2";
+  equipe_nome: string;
+  equipe_ine: string;
+  numerador: number;
+  denominador: number;
+  percentual: number;
+  created_at: string;
+}
+
+export interface FechamentoEmultiM2Out {
+  indicador: "M2";
+  data_referencia: string | null;
+  numerador: number;
+  denominador: number;
+  percentual: number;
+  classificacao: "otimo" | "bom" | "suficiente" | "regular";
+  equipes: EmultiM2Out[];
+}
+
 export interface MaisAcessoC1Out {
   id: number;
   data_referencia: string;
@@ -1109,7 +1136,7 @@ export interface SerieHistoricaPontoOut {
   data_referencia: string;
   total_gestantes: number;
   praticas: MetricaPraticaOut[];
-  unidade?: "percentual" | "media" | "contagem" | "pontuacao";
+  unidade?: "percentual" | "media" | "contagem" | "pontuacao" | "misto";
   valor_total?: number | null;
 }
 

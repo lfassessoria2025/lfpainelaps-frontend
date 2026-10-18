@@ -18,6 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { DimensaoComparacaoIndicador, IndicadorCatalogoOut, MetricasIndicadorOut, PrefeituraOut, VisualizacaoIndicador } from "@/lib/api-types";
 import type { SerieHistoricaPrefeitura } from "@/lib/analytics-chart-data";
+import { formatarValorAnalytics, unidadeDosDados } from "@/lib/analytics-chart-data";
 import { ApiError } from "@/lib/http";
 import { analyticsService } from "@/services/analytics";
 import { gestanteService } from "@/services/gestante";
@@ -73,9 +74,12 @@ export function AnalyticsPage() {
   const [historicoError, setHistoricoError] = useState<string | null>(null);
 
   const indicador = catalogo?.find((item) => item.codigo === indicadorCodigo) ?? catalogo?.[0];
-  const visualizacoes = (indicador?.visualizacoes ?? []).filter(
-    (visualizacao) => visualizacao !== "evolucao" || indicador?.possui_historico,
-  );
+  const unidadeAnalytics = dados ? unidadeDosDados(dados) : "percentual";
+  const visualizacoes = (indicador?.visualizacoes ?? []).filter((visualizacao) => {
+    if (visualizacao === "evolucao" && !indicador?.possui_historico) return false;
+    if (!dados || unidadeAnalytics === "percentual") return true;
+    return visualizacao === "barra" || visualizacao === "evolucao";
+  });
   const dimensoesDisponiveis = indicador?.dimensoes_comparacao ?? [];
   const comparandoPrefeituras = compararPor === "prefeitura";
   const analyticsDisponivel = indicador?.analytics_disponivel !== false;
@@ -88,6 +92,10 @@ export function AnalyticsPage() {
     const codigosValidos = new Set(indicador.parametros.map((item) => item.codigo));
     setParametrosSelecionados((atuais) => new Set([...atuais].filter((codigo) => codigosValidos.has(codigo))));
   }, [compararPor, indicador]);
+
+  useEffect(() => {
+    if (visualizacoes.length > 0 && !visualizacoes.includes(tipoGrafico)) setTipoGrafico(visualizacoes[0]);
+  }, [tipoGrafico, visualizacoes]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -133,7 +141,12 @@ export function AnalyticsPage() {
     if (!indicador) return;
     if (!analyticsDisponivel) { setDados([]); return; }
     const ids = comparandoPrefeituras ? [...selectedIds] : selectedId !== null ? [selectedId] : [];
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+      setDados([]);
+      setLoadError(null);
+      setForbidden(false);
+      return;
+    }
     try {
       const resultado = comparandoPrefeituras ? await analyticsService.comparar(indicador.codigo, ids) : [await analyticsService.metricas(indicador.codigo, ids[0])];
       setDados(resultado); setLoadError(null); setForbidden(false);
@@ -210,6 +223,15 @@ export function AnalyticsPage() {
   const totalCumpridas = dadosExibidos?.reduce((soma, item) => soma + item.praticas.reduce((subtotal, pratica) => subtotal + pratica.total_cumprida, 0), 0) ?? 0;
   const totalOcorrencias = dadosExibidos?.reduce((soma, item) => soma + item.praticas.reduce((subtotal, pratica) => subtotal + pratica.total_gestantes, 0), 0) ?? 0;
   const percentualGeral = totalOcorrencias > 0 ? Math.round((totalCumpridas / totalOcorrencias) * 1000) / 10 : null;
+  const valorTotal = dadosExibidos && dadosExibidos.length > 0
+    ? dadosExibidos.reduce((soma, item) => soma + (item.valor_total ?? 0), 0) / dadosExibidos.length
+    : null;
+  const resultadoGeral = unidadeAnalytics === "percentual"
+    ? percentualGeral === null ? "—" : `${percentualGeral.toLocaleString("pt-BR")} %`
+    : formatarValorAnalytics(valorTotal ?? (dadosExibidos?.[0]?.praticas[0]?.valor ?? null), unidadeAnalytics);
+  const resultadoDescricao = unidadeAnalytics === "percentual"
+    ? `${totalCumpridas.toLocaleString("pt-BR")} de ${totalOcorrencias.toLocaleString("pt-BR")} ocorrências`
+    : "Resultado agregado do recorte";
 
   return <div className="flex flex-col gap-6">
     <PageHeader title="Analytics" description="Explore, compare e detalhe os indicadores de saúde disponíveis." />
@@ -282,8 +304,8 @@ export function AnalyticsPage() {
     : loadError ? <Empty><EmptyHeader><EmptyMedia variant="icon"><ShieldAlert /></EmptyMedia><EmptyTitle>Não foi possível carregar</EmptyTitle><EmptyDescription>{loadError}</EmptyDescription></EmptyHeader></Empty>
     : dadosExibidos === null || catalogo === null ? <Skeleton className="h-90 w-full" />
     : dadosExibidos.length === 0 || totalGestantes === 0 ? <Empty><EmptyHeader><EmptyMedia variant="icon"><BarChart3 /></EmptyMedia><EmptyTitle>Sem dado suficiente</EmptyTitle><EmptyDescription>{comparandoPrefeituras ? "Selecione ao menos uma prefeitura com dados." : compararPor === "periodo" ? "Selecione ao menos uma importação com dados." : "Não há dados nesta prefeitura para gerar a análise."}</EmptyDescription></EmptyHeader></Empty>
-    : secao === "visao-geral" ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Card><CardHeader className="pb-2"><CardDescription>Pessoas na coorte</CardDescription><CardTitle className="text-3xl tabular-nums">{totalGestantes.toLocaleString("pt-BR")}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Denominador do recorte</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Cumprimento ponderado</CardDescription><CardTitle className="text-3xl tabular-nums">{percentualGeral === null ? "—" : `${percentualGeral.toLocaleString("pt-BR")} %`}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">{totalCumpridas.toLocaleString("pt-BR")} de {totalOcorrencias.toLocaleString("pt-BR")} ocorrências</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Parâmetros monitorados</CardDescription><CardTitle className="text-3xl tabular-nums">{indicador?.parametros.length ?? 0}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Critérios do indicador</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Recortes comparados</CardDescription><CardTitle className="text-3xl tabular-nums">{dadosExibidos.length}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Prefeitura, período ou parâmetro</p></CardContent></Card><Card className="xl:col-span-3"><CardHeader><CardTitle>Cumprimento por parâmetro</CardTitle><CardDescription>Use as barras horizontais para ler nomes longos e compare percentuais de forma direta.</CardDescription></CardHeader><CardContent><PraticasBarChart dados={dadosExibidos} orientation="horizontal" /></CardContent></Card><Card className="xl:col-span-1"><CardHeader><CardTitle>Composição do resultado</CardTitle><CardDescription>Ocorrências cumpridas e não cumpridas no recorte.</CardDescription></CardHeader><CardContent><PraticasPieChart dados={dadosExibidos} /></CardContent></Card></div>
-    : secao === "tabela" ? <Card><CardHeader><CardTitle>Todos os parâmetros</CardTitle><CardDescription>Metas, totais e percentuais lado a lado para facilitar leitura e comparação.</CardDescription></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Parâmetro</TableHead><TableHead>Descrição</TableHead><TableHead>Meta</TableHead>{dadosExibidos.map((item) => <TableHead key={item.prefeitura_id}>{item.prefeitura_nome}</TableHead>)}</TableRow></TableHeader><TableBody>{indicador?.parametros.map((parametro) => <TableRow key={parametro.codigo}><TableCell className="font-medium">{parametro.rotulo}</TableCell><TableCell className="min-w-60 text-muted-foreground">{parametro.descricao}</TableCell><TableCell>{parametro.meta === null ? "—" : parametro.tipo === "booleano" ? parametro.meta > 0 ? "Sim" : "Não" : parametro.meta}</TableCell>{dadosExibidos.map((item) => { const metrica = item.praticas.find((pratica) => pratica.pratica.toLowerCase() === parametro.codigo.toLowerCase()); return <TableCell key={item.prefeitura_id}>{metrica ? <div className="flex flex-col"><span className="font-medium">{metrica.percentual_cumprido.toLocaleString("pt-BR")}%</span><span className="text-xs text-muted-foreground">{metrica.total_cumprida}/{metrica.total_gestantes}</span></div> : "—"}</TableCell>; })}</TableRow>)}</TableBody></Table></CardContent></Card>
+    : secao === "visao-geral" ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Card><CardHeader className="pb-2"><CardDescription>Base do indicador</CardDescription><CardTitle className="text-3xl tabular-nums">{totalGestantes.toLocaleString("pt-BR")}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Denominador do recorte</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>{unidadeAnalytics === "percentual" ? "Cumprimento ponderado" : "Resultado do indicador"}</CardDescription><CardTitle className="text-3xl tabular-nums">{resultadoGeral}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">{resultadoDescricao}</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Parâmetros monitorados</CardDescription><CardTitle className="text-3xl tabular-nums">{indicador?.parametros.length ?? 0}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Critérios do indicador</p></CardContent></Card><Card><CardHeader className="pb-2"><CardDescription>Recortes comparados</CardDescription><CardTitle className="text-3xl tabular-nums">{dadosExibidos.length}</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground">Prefeitura, período ou parâmetro</p></CardContent></Card><Card className="xl:col-span-3"><CardHeader><CardTitle>{unidadeAnalytics === "percentual" ? "Cumprimento por parâmetro" : "Resultado por parâmetro"}</CardTitle><CardDescription>Use as barras horizontais para ler nomes longos e comparar os valores do indicador.</CardDescription></CardHeader><CardContent><PraticasBarChart dados={dadosExibidos} orientation="horizontal" /></CardContent></Card>{unidadeAnalytics === "percentual" ? <Card className="xl:col-span-1"><CardHeader><CardTitle>Composição do resultado</CardTitle><CardDescription>Ocorrências cumpridas e não cumpridas no recorte.</CardDescription></CardHeader><CardContent><PraticasPieChart dados={dadosExibidos} /></CardContent></Card> : null}</div>
+    : secao === "tabela" ? <Card><CardHeader><CardTitle>Todos os parâmetros</CardTitle><CardDescription>Metas, totais e resultados lado a lado para facilitar leitura e comparação.</CardDescription></CardHeader><CardContent className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Parâmetro</TableHead><TableHead>Descrição</TableHead><TableHead>Meta</TableHead>{dadosExibidos.map((item) => <TableHead key={item.prefeitura_id}>{item.prefeitura_nome}</TableHead>)}</TableRow></TableHeader><TableBody>{indicador?.parametros.map((parametro) => <TableRow key={parametro.codigo}><TableCell className="font-medium">{parametro.rotulo}</TableCell><TableCell className="min-w-60 text-muted-foreground">{parametro.descricao}</TableCell><TableCell>{parametro.meta === null ? "—" : parametro.tipo === "booleano" ? parametro.meta > 0 ? "Sim" : "Não" : parametro.meta}</TableCell>{dadosExibidos.map((item) => { const metrica = item.praticas.find((pratica) => pratica.pratica.toLowerCase() === parametro.codigo.toLowerCase()); return <TableCell key={item.prefeitura_id}>{metrica ? <div className="flex flex-col"><span className="font-medium">{formatarValorAnalytics(metrica.valor ?? metrica.percentual_cumprido, metrica.unidade ?? unidadeAnalytics)}</span><span className="text-xs text-muted-foreground">{metrica.total_cumprida}/{metrica.total_gestantes}</span></div> : "—"}</TableCell>; })}</TableRow>)}</TableBody></Table></CardContent></Card>
     : <div className="grid gap-4"><Card><CardHeader className="gap-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle>Escolha a leitura</CardTitle><CardDescription>Alterne o gráfico sem refazer a consulta das métricas.</CardDescription></div><Badge variant="outline" className="gap-1"><ArrowDownUp aria-hidden />Dados agregados</Badge></div><Tabs value={tipoGrafico} onValueChange={(value) => setTipoGrafico(value as VisualizacaoIndicador)}><TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted/50 p-1">{visualizacoes.map((item) => <TabsTrigger key={item} value={item} disabled={item === "radar" && dadosExibidos.length < 2} className="capitalize">{item === "evolucao" ? "Evolução" : item}</TabsTrigger>)}</TabsList></Tabs>{tipoGrafico === "barra" ? <div className="flex flex-wrap items-center gap-2" aria-label="Orientação das barras"><span className="text-xs font-medium text-muted-foreground">Orientação</span><Button type="button" size="sm" variant={orientacaoBarras === "horizontal" ? "secondary" : "ghost"} aria-pressed={orientacaoBarras === "horizontal"} onClick={() => setOrientacaoBarras("horizontal")}><Rows3 data-icon="inline-start" />Horizontal</Button><Button type="button" size="sm" variant={orientacaoBarras === "vertical" ? "secondary" : "ghost"} aria-pressed={orientacaoBarras === "vertical"} onClick={() => setOrientacaoBarras("vertical")}><Columns3 data-icon="inline-start" />Vertical</Button></div> : null}</CardHeader></Card><Card><CardHeader><CardTitle>{tipoGrafico === "evolucao" ? "Evolução histórica" : `Gráfico de ${tipoGrafico}`}</CardTitle><CardDescription>Resultado agregado do recorte selecionado.</CardDescription></CardHeader><CardContent>{tipoGrafico === "barra" ? <PraticasBarChart dados={dadosExibidos} orientation={orientacaoBarras} /> : tipoGrafico === "pizza" ? <PraticasPieChart dados={dadosExibidos} /> : tipoGrafico === "ranking" ? <PrefeiturasRankingChart dados={dadosExibidos} /> : tipoGrafico === "evolucao" ? historicoError ? <p className="text-sm text-destructive">{historicoError}</p> : historico === null ? <Skeleton className="h-95 w-full" /> : <EvolucaoLineChart series={historico} /> : dadosExibidos.length > 1 ? <PraticasRadarChart dados={dadosExibidos} /> : <p className="text-sm text-muted-foreground">Selecione dois ou mais recortes para usar o radar.</p>}</CardContent></Card></div>}
   </div>;
 }
