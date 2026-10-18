@@ -589,6 +589,7 @@ export interface PraticaFechamentoC2Out {
 export interface CriancaFechamentoC2Out {
   nome_cidadao: string;
   data_nascimento: string;
+  idade_meses: number;
   data_limite: string;
   dias_restantes: number;
   equipe_nome: string | null;

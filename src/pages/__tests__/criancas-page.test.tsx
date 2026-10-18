@@ -100,6 +100,7 @@ const FECHAMENTO: FechamentoC2Out = {
     {
       nome_cidadao: "Criança perto dos 2 anos",
       data_nascimento: "2024-10-01",
+      idade_meses: 23,
       data_limite: "2026-10-01",
       dias_restantes: 13,
       equipe_nome: "ESF Centro",

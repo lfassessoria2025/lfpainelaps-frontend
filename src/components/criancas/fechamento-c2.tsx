@@ -37,6 +37,14 @@ function formatarMes(anoMes: string): string {
   });
 }
 
+function formatarIdade(meses: number): string {
+  const anos = Math.floor(meses / 12);
+  const mesesRestantes = meses % 12;
+  if (anos === 0) return `${mesesRestantes} ${mesesRestantes === 1 ? "mês" : "meses"}`;
+  if (mesesRestantes === 0) return `${anos} ${anos === 1 ? "ano" : "anos"}`;
+  return `${anos}a ${mesesRestantes}m`;
+}
+
 const praticaClass: Record<PraticaFechamentoC2Out["status"], string> = {
   concluida: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
   recuperavel: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
@@ -113,7 +121,7 @@ function SituacaoVacinal({ crianca }: { crianca: CriancaFechamentoC2Out }) {
 function proximasAcoes(crianca: CriancaFechamentoC2Out): PraticaFechamentoC2Out[] {
   const prioridade = { recuperavel: 0, avaliar: 1, prazo_encerrado: 2, concluida: 3 } as const;
   return crianca.praticas
-    .filter((item) => item.status !== "concluida")
+    .filter((item) => item.status === "recuperavel" || item.status === "avaliar")
     .toSorted((a, b) => prioridade[a.status] - prioridade[b.status])
     .slice(0, 3);
 }
@@ -121,7 +129,10 @@ function proximasAcoes(crianca: CriancaFechamentoC2Out): PraticaFechamentoC2Out[
 function ProximasAcoes({ crianca, encerrada }: { crianca: CriancaFechamentoC2Out; encerrada: boolean }) {
   if (encerrada) return <p>Resultado preservado antes dos 2 anos.</p>;
   const acoes = proximasAcoes(crianca);
-  if (acoes.length === 0) return <p>Todos os cuidados concluídos.</p>;
+  if (acoes.length === 0) {
+    const foraDoPrazo = crianca.praticas.some((item) => item.status === "prazo_encerrado");
+    return <p>{foraDoPrazo ? "Práticas fora do prazo; novas ações não alteram o resultado." : "Todos os cuidados concluídos."}</p>;
+  }
   return (
     <ul className="flex list-disc flex-col gap-1 pl-4">
       {acoes.map((item) => (
@@ -186,8 +197,11 @@ function LinhaCrianca({
   const pontosVacina = crianca.status_vacinal === "completo" ? 20 : 0;
   return (
     <TableRow>
-      <TableCell className="w-56 min-w-56">
-        <p className="font-medium">{crianca.nome_cidadao}</p>
+      <TableCell className="w-56 min-w-56 max-w-56">
+        <p className="truncate font-medium" title={crianca.nome_cidadao}>{crianca.nome_cidadao}</p>
+        <p className="text-[11px] text-muted-foreground">
+          Nascimento: {formatarData(crianca.data_nascimento)} · {formatarIdade(crianca.idade_meses)}
+        </p>
         <p className="text-[11px] text-muted-foreground">
           {crianca.equipe_nome ?? "Sem equipe"}
           {crianca.micro_area ? ` · Micro-área ${crianca.micro_area}` : ""}
@@ -253,7 +267,8 @@ function ListaCriancas({
               <div key={`${crianca.nome_cidadao}-${crianca.data_nascimento}`} className="rounded-lg border p-3">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-medium">{crianca.nome_cidadao}</p>
+                    <p className="max-w-[16rem] truncate font-medium" title={crianca.nome_cidadao}>{crianca.nome_cidadao}</p>
+                    <p className="text-xs text-muted-foreground">Nascimento: {formatarData(crianca.data_nascimento)} · {formatarIdade(crianca.idade_meses)}</p>
                     <p className="text-xs text-muted-foreground">Fecha em {formatarData(crianca.data_limite)}</p>
                   </div>
                   <Badge variant="secondary">
