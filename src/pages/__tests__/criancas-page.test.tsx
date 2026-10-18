@@ -43,6 +43,7 @@ const CRIANCA: CriancaAcompanhamentoOut = {
   data_referencia: "2026-09-18",
   nome_cidadao: "Alice da Silva",
   data_nascimento: "2026-09-01",
+  idade_meses: 0,
   equipe_nome: "ESF Centro",
   equipe_ine: "0001",
   micro_area: "001",

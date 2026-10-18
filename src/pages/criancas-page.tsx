@@ -86,6 +86,14 @@ function formatarData(valor: string | null): string {
   return valor ? new Date(`${valor}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 }
 
+function formatarIdade(meses: number): string {
+  const anos = Math.floor(meses / 12);
+  const mesesRestantes = meses % 12;
+  if (anos === 0) return `${mesesRestantes} ${mesesRestantes === 1 ? "mês" : "meses"}`;
+  if (mesesRestantes === 0) return `${anos} ${anos === 1 ? "ano" : "anos"}`;
+  return `${anos}a ${mesesRestantes}m`;
+}
+
 function statusPratica(crianca: CriancaAcompanhamentoOut, pratica: Pratica): Status {
   return crianca.situacao_praticas[pratica];
 }
@@ -622,7 +630,7 @@ export function CriancasPage() {
           <div className="grid gap-2 md:hidden" aria-label="Crianças encontradas">
             {daPagina.map((crianca) => (
               <Card key={crianca.id} className="gap-3 p-4">
-                <div className="flex items-start justify-between gap-2"><div><p className="font-medium">{crianca.nome_cidadao}</p><p className="text-xs text-muted-foreground">{crianca.equipe_nome ?? "Sem equipe"} · {formatarData(crianca.data_nascimento)}</p></div><Badge>{crianca.pontuacao_total}</Badge></div>
+                <div className="flex items-start justify-between gap-2"><div><p className="font-medium">{crianca.nome_cidadao}</p><p className="text-xs text-muted-foreground">{crianca.equipe_nome ?? "Sem equipe"} · {formatarData(crianca.data_nascimento)} · {formatarIdade(crianca.idade_meses)}</p></div><Badge>{crianca.pontuacao_total}</Badge></div>
                 <div className="grid grid-cols-2 gap-2 text-xs">{PRATICAS.map((pratica) => <div key={pratica.codigo} className="flex items-center justify-between gap-1"><span>{pratica.codigo}</span>{valorPratica(crianca, pratica.codigo)}</div>)}</div>
               </Card>
             ))}
@@ -641,7 +649,7 @@ export function CriancasPage() {
               <TableHeader className="sticky top-0 z-[3] select-none bg-muted shadow-sm">
                 <TableRow className="bg-muted hover:bg-muted">
                   <TableHead className="sticky left-0 z-[4] min-w-44 border-r bg-muted">Criança</TableHead>
-                  <TableHead className="min-w-32">Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Nascimento</TableHead>
+                  <TableHead className="min-w-32">Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Nascimento</TableHead><TableHead>Idade</TableHead>
                   {PRATICAS.map((item) => <TableHead key={item.codigo} className="min-w-24 text-center"><span className="block text-[10px] text-muted-foreground">{item.codigo}</span>{item.rotulo}{item.codigo === "E" ? " · 20 pts" : ""}</TableHead>)}
                   <TableHead>DTP</TableHead><TableHead>Hep. B</TableHead><TableHead>Hib</TableHead><TableHead>Polio</TableHead><TableHead>Tríplice</TableHead><TableHead>Pneumo</TableHead><TableHead>Pontuação</TableHead><TableHead>Referência</TableHead>
                 </TableRow>
@@ -650,12 +658,12 @@ export function CriancasPage() {
                 {daPagina.map((crianca) => (
                   <TableRow key={crianca.id} className="[content-visibility:auto]">
                     <TableCell className="sticky left-0 z-[1] max-w-56 border-r bg-background font-medium"><span className="block truncate" title={crianca.nome_cidadao}>{crianca.nome_cidadao}</span></TableCell>
-                    <TableCell>{crianca.equipe_nome ?? "—"}</TableCell><TableCell>{crianca.micro_area ?? "—"}</TableCell><TableCell>{formatarData(crianca.data_nascimento)}</TableCell>
+                    <TableCell>{crianca.equipe_nome ?? "—"}</TableCell><TableCell>{crianca.micro_area ?? "—"}</TableCell><TableCell>{formatarData(crianca.data_nascimento)}</TableCell><TableCell>{formatarIdade(crianca.idade_meses)}</TableCell>
                     {PRATICAS.map((pratica) => <TableCell key={pratica.codigo} className="text-center">{valorPratica(crianca, pratica.codigo)}</TableCell>)}
                     <TableCell>{crianca.vacina_dtp_doses}/3</TableCell><TableCell>{crianca.vacina_hepatite_b_doses}/3</TableCell><TableCell>{crianca.vacina_hib_doses}/3</TableCell><TableCell>{crianca.vacina_polio_doses}/3</TableCell><TableCell>{crianca.vacina_triplice_viral_doses}/2</TableCell><TableCell>{crianca.vacina_pneumococica_doses}/2</TableCell><TableCell><Badge>{crianca.pontuacao_total}</Badge></TableCell><TableCell>{formatarData(crianca.data_referencia)}</TableCell>
                   </TableRow>
                 ))}
-                {filtradas.length === 0 ? <TableRow><TableCell colSpan={17} className="h-24 text-center text-muted-foreground">Nenhuma criança corresponde aos filtros.</TableCell></TableRow> : null}
+                {filtradas.length === 0 ? <TableRow><TableCell colSpan={18} className="h-24 text-center text-muted-foreground">Nenhuma criança corresponde aos filtros.</TableCell></TableRow> : null}
               </TableBody>
             </Table>
           </Card>

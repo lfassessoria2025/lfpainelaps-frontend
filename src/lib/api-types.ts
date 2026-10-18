@@ -515,6 +515,7 @@ export interface CriancaAcompanhamentoOut {
   data_referencia: string;
   nome_cidadao: string;
   data_nascimento: string;
+  idade_meses: number;
   equipe_nome: string | null;
   equipe_ine: string | null;
   micro_area: string | null;
