@@ -63,6 +63,7 @@ const GESTANTE: GestanteAcompanhamentoOut = {
   dt_inicio_gestacao: "2025-01-01",
   dt_fim_gestacao: "2025-10-01",
   dt_fim_puerperio: "2025-12-01",
+  semanas_gestacao: 32,
   excluida_por_aborto: false,
   pratica_a_captacao_precoce: true,
   pratica_b_consultas: 5,

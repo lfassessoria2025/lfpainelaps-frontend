@@ -130,6 +130,9 @@ export function statusDaPratica(
   }
   if (def.tipo === "bool") {
     const feito = Boolean(gestante[def.campo]);
+    if (def.letra === "F" && !feito && gestante.semanas_gestacao >= 20) {
+      return { status, texto: "Pendente · dTpa" };
+    }
     return { status, texto: feito ? "Feito" : "Pendente" };
   }
   const valor = Number(gestante[def.campo] ?? 0);

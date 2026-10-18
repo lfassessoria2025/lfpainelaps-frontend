@@ -357,6 +357,7 @@ export interface GestanteAcompanhamentoOut {
   dt_inicio_gestacao: string; // ISO date
   dt_fim_gestacao: string; // ISO date
   dt_fim_puerperio: string; // ISO date
+  semanas_gestacao: number;
   excluida_por_aborto: boolean;
   pratica_a_captacao_precoce: boolean;
   pratica_b_consultas: number;

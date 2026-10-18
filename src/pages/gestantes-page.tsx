@@ -151,6 +151,7 @@ type ColunaId =
   | "nascimento"
   | "ine"
   | "inicio-gestacao"
+  | "semanas-gestacao"
   | "fim-gestacao"
   | "fim-puerperio"
   | "elegibilidade"
@@ -172,6 +173,7 @@ const COLUNAS_FIXAS: ReadonlyArray<{ id: ColunaId; rotulo: string }> = [
   { id: "nascimento", rotulo: "Nascimento" },
   { id: "ine", rotulo: "INE" },
   { id: "inicio-gestacao", rotulo: "Início gestação" },
+  { id: "semanas-gestacao", rotulo: "Semanas de gestação" },
   { id: "fim-gestacao", rotulo: "Fim gestação" },
   { id: "fim-puerperio", rotulo: "Fim puerpério" },
   { id: "elegibilidade", rotulo: "Elegibilidade" },
@@ -235,6 +237,7 @@ function CabecalhoTabelaGestantes({
         <TableHead>Nascimento</TableHead>
         <TableHead>INE</TableHead>
         <TableHead>Início gestação</TableHead>
+        <TableHead>Semanas</TableHead>
         <TableHead>Fim gestação</TableHead>
         <TableHead>Fim puerpério</TableHead>
         <TableHead>Elegibilidade</TableHead>
@@ -1139,6 +1142,7 @@ export function GestantesPage() {
                         <dt className="text-muted-foreground">INE</dt><dd>{gestante.equipe_ine ?? "—"}</dd>
                         <dt className="text-muted-foreground">Micro-área</dt><dd>{gestante.micro_area ?? "—"}</dd>
                         <dt className="text-muted-foreground">Início gestação</dt><dd>{formatDate(gestante.dt_inicio_gestacao)}</dd>
+                        <dt className="text-muted-foreground">Idade gestacional</dt><dd>{gestante.semanas_gestacao}ª semana</dd>
                         <dt className="text-muted-foreground">Fim gestação</dt><dd>{formatDate(gestante.dt_fim_gestacao)}</dd>
                         <dt className="text-muted-foreground">Fim puerpério</dt><dd>{formatDate(gestante.dt_fim_puerperio)}</dd>
                         <dt className="text-muted-foreground">Elegibilidade</dt><dd>{gestante.excluida_por_aborto ? "Aborto — encerrado" : "Incluída"}</dd>
@@ -1253,6 +1257,7 @@ export function GestantesPage() {
                     <TableCell>{formatDate(gestante.data_nascimento)}</TableCell>
                     <TableCell className="font-mono text-xs">{gestante.equipe_ine ?? "—"}</TableCell>
                     <TableCell>{formatDate(gestante.dt_inicio_gestacao)}</TableCell>
+                    <TableCell>{gestante.semanas_gestacao}ª</TableCell>
                     <TableCell>{formatDate(gestante.dt_fim_gestacao)}</TableCell>
                     <TableCell>{formatDate(gestante.dt_fim_puerperio)}</TableCell>
                     <TableCell>{gestante.excluida_por_aborto ? "Aborto — encerrado" : "Incluída"}</TableCell>
