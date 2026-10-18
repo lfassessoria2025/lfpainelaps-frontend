@@ -1,4 +1,4 @@
-import type { AnalyticsSnapshotOut, MetricasIndicadorOut } from "@/lib/api-types";
+import type { AnalyticsSnapshotOut, MetricasIndicadorOut, SerieHistoricaPontoOut } from "@/lib/api-types";
 import { http } from "@/lib/http";
 import { gestanteService } from "@/services/gestante";
 
@@ -41,4 +41,9 @@ export const analyticsService = {
     );
     return snapshots.map(adaptar);
   },
+  historico: (codigo: string, prefeituraId: number, signal?: AbortSignal) =>
+    http.get<SerieHistoricaPontoOut[]>(
+      `/prefeituras/${prefeituraId}/indicadores/${encodeURIComponent(codigo.toUpperCase())}/analytics/historico`,
+      signal,
+    ),
 };

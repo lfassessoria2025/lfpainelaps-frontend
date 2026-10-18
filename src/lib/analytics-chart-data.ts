@@ -141,8 +141,9 @@ export function montarLinhasEvolucao(
         cumpridas += pratica.total_cumprida;
         ocorrencias += pratica.total_gestantes;
       }
-      linha[chaveDaSerie(serie.prefeitura_id)] =
-        ocorrencias === 0 ? 0 : Math.round((cumpridas / ocorrencias) * 10000) / 100;
+      linha[chaveDaSerie(serie.prefeitura_id)] = serie.pontos.find((ponto) => ponto.data_referencia === data)?.unidade === "media"
+        ? (serie.pontos.find((ponto) => ponto.data_referencia === data)?.valor_total ?? null)
+        : ocorrencias === 0 ? 0 : Math.round((cumpridas / ocorrencias) * 10000) / 100;
       porData.set(data, linha);
     }
   }

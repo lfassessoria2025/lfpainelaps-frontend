@@ -1108,6 +1108,8 @@ export interface SerieHistoricaPontoOut {
   data_referencia: string;
   total_gestantes: number;
   praticas: MetricaPraticaOut[];
+  unidade?: "percentual" | "media" | "contagem" | "pontuacao";
+  valor_total?: number | null;
 }
 
 export type TipoParametroIndicador = "booleano" | "contagem";

@@ -73,7 +73,9 @@ export function AnalyticsPage() {
   const [historicoError, setHistoricoError] = useState<string | null>(null);
 
   const indicador = catalogo?.find((item) => item.codigo === indicadorCodigo) ?? catalogo?.[0];
-  const visualizacoes = indicador?.visualizacoes ?? [];
+  const visualizacoes = (indicador?.visualizacoes ?? []).filter(
+    (visualizacao) => visualizacao !== "evolucao" || indicador?.possui_historico,
+  );
   const dimensoesDisponiveis = indicador?.dimensoes_comparacao ?? [];
   const comparandoPrefeituras = compararPor === "prefeitura";
   const analyticsDisponivel = indicador?.analytics_disponivel !== false;
@@ -148,16 +150,18 @@ export function AnalyticsPage() {
 
   useEffect(() => {
     const precisaHistorico = compararPor === "periodo" || (secao === "visualizacoes" && tipoGrafico === "evolucao");
-    if (!analyticsDisponivel || !precisaHistorico || prefeituras === null) return;
+    if (!analyticsDisponivel || !indicador?.possui_historico || !precisaHistorico || prefeituras === null) return;
     const ids = comparandoPrefeituras ? [...selectedIds].toSorted((a, b) => a - b) : selectedId ? [selectedId] : [];
-    const chave = ids.join(",");
+    const chave = `${indicador.codigo}:${ids.join(",")}`;
     if (chave === historicoKey) return;
     if (ids.length === 0) { setHistorico([]); setHistoricoKey(chave); return; }
     setHistorico(null); setHistoricoError(null);
     Promise.all(ids.map(async (id) => ({
       prefeitura_id: id,
       prefeitura_nome: prefeituras.find((item) => item.id === id)?.name ?? String(id),
-      pontos: await gestanteService.serieHistorica(id),
+      pontos: indicador.codigo.toUpperCase() === "C3"
+        ? await gestanteService.serieHistorica(id)
+        : await analyticsService.historico(indicador.codigo, id),
     }))).then((series) => {
       setHistorico(series); setHistoricoKey(chave);
       if (compararPor === "periodo") {
@@ -171,7 +175,7 @@ export function AnalyticsPage() {
       }
     })
       .catch((error) => { setHistoricoError(error instanceof ApiError ? error.detail : "Não foi possível carregar o histórico."); setHistorico([]); });
-  }, [analyticsDisponivel, comparandoPrefeituras, compararPor, historicoKey, prefeituras, secao, selectedId, selectedIds, tipoGrafico]);
+  }, [analyticsDisponivel, comparandoPrefeituras, compararPor, historicoKey, indicador, prefeituras, secao, selectedId, selectedIds, tipoGrafico]);
 
   const toggleSelecionada = (id: number, marcada: boolean) => setSelectedIds((atual) => {
     const proximo = new Set(atual); if (marcada) proximo.add(id); else proximo.delete(id); return proximo;
@@ -192,6 +196,8 @@ export function AnalyticsPage() {
         prefeitura_nome: new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(ponto.data_referencia)),
         total_gestantes: ponto.total_gestantes,
         praticas: ponto.praticas,
+        unidade: ponto.unidade,
+        valor_total: ponto.valor_total,
       }));
     }
     if (compararPor === "parametro" && dados) {
