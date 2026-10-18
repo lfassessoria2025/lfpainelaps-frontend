@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppLayout } from "@/components/layout/app-layout";
 import { ProtectedRoute } from "@/components/layout/protected-route";
 import { RouteErrorBoundary } from "@/components/layout/route-error-boundary";
@@ -84,8 +84,10 @@ function RouteFallback() {
 }
 
 function App() {
+  const location = useLocation();
+
   return (
-    <RouteErrorBoundary>
+    <RouteErrorBoundary key={location.key}>
       <Suspense fallback={<RouteFallback />}>
         <ResponsibilityTermRedirect />
         <ResponsibilityTermUnavailableRedirect />

@@ -11,8 +11,12 @@ const CHUNK_LOAD_ERROR_PATTERNS = [
   "importing a module script failed",
   "failed to load module script",
   "failed to preload module",
+  "module preload",
   "unable to preload css",
   "load failed",
+  "loading chunk",
+  "chunkloaderror",
+  "unexpected token '<'",
 ];
 
 export function isChunkLoadError(error: unknown): boolean {
@@ -49,4 +53,13 @@ export function reloadOnceForChunkError(): boolean {
   }
   window.location.reload();
   return true;
+}
+
+/** Permite uma nova tentativa manual depois que a pessoa clica em recarregar. */
+export function clearChunkReloadGuard(): void {
+  try {
+    window.sessionStorage.removeItem(RELOAD_GUARD_KEY);
+  } catch {
+    // Storage bloqueado não impede o recarregamento manual.
+  }
 }

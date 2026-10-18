@@ -3,7 +3,7 @@ import type { ErrorInfo, ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { isChunkLoadError, reloadOnceForChunkError } from "@/lib/chunk-reload";
+import { clearChunkReloadGuard, isChunkLoadError, reloadOnceForChunkError } from "@/lib/chunk-reload";
 
 interface Props {
   children: ReactNode;
@@ -24,6 +24,7 @@ interface State {
  */
 export class RouteErrorBoundary extends Component<Props, State> {
   state: State = { status: "ok" };
+  private reloadFallbackTimer: number | undefined;
 
   static getDerivedStateFromError(error: Error): State {
     // Chunk desatualizado: fica em "reloading" e nunca tenta renderizar os
@@ -39,13 +40,37 @@ export class RouteErrorBoundary extends Component<Props, State> {
     return { status: "error" };
   }
 
+  componentDidMount() {
+    // Se o navegador bloquear o reload automático, não deixe a pessoa presa
+    // em um spinner infinito: ofereça o fallback manual após alguns segundos.
+    if (this.state.status === "reloading") {
+      this.reloadFallbackTimer = window.setTimeout(() => {
+        this.setState({ status: "error" });
+      }, 5_000);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.reloadFallbackTimer !== undefined) {
+      window.clearTimeout(this.reloadFallbackTimer);
+    }
+  }
+
   componentDidCatch(error: Error, info: ErrorInfo) {
-    if (isChunkLoadError(error)) return;
+    if (isChunkLoadError(error)) {
+      console.warn("Falha ao carregar recurso da rota; a página será atualizada:", error.message);
+      return;
+    }
     console.error("Falha ao renderizar a rota:", error, info.componentStack);
   }
 
   private handleRetry = () => {
+    clearChunkReloadGuard();
     window.location.reload();
+  };
+
+  private handleGoHome = () => {
+    window.location.assign("/");
   };
 
   render() {
@@ -67,9 +92,10 @@ export class RouteErrorBoundary extends Component<Props, State> {
                 Isso costuma acontecer logo após uma atualização do sistema. Recarregar a página
                 resolve na maioria dos casos.
               </span>
-              <Button onClick={this.handleRetry} className="self-start">
-                Recarregar
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={this.handleRetry}>Recarregar</Button>
+                <Button variant="outline" onClick={this.handleGoHome}>Voltar ao painel</Button>
+              </div>
             </AlertDescription>
           </Alert>
         </div>
