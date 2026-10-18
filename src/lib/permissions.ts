@@ -13,5 +13,6 @@ export function temPermissao(
   if (user?.is_admin) return true;
   if (!user) return false;
   const permissions = Array.isArray(required) ? required : [required];
-  return permissions.some((permission) => user.permissions.includes(permission));
+  const effectivePermissions = Array.isArray(user.permissions) ? user.permissions : [];
+  return permissions.some((permission) => effectivePermissions.includes(permission));
 }
