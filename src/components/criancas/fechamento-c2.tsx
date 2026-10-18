@@ -200,12 +200,15 @@ function LinhaCrianca({
       <TableCell className="w-56 min-w-56 max-w-56">
         <p className="truncate font-medium" title={crianca.nome_cidadao}>{crianca.nome_cidadao}</p>
         <p className="text-[11px] text-muted-foreground">
-          Nascimento: {formatarData(crianca.data_nascimento)} · {formatarIdade(crianca.idade_meses)}
-        </p>
-        <p className="text-[11px] text-muted-foreground">
           {crianca.equipe_nome ?? "Sem equipe"}
           {crianca.micro_area ? ` · Micro-área ${crianca.micro_area}` : ""}
         </p>
+      </TableCell>
+      <TableCell className="w-24 min-w-24 whitespace-nowrap">
+        {formatarData(crianca.data_nascimento)}
+      </TableCell>
+      <TableCell className="w-20 min-w-20 whitespace-nowrap">
+        {formatarIdade(crianca.idade_meses)}
       </TableCell>
       <TableCell className="whitespace-nowrap">
         <p>{formatarData(crianca.data_limite)}</p>
@@ -287,7 +290,7 @@ function ListaCriancas({
           </div>
           <div className="hidden md:block">
             <Table
-              className="min-w-[1100px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top"
+              className="min-w-[1180px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top"
               containerClassName={cn(
                 "max-w-full cursor-grab overscroll-x-contain",
                 dragging && "cursor-grabbing select-none",
@@ -301,6 +304,8 @@ function ListaCriancas({
               <TableHeader className="sticky top-0 z-[3] select-none bg-muted shadow-sm">
                 <TableRow>
                   <TableHead className="w-56">Criança</TableHead>
+                  <TableHead className="w-24">Nascimento</TableHead>
+                  <TableHead className="w-20">Idade</TableHead>
                   <TableHead className="w-28">{encerrada ? "Fechou em" : "Completa 2 anos"}</TableHead>
                   <TableHead className="w-28">Cuidados A–E</TableHead>
                   <TableHead className="w-64">Situação vacinal</TableHead>

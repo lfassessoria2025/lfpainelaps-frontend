@@ -172,6 +172,10 @@ describe("CriancasPage", () => {
     await user.click(screen.getByRole("tab", { name: /fechamento aos 2 anos/i }));
 
     expect((await screen.findAllByText("Criança perto dos 2 anos")).length).toBeGreaterThan(0);
+    const fechamento = screen.getByRole("table");
+    expect(within(fechamento).getByRole("columnheader", { name: "Nascimento" })).toBeInTheDocument();
+    expect(within(fechamento).getByRole("columnheader", { name: "Idade" })).toBeInTheDocument();
+    expect(within(fechamento).getByText("1a 11m")).toBeInTheDocument();
     expect(screen.getByText("Dá tempo de agir")).toBeInTheDocument();
     expect(screen.getAllByText("Atrasada · 0 pontos").length).toBeGreaterThan(0);
     expect(screen.getAllByText("E 0/20").length).toBeGreaterThan(0);
