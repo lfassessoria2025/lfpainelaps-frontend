@@ -9,6 +9,10 @@ const CHUNK_LOAD_ERROR_PATTERNS = [
   "failed to fetch dynamically imported module",
   "error loading dynamically imported module",
   "importing a module script failed",
+  "failed to load module script",
+  "failed to preload module",
+  "unable to preload css",
+  "load failed",
 ];
 
 export function isChunkLoadError(error: unknown): boolean {
@@ -17,6 +21,7 @@ export function isChunkLoadError(error: unknown): boolean {
 }
 
 const RELOAD_GUARD_KEY = "chunk-reload-attempted";
+const RELOAD_GUARD_WINDOW_MS = 30_000;
 
 /**
  * Recarrega a página uma única vez por sessão de aba. Sem o guard, um chunk
@@ -31,10 +36,14 @@ const RELOAD_GUARD_KEY = "chunk-reload-attempted";
  */
 export function reloadOnceForChunkError(): boolean {
   try {
-    if (window.sessionStorage.getItem(RELOAD_GUARD_KEY) === "1") {
+    const attemptedAt = Number(window.sessionStorage.getItem(RELOAD_GUARD_KEY));
+    if (Number.isFinite(attemptedAt) && Date.now() - attemptedAt < RELOAD_GUARD_WINDOW_MS) {
       return false;
     }
-    window.sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
+    // A timestamp expires the guard after a short window. This recovers users
+    // who had the old permanent "1" marker from a previous deployment while
+    // still preventing an infinite reload loop when a chunk is genuinely gone.
+    window.sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
   } catch {
     return false;
   }

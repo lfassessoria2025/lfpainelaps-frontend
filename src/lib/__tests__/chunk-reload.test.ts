@@ -11,6 +11,8 @@ describe("isChunkLoadError", () => {
     expect(isChunkLoadError(new Error("Failed to fetch dynamically imported module: /assets/x.js"))).toBe(true);
     expect(isChunkLoadError(new Error("error loading dynamically imported module"))).toBe(true);
     expect(isChunkLoadError(new Error("Importing a module script failed."))).toBe(true);
+    expect(isChunkLoadError(new Error("Failed to load module script: /assets/x.js"))).toBe(true);
+    expect(isChunkLoadError(new Error("Load failed"))).toBe(true);
   });
 
   it("não confunde com um erro de render qualquer", () => {
@@ -46,5 +48,17 @@ describe("reloadOnceForChunkError", () => {
 
     expect(reloadOnceForChunkError()).toBe(false);
     expect(reloadCalls).toBe(0);
+  });
+
+  it("ignora o marcador antigo da versão anterior", () => {
+    window.sessionStorage.setItem("chunk-reload-attempted", "1");
+    let reloadCalls = 0;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...window.location, reload: () => { reloadCalls += 1; } },
+    });
+
+    expect(reloadOnceForChunkError()).toBe(true);
+    expect(reloadCalls).toBe(1);
   });
 });
