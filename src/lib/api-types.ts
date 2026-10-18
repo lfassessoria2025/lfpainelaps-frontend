@@ -87,6 +87,7 @@ export type Permission =
   | "relatorio.saude_bucal.visualizar"
   | "relatorio.emulti.visualizar"
   | "relatorio.c1.visualizar"
+  | "relatorio.vinculo.visualizar"
   | "dump.upload"
   | "cargo.criar"
   | "cargo.editar"

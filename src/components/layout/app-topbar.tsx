@@ -32,7 +32,7 @@ export function AppTopbar() {
   const initials = displayName ? displayName.slice(0, 2).toUpperCase() : "??";
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-background px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/75">
       <div className="flex items-center gap-2">
         <SidebarTrigger />
       </div>

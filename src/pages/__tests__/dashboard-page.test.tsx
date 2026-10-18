@@ -25,8 +25,8 @@ describe("DashboardPage — microinterações (FLO-45)", () => {
     );
 
     const atalhos = screen.getAllByRole("link");
-    expect(atalhos).toHaveLength(3);
-    expect(atalhos.map((atalho) => atalho.style.animationDelay)).toEqual(["0ms", "90ms", "180ms"]);
+    expect(atalhos).toHaveLength(5);
+    expect(atalhos.map((atalho) => atalho.style.animationDelay)).toEqual(["0ms", "90ms", "180ms", "270ms", "360ms"]);
     expect(atalhos[0]).toHaveClass("animate-in", "fill-mode-both");
     expect(atalhos[0].firstElementChild).toHaveClass(
       "group-hover:-translate-y-1",
