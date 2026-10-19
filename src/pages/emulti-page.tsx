@@ -26,7 +26,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   IndicatorToolbar,
   IndicatorFilterField,
@@ -300,6 +305,9 @@ export function EmultiPage() {
   const [proibido, setProibido] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [equipeFiltro, setEquipeFiltro] = useState("todas");
+  const [visao, setVisao] = useState<"acompanhamento" | "historico">(
+    "acompanhamento",
+  );
 
   useEffect(() => {
     prefeiturasService
@@ -556,19 +564,32 @@ export function EmultiPage() {
           <TabsTrigger value="M2">M2 · Ações compartilhadas</TabsTrigger>
         </TabsList>
       </Tabs>
-      {erro ? (
-        <p role="alert" className="mt-4 text-sm text-destructive">
-          {erro}
-        </p>
-      ) : fechamentoVisivel === null ? (
-        <Skeleton className="mt-4 h-72" />
-      ) : (
-        <>
-          {indicador === "M1" ? (
+      <Tabs
+        value={visao}
+        onValueChange={(value) =>
+          setVisao(value as "acompanhamento" | "historico")
+        }
+      >
+        <TabsList variant="line" aria-label={`Visões do indicador ${indicador}`}>
+          <TabsTrigger value="acompanhamento">
+            Tabela de acompanhamento
+          </TabsTrigger>
+          <TabsTrigger value="historico">Histórico mensal</TabsTrigger>
+        </TabsList>
+        <TabsContent value="acompanhamento">
+          {erro ? (
+            <p role="alert" className="mt-4 text-sm text-destructive">
+              {erro}
+            </p>
+          ) : fechamentoVisivel === null ? (
+            <Skeleton className="mt-4 h-72" />
+          ) : indicador === "M1" ? (
             <M1Conteudo dados={fechamentoVisivel as FechamentoEmultiM1Out} />
           ) : (
             <M2Conteudo dados={fechamentoVisivel as FechamentoEmultiM2Out} />
           )}
+        </TabsContent>
+        <TabsContent value="historico">
           {historico ? (
             <HistoricoMensal
               pontos={historico}
@@ -577,9 +598,11 @@ export function EmultiPage() {
               mostrarFiltroEquipe={false}
               titulo={`${indicador} · histórico mensal`}
             />
-          ) : null}
-        </>
-      )}
+          ) : (
+            <Skeleton className="mt-4 h-48" />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

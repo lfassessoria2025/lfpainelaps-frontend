@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   IndicatorToolbar,
   IndicatorFilterField,
@@ -66,6 +67,9 @@ export function VinculoPage() {
   const [proibido, setProibido] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [equipeFiltro, setEquipeFiltro] = useState("todas");
+  const [visao, setVisao] = useState<"acompanhamento" | "historico">(
+    "acompanhamento",
+  );
 
   useEffect(() => {
     prefeiturasService
@@ -272,7 +276,20 @@ export function VinculoPage() {
       ) : fechamentoVisivel === null ? (
         <Skeleton className="h-72" />
       ) : (
-        <>
+        <Tabs
+          value={visao}
+          onValueChange={(value) =>
+            setVisao(value as "acompanhamento" | "historico")
+          }
+        >
+          <TabsList variant="line" aria-label="Visões do vínculo e acompanhamento">
+            <TabsTrigger value="acompanhamento">
+              Tabela de acompanhamento
+            </TabsTrigger>
+            <TabsTrigger value="historico">Histórico mensal</TabsTrigger>
+          </TabsList>
+          <TabsContent value="acompanhamento">
+            <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardHeader>
@@ -414,16 +431,22 @@ export function VinculoPage() {
               </Table>
             </CardContent>
           </Card>
-          {historico ? (
-            <HistoricoMensal
-              pontos={historico}
-              equipeFiltro={equipeFiltro}
-              onEquipeFiltroChange={setEquipeFiltro}
-              mostrarFiltroEquipe={false}
-              titulo="V1 · histórico mensal e fechamento do quadrimestre"
-            />
-          ) : null}
-        </>
+            </>
+          </TabsContent>
+          <TabsContent value="historico">
+            {historico ? (
+              <HistoricoMensal
+                pontos={historico}
+                equipeFiltro={equipeFiltro}
+                onEquipeFiltroChange={setEquipeFiltro}
+                mostrarFiltroEquipe={false}
+                titulo="V1 · histórico mensal e fechamento do quadrimestre"
+              />
+            ) : (
+              <Skeleton className="h-48" />
+            )}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );

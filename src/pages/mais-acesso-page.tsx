@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   IndicatorToolbar,
   IndicatorFilterField,
@@ -69,6 +70,9 @@ export function MaisAcessoPage() {
   const [proibido, setProibido] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [equipeFiltro, setEquipeFiltro] = useState("todas");
+  const [visao, setVisao] = useState<"acompanhamento" | "historico">(
+    "acompanhamento",
+  );
 
   useEffect(() => {
     prefeiturasService
@@ -268,14 +272,27 @@ export function MaisAcessoPage() {
           Mais acesso à Atenção Primária à Saúde
         </h1>
       </div>
-      {erro ? (
-        <p role="alert" className="text-sm text-destructive">
-          {erro}
-        </p>
-      ) : fechamentoVisivel === null ? (
-        <Skeleton className="h-72" />
-      ) : (
-        <>
+      <Tabs
+        value={visao}
+        onValueChange={(value) =>
+          setVisao(value as "acompanhamento" | "historico")
+        }
+      >
+        <TabsList variant="line" aria-label="Visões do indicador C1">
+          <TabsTrigger value="acompanhamento">
+            Tabela de acompanhamento
+          </TabsTrigger>
+          <TabsTrigger value="historico">Histórico mensal</TabsTrigger>
+        </TabsList>
+        <TabsContent value="acompanhamento">
+          {erro ? (
+            <p role="alert" className="text-sm text-destructive">
+              {erro}
+            </p>
+          ) : fechamentoVisivel === null ? (
+            <Skeleton className="h-72" />
+          ) : (
+            <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardHeader>
@@ -380,6 +397,10 @@ export function MaisAcessoPage() {
               </Table>
             </CardContent>
           </Card>
+            </>
+          )}
+        </TabsContent>
+        <TabsContent value="historico">
           {historico ? (
             <HistoricoMensal
               pontos={historico}
@@ -388,9 +409,11 @@ export function MaisAcessoPage() {
               mostrarFiltroEquipe={false}
               titulo="C1 · histórico mensal"
             />
-          ) : null}
-        </>
-      )}
+          ) : (
+            <Skeleton className="h-48" />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
