@@ -25,6 +25,7 @@ export function isChunkLoadError(error: unknown): boolean {
 }
 
 const RELOAD_GUARD_KEY = "chunk-reload-attempted";
+const CACHE_BUSTER_PARAM = "__app_reload";
 const RELOAD_GUARD_WINDOW_MS = 30_000;
 
 /**
@@ -51,7 +52,12 @@ export function reloadOnceForChunkError(): boolean {
   } catch {
     return false;
   }
-  window.location.reload();
+  // `location.reload()` pode reutilizar um index.html ainda presente no cache
+  // de uma aba aberta antes do deploy. A URL única força o CDN/navegador a
+  // buscar o HTML atual e evita o loop de chunks antigos.
+  const url = new URL(window.location.href);
+  url.searchParams.set(CACHE_BUSTER_PARAM, String(Date.now()));
+  window.location.replace(url.toString());
   return true;
 }
 
@@ -62,4 +68,11 @@ export function clearChunkReloadGuard(): void {
   } catch {
     // Storage bloqueado não impede o recarregamento manual.
   }
+}
+
+/** Recarrega sem reaproveitar o HTML que originou uma falha de renderização. */
+export function reloadWithCacheBust(): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set(CACHE_BUSTER_PARAM, String(Date.now()));
+  window.location.replace(url.toString());
 }

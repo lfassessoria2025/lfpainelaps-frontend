@@ -18,6 +18,39 @@
           document.documentElement.classList.toggle("dark", dark);
         } catch (e) {}
       })();
+
+      // O bundle usa métodos imutáveis de Array em telas carregadas sob
+      // demanda. Este fallback roda antes do módulo principal, inclusive
+      // quando uma aba reaproveita um chunk antigo após um deploy.
+      (function () {
+        try {
+          if (typeof Array.prototype.toSorted !== "function") {
+            Object.defineProperty(Array.prototype, "toSorted", {
+              configurable: true,
+              writable: true,
+              value: function (compareFn) {
+                return Array.prototype.slice.call(this).sort(compareFn);
+              },
+            });
+          }
+          if (typeof Array.prototype.flatMap !== "function") {
+            Object.defineProperty(Array.prototype, "flatMap", {
+              configurable: true,
+              writable: true,
+              value: function (callback) {
+                var origem = Array.prototype.slice.call(this);
+                var resultado = [];
+                origem.forEach(function (valor, indice) {
+                  var item = callback(valor, indice, origem);
+                  if (Array.isArray(item)) resultado.push.apply(resultado, item);
+                  else resultado.push(item);
+                });
+                return resultado;
+              },
+            });
+          }
+        } catch (e) {}
+      })();
     </script>
   </head>
   <body>

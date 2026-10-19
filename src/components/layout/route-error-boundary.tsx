@@ -3,7 +3,7 @@ import type { ErrorInfo, ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { clearChunkReloadGuard, isChunkLoadError, reloadOnceForChunkError } from "@/lib/chunk-reload";
+import { clearChunkReloadGuard, isChunkLoadError, reloadOnceForChunkError, reloadWithCacheBust } from "@/lib/chunk-reload";
 
 interface Props {
   children: ReactNode;
@@ -66,7 +66,7 @@ export class RouteErrorBoundary extends Component<Props, State> {
 
   private handleRetry = () => {
     clearChunkReloadGuard();
-    window.location.reload();
+    reloadWithCacheBust();
   };
 
   private handleGoHome = () => {

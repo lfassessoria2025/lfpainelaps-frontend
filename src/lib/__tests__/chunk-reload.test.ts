@@ -26,7 +26,7 @@ describe("reloadOnceForChunkError", () => {
     let reloadCalls = 0;
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, reload: () => { reloadCalls += 1; } },
+      value: { ...window.location, replace: () => { reloadCalls += 1; } },
     });
 
     expect(reloadOnceForChunkError()).toBe(true);
@@ -43,7 +43,7 @@ describe("reloadOnceForChunkError", () => {
     let reloadCalls = 0;
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, reload: () => { reloadCalls += 1; } },
+      value: { ...window.location, replace: () => { reloadCalls += 1; } },
     });
 
     expect(reloadOnceForChunkError()).toBe(false);
@@ -55,7 +55,7 @@ describe("reloadOnceForChunkError", () => {
     let reloadCalls = 0;
     Object.defineProperty(window, "location", {
       configurable: true,
-      value: { ...window.location, reload: () => { reloadCalls += 1; } },
+      value: { ...window.location, replace: () => { reloadCalls += 1; } },
     });
 
     expect(reloadOnceForChunkError()).toBe(true);
