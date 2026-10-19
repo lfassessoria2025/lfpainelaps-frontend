@@ -47,9 +47,9 @@ export const analyticsService = {
     );
     return snapshots.map(adaptar);
   },
-  historico: (codigo: string, prefeituraId: number, signal?: AbortSignal) =>
+  historico: (codigo: string, prefeituraId: number, signal?: AbortSignal, porEquipe = false) =>
     http.get<SerieHistoricaPontoOut[]>(
-      `/prefeituras/${prefeituraId}/indicadores/${encodeURIComponent(codigo.toUpperCase())}/analytics/historico`,
+      `/prefeituras/${prefeituraId}/indicadores/${encodeURIComponent(codigo.toUpperCase())}/analytics/historico${porEquipe ? "?por_equipe=true" : ""}`,
       signal,
     ),
 };

@@ -83,9 +83,9 @@ export function EmultiPage() {
     const controller = new AbortController();
     setM1(null); setM2(null); setLinhasM1(null); setLinhasM2(null); setHistorico(null); setErro(null); setProibido(false);
     const carregar = indicador === "M1"
-      ? Promise.all([emultiService.list(prefeituraId, [], controller.signal), emultiService.fechamento(prefeituraId, [], controller.signal), analyticsService.historico("M1", prefeituraId, controller.signal)])
+      ? Promise.all([emultiService.list(prefeituraId, [], controller.signal), emultiService.fechamento(prefeituraId, [], controller.signal), analyticsService.historico("M1", prefeituraId, controller.signal, true)])
           .then(([lista, resumo, serie]) => { setLinhasM1(lista); setM1(resumo); setHistorico(serie); })
-      : Promise.all([emultiService.listM2(prefeituraId, [], controller.signal), emultiService.fechamentoM2(prefeituraId, [], controller.signal), analyticsService.historico("M2", prefeituraId, controller.signal)])
+      : Promise.all([emultiService.listM2(prefeituraId, [], controller.signal), emultiService.fechamentoM2(prefeituraId, [], controller.signal), analyticsService.historico("M2", prefeituraId, controller.signal, true)])
           .then(([lista, resumo, serie]) => { setLinhasM2(lista); setM2(resumo); setHistorico(serie); });
     carregar.catch((falha: unknown) => {
       if (falha instanceof DOMException && falha.name === "AbortError") return;

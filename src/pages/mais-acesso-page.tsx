@@ -39,7 +39,7 @@ export function MaisAcessoPage() {
     if (prefeituraId === null) return;
     const controller = new AbortController();
     setLinhas(null); setFechamento(null); setHistorico(null); setErro(null); setProibido(false);
-    Promise.all([maisAcessoService.list(prefeituraId, controller.signal), maisAcessoService.fechamento(prefeituraId, controller.signal), analyticsService.historico("C1", prefeituraId, controller.signal)])
+    Promise.all([maisAcessoService.list(prefeituraId, controller.signal), maisAcessoService.fechamento(prefeituraId, controller.signal), analyticsService.historico("C1", prefeituraId, controller.signal, true)])
       .then(([lista, resumo, serie]) => { setLinhas(lista); setFechamento(resumo); setHistorico(serie); })
       .catch((falha: unknown) => {
         if (falha instanceof DOMException && falha.name === "AbortError") return;

@@ -1135,6 +1135,8 @@ export interface DiagnosticoC3Out {
 export interface SerieHistoricaPontoOut {
   importacao_id: number;
   data_referencia: string;
+  equipe_nome?: string | null;
+  equipe_ine?: string | null;
   total_gestantes: number;
   praticas: MetricaPraticaOut[];
   unidade?: "percentual" | "media" | "contagem" | "pontuacao" | "misto";
