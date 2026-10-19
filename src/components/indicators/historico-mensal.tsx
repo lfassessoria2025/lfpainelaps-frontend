@@ -83,7 +83,7 @@ export function HistoricoMensal({
     setEquipeFiltroInterno("todas");
     onEquipeFiltroChange?.("todas");
     setCompetenciaFiltro("todas");
-  }, [pontos]);
+  }, [onEquipeFiltroChange, pontos]);
   const equipes = [
     ...new Map(
       pontos

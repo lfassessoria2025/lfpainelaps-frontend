@@ -3,9 +3,14 @@ import { render, screen } from "@testing-library/react";
 import { HistoricoMensal } from "@/components/indicators/historico-mensal";
 import type { SerieHistoricaPontoOut } from "@/lib/api-types";
 
-const ponto = (data_referencia: string): SerieHistoricaPontoOut => ({
+const ponto = (
+  data_referencia: string,
+  equipe?: { nome: string; ine: string },
+): SerieHistoricaPontoOut => ({
   importacao_id: 1,
   data_referencia,
+  equipe_nome: equipe?.nome,
+  equipe_ine: equipe?.ine,
   total_gestantes: 10,
   unidade: "percentual",
   valor_total: 50,
@@ -31,5 +36,21 @@ describe("HistoricoMensal", () => {
 
     expect(screen.getByText("fevereiro de 2026")).toBeInTheDocument();
     expect(screen.getByText("1º quadrimestre")).toBeInTheDocument();
+  });
+
+  it("respeita o filtro externo de equipe usado pelos indicadores", () => {
+    render(
+      <HistoricoMensal
+        pontos={[
+          ponto("2026-10-01", { nome: "Equipe A", ine: "INE-A" }),
+          ponto("2026-10-01", { nome: "Equipe B", ine: "INE-B" }),
+        ]}
+        equipeFiltro="INE-A"
+        mostrarFiltroEquipe={false}
+      />,
+    );
+
+    expect(screen.getAllByText("Equipe A").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Equipe B")).not.toBeInTheDocument();
   });
 });
