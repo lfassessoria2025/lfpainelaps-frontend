@@ -46,11 +46,18 @@ function lerQueryInicial() {
     codigo: query.get("indicador"),
     ids,
     compararPor: DIMENSOES.has(dimensao) ? dimensao : query.get("comparar") === "1" ? "prefeitura" : "nenhuma",
-    periodos: lerInteirosPositivos(query.get("periodos")),
+    periodos: query.get("periodos")?.split(",").filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item) || /^\d+$/.test(item)) ?? [],
     parametros: query.get("parametros")?.split(",").filter((item) => /^[a-z0-9_-]+$/i.test(item)) ?? [],
     secao: SECOES.has(secao) ? secao : "visao-geral" as Secao,
     grafico: GRAFICOS.has(grafico) ? grafico : "barra" as VisualizacaoIndicador,
   };
+}
+
+function chavePeriodoHistorico(
+  ponto: SerieHistoricaPrefeitura["pontos"][number],
+  granularidade: IndicadorCatalogoOut["granularidade_historico"] | undefined,
+): string {
+  return granularidade === "mensal" ? ponto.data_referencia.slice(0, 10) : String(ponto.importacao_id);
 }
 
 export function AnalyticsPage() {
@@ -61,7 +68,7 @@ export function AnalyticsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(queryInicial.ids[0] ?? null);
   const [compararPor, setCompararPor] = useState<CompararPor>(queryInicial.compararPor);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set(queryInicial.ids));
-  const [periodosSelecionados, setPeriodosSelecionados] = useState<Set<number>>(new Set(queryInicial.periodos));
+  const [periodosSelecionados, setPeriodosSelecionados] = useState<Set<string>>(new Set(queryInicial.periodos));
   const [parametrosSelecionados, setParametrosSelecionados] = useState<Set<string>>(new Set(queryInicial.parametros));
   const [secao, setSecao] = useState<Secao>(queryInicial.secao);
   const [tipoGrafico, setTipoGrafico] = useState<VisualizacaoIndicador>(queryInicial.grafico);
@@ -130,7 +137,7 @@ export function AnalyticsPage() {
     const ids = comparandoPrefeituras ? [...selectedIds].toSorted((a, b) => a - b) : selectedId ? [selectedId] : [];
     if (ids.length > 0) query.set("prefeituras", ids.join(","));
     if (compararPor !== "nenhuma") query.set("comparar_por", compararPor);
-    if (compararPor === "periodo" && periodosSelecionados.size > 0) query.set("periodos", [...periodosSelecionados].toSorted((a, b) => a - b).join(","));
+    if (compararPor === "periodo" && periodosSelecionados.size > 0) query.set("periodos", [...periodosSelecionados].toSorted().join(","));
     if (compararPor === "parametro" && parametrosSelecionados.size > 0) query.set("parametros", [...parametrosSelecionados].toSorted().join(","));
     query.set("secao", secao);
     if (secao === "visualizacoes") query.set("grafico", tipoGrafico);
@@ -178,12 +185,12 @@ export function AnalyticsPage() {
     }))).then((series) => {
       setHistorico(series); setHistoricoKey(chave);
       if (compararPor === "periodo") {
-        const disponiveis = new Set(series.flatMap((serie) => serie.pontos.map((ponto) => ponto.importacao_id)));
+        const disponiveis = new Set(series.flatMap((serie) => serie.pontos.map((ponto) => chavePeriodoHistorico(ponto, indicador.granularidade_historico))));
         setPeriodosSelecionados((atuais) => {
           const validos = [...atuais].filter((id) => disponiveis.has(id));
           if (validos.length > 0) return new Set(validos);
           const maisRecente = series[0]?.pontos.toSorted((a, b) => b.data_referencia.localeCompare(a.data_referencia))[0];
-          return new Set(maisRecente ? [maisRecente.importacao_id] : []);
+          return new Set(maisRecente ? [chavePeriodoHistorico(maisRecente, indicador.granularidade_historico)] : []);
         });
       }
     })
@@ -193,7 +200,7 @@ export function AnalyticsPage() {
   const toggleSelecionada = (id: number, marcada: boolean) => setSelectedIds((atual) => {
     const proximo = new Set(atual); if (marcada) proximo.add(id); else proximo.delete(id); return proximo;
   });
-  const togglePeriodo = (id: number, marcada: boolean) => setPeriodosSelecionados((atual) => {
+  const togglePeriodo = (id: string, marcada: boolean) => setPeriodosSelecionados((atual) => {
     const proximo = new Set(atual); if (marcada) proximo.add(id); else proximo.delete(id); return proximo;
   });
   const toggleParametro = (codigo: string, marcado: boolean) => setParametrosSelecionados((atual) => {
@@ -204,7 +211,7 @@ export function AnalyticsPage() {
     if (compararPor === "periodo") {
       const serie = historico?.[0];
       if (!serie) return historico === null ? null : [];
-      return serie.pontos.filter((ponto) => periodosSelecionados.has(ponto.importacao_id)).map((ponto) => ({
+      return serie.pontos.filter((ponto) => periodosSelecionados.has(chavePeriodoHistorico(ponto, indicador?.granularidade_historico))).map((ponto) => ({
         prefeitura_id: ponto.importacao_id,
         prefeitura_nome: new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(ponto.data_referencia)),
         total_gestantes: ponto.total_gestantes,
@@ -218,7 +225,7 @@ export function AnalyticsPage() {
       return dados.map((item) => ({ ...item, praticas: item.praticas.filter((pratica) => codigos.has(pratica.pratica)) }));
     }
     return dados;
-  }, [compararPor, dados, historico, indicador?.parametros, parametrosSelecionados, periodosSelecionados]);
+  }, [compararPor, dados, historico, indicador?.granularidade_historico, indicador?.parametros, parametrosSelecionados, periodosSelecionados]);
   const totalGestantes = dadosExibidos?.reduce((soma, item) => soma + item.total_gestantes, 0) ?? 0;
   const totalCumpridas = dadosExibidos?.reduce((soma, item) => soma + item.praticas.reduce((subtotal, pratica) => subtotal + pratica.total_cumprida, 0), 0) ?? 0;
   const totalOcorrencias = dadosExibidos?.reduce((soma, item) => soma + item.praticas.reduce((subtotal, pratica) => subtotal + pratica.total_gestantes, 0), 0) ?? 0;
@@ -275,7 +282,7 @@ export function AnalyticsPage() {
         </div>
         {compararPor === "periodo" ? <div className="flex flex-col gap-2 lg:col-span-2"><span className="text-sm font-medium">Períodos / importações</span>
           {historico === null ? <Skeleton className="h-20 w-full" /> : periodosDisponiveis.length === 0 ? <p className="text-sm text-muted-foreground">Ainda não há importações concluídas.</p> : <div className="grid max-h-36 gap-2 overflow-auto rounded-lg border p-3 sm:grid-cols-2">
-            {periodosDisponiveis.map((ponto) => <label key={ponto.importacao_id} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={periodosSelecionados.has(ponto.importacao_id)} onCheckedChange={(checked) => togglePeriodo(ponto.importacao_id, checked === true)} />Importação de {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(ponto.data_referencia))}</label>)}
+            {periodosDisponiveis.map((ponto) => { const chave = chavePeriodoHistorico(ponto, indicador?.granularidade_historico); const rotulo = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(ponto.data_referencia)); return <label key={chave} className="flex cursor-pointer items-center gap-2 text-sm"><Checkbox checked={periodosSelecionados.has(chave)} onCheckedChange={(checked) => togglePeriodo(chave, checked === true)} />{indicador?.granularidade_historico === "mensal" ? `Competência de ${rotulo}` : `Importação de ${rotulo}`}</label>; })}
           </div>}
         </div> : null}
         {compararPor === "parametro" ? <div className="flex flex-col gap-2 lg:col-span-2"><span className="text-sm font-medium">Parâmetros</span><div className="grid max-h-36 gap-2 overflow-auto rounded-lg border p-3 sm:grid-cols-2">
@@ -286,7 +293,7 @@ export function AnalyticsPage() {
           {indicador ? <Badge variant="secondary">Indicador: {indicador.codigo.toUpperCase()}</Badge> : null}
           {(comparandoPrefeituras ? [...selectedIds] : selectedId ? [selectedId] : []).map((id) => { const nome = prefeituras?.find((item) => item.id === id)?.name; return nome ? <Badge key={id} variant="outline" className="gap-1">{nome}<button type="button" aria-label={`Remover filtro ${nome}`} onClick={() => comparandoPrefeituras ? toggleSelecionada(id, false) : setSelectedId(null)}><X className="size-3" /></button></Badge> : null; })}
           {compararPor !== "nenhuma" ? <Badge variant="outline">Comparar por: {compararPor === "periodo" ? "período" : compararPor}</Badge> : null}
-          {compararPor === "periodo" ? periodosDisponiveis.filter((ponto) => periodosSelecionados.has(ponto.importacao_id)).map((ponto) => { const rotulo = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(ponto.data_referencia)); return <Badge key={ponto.importacao_id} variant="outline" className="gap-1">Período: {rotulo}<button type="button" aria-label={`Remover período ${rotulo}`} onClick={() => togglePeriodo(ponto.importacao_id, false)}><X className="size-3" /></button></Badge>; }) : null}
+          {compararPor === "periodo" ? periodosDisponiveis.filter((ponto) => periodosSelecionados.has(chavePeriodoHistorico(ponto, indicador?.granularidade_historico))).map((ponto) => { const chave = chavePeriodoHistorico(ponto, indicador?.granularidade_historico); const rotulo = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(ponto.data_referencia)); return <Badge key={chave} variant="outline" className="gap-1">{indicador?.granularidade_historico === "mensal" ? "Competência" : "Importação"}: {rotulo}<button type="button" aria-label={`Remover período ${rotulo}`} onClick={() => togglePeriodo(chave, false)}><X className="size-3" /></button></Badge>; }) : null}
           {compararPor === "parametro" ? indicador?.parametros.filter((item) => parametrosSelecionados.has(item.codigo)).map((item) => <Badge key={item.codigo} variant="outline" className="gap-1">{item.rotulo}<button type="button" aria-label={`Remover parâmetro ${item.rotulo}`} onClick={() => toggleParametro(item.codigo, false)}><X className="size-3" /></button></Badge>) : null}
         </div>
       </CardContent>

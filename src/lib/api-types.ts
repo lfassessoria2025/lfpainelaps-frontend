@@ -1165,7 +1165,7 @@ export interface IndicadorCatalogoOut {
   dimensoes_comparacao: DimensaoComparacaoIndicador[];
   visualizacoes: VisualizacaoIndicador[];
   possui_historico: boolean;
-  granularidade_historico: "importacao" | null;
+  granularidade_historico: "mensal" | "importacao" | null;
   possui_lista_nominal: boolean;
   /** Só é true quando há contrato agregado próprio para o Analytics. */
   analytics_disponivel?: boolean;
