@@ -17,6 +17,11 @@ const CHUNK_LOAD_ERROR_PATTERNS = [
   "loading chunk",
   "chunkloaderror",
   "unexpected token '<'",
+  // Chunks antigos executados em navegadores sem os métodos imutáveis de
+  // Array também chegam ao boundary como erro de render, embora a origem
+  // seja incompatibilidade do recurso carregado.
+  "tosorted is not a function",
+  "flatmap is not a function",
 ];
 
 export function isChunkLoadError(error: unknown): boolean {

@@ -13,6 +13,8 @@ describe("isChunkLoadError", () => {
     expect(isChunkLoadError(new Error("Importing a module script failed."))).toBe(true);
     expect(isChunkLoadError(new Error("Failed to load module script: /assets/x.js"))).toBe(true);
     expect(isChunkLoadError(new Error("Load failed"))).toBe(true);
+    expect(isChunkLoadError(new TypeError("toSorted is not a function"))).toBe(true);
+    expect(isChunkLoadError(new TypeError("flatMap is not a function"))).toBe(true);
   });
 
   it("não confunde com um erro de render qualquer", () => {
