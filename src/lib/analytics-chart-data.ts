@@ -160,8 +160,10 @@ export function montarLinhasEvolucao(
         cumpridas += pratica.total_cumprida;
         ocorrencias += pratica.total_gestantes;
       }
-      linha[chaveDaSerie(serie.prefeitura_id)] = serie.pontos.find((ponto) => ponto.data_referencia === data)?.unidade === "media"
-        ? (serie.pontos.find((ponto) => ponto.data_referencia === data)?.valor_total ?? null)
+      const pontoAtual = serie.pontos.find((ponto) => ponto.data_referencia === data);
+      const unidade = pontoAtual?.unidade ?? "percentual";
+      linha[chaveDaSerie(serie.prefeitura_id)] = unidade !== "percentual"
+        ? (pontoAtual?.valor_total ?? (ocorrencias === 0 ? 0 : cumpridas))
         : ocorrencias === 0 ? 0 : Math.round((cumpridas / ocorrencias) * 10000) / 100;
       porData.set(data, linha);
     }

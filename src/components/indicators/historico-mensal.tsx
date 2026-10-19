@@ -71,6 +71,12 @@ export function HistoricoMensal({ pontos, titulo = "Histórico mensal" }: { pont
     return mapa;
   }, new Map<string, { equipe_nome?: string | null; equipe_ine?: string | null; trimestre: string; data: Date; numerador: number; denominador: number; unidade: NonNullable<SerieHistoricaPontoOut["unidade"]> }>()).values()].sort((a, b) => b.data.getTime() - a.data.getTime());
   const resultadoResumo = (resumo: (typeof resumos)[number]) => {
+    if (resumo.unidade === "pontuacao") {
+      const total = ordenados
+        .filter((ponto) => (ponto.unidade ?? "percentual") === "pontuacao" && (ponto.equipe_ine ?? "") === (resumo.equipe_ine ?? "") && (ponto.equipe_nome ?? "") === (resumo.equipe_nome ?? "") && quadrimestre(ponto.data_referencia) === resumo.trimestre)
+        .reduce((soma, ponto) => soma + (ponto.valor_total ?? 0), 0);
+      return formatarValorAnalytics(total, resumo.unidade);
+    }
     const valor = resumo.unidade === "media"
       ? resumo.denominador ? resumo.numerador / resumo.denominador : 0
       : resumo.denominador ? 100 * resumo.numerador / resumo.denominador : 0;

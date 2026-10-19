@@ -57,6 +57,9 @@ const EmultiPage = lazy(() =>
 const MaisAcessoPage = lazy(() =>
   import("@/pages/mais-acesso-page").then((m) => ({ default: m.MaisAcessoPage })),
 );
+const VinculoPage = lazy(() =>
+  import("@/pages/vinculo-page").then((m) => ({ default: m.VinculoPage })),
+);
 const AnalyticsPage = lazy(() =>
   import("@/pages/analytics-page").then((m) => ({ default: m.AnalyticsPage })),
 );
@@ -112,6 +115,7 @@ function App() {
               <Route path="/saude-bucal" element={<SaudeBucalPage />} />
               <Route path="/emulti" element={<EmultiPage />} />
               <Route path="/mais-acesso" element={<MaisAcessoPage />} />
+              <Route path="/vinculo" element={<VinculoPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
               <Route path="/termo-responsabilidade" element={<ResponsibilityTermPage />} />

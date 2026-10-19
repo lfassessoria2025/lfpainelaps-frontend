@@ -25,6 +25,37 @@ interface PraticasBarChartProps {
   orientation?: "horizontal" | "vertical";
 }
 
+function quebrarRotulo(valor: string): string[] {
+  const [codigo, ...resto] = valor.split(" · ");
+  const nome = resto.join(" · ");
+  if (!nome) return [codigo];
+  const palavras = nome.split(/\s+/);
+  const linhas: string[] = [codigo];
+  let linha = "";
+  for (const palavra of palavras) {
+    const candidata = linha ? `${linha} ${palavra}` : palavra;
+    if (linha && candidata.length > 22) {
+      linhas.push(linha);
+      linha = palavra;
+    } else {
+      linha = candidata;
+    }
+  }
+  if (linha) linhas.push(linha);
+  return linhas.slice(0, 3);
+}
+
+function RotuloEixo({ x = 0, y = 0, payload }: { x?: number; y?: number; payload?: { value?: unknown } }) {
+  const linhas = quebrarRotulo(String(payload?.value ?? ""));
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text textAnchor="end" fill="currentColor" fontSize={11}>
+        {linhas.map((linha, indice) => <tspan key={`${linha}-${indice}`} x={0} dy={indice === 0 ? 0 : 13}>{linha}</tspan>)}
+      </text>
+    </g>
+  );
+}
+
 export function PraticasBarChart({ dados, orientation = "horizontal" }: PraticasBarChartProps) {
   if (dados.length === 0) return null;
 
@@ -72,9 +103,8 @@ export function PraticasBarChart({ dados, orientation = "horizontal" }: Praticas
             dataKey="rotulo"
             tickLine={false}
             axisLine={false}
-            width={42}
-            tick={{ fontSize: 12 }}
-            tickFormatter={(value: string) => String(value).split(" · ")[0] ?? value}
+            width={154}
+            tick={<RotuloEixo />}
           /> : <YAxis
             type="number"
             domain={dominio}

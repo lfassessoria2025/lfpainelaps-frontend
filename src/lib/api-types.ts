@@ -1177,6 +1177,40 @@ export interface IndicadoresCatalogoOut {
   indicadores: IndicadorCatalogoOut[];
 }
 
+export interface VinculoOut {
+  id: number;
+  data_referencia: string;
+  versao_calculo: string;
+  indicador: "V1";
+  equipe_nome: string;
+  equipe_ine: string;
+  parametro: number | null;
+  pessoas_cadastradas: number;
+  cadastro_ponderado: number;
+  pessoas_acompanhadas: number;
+  acompanhamento_ponderado: number;
+  indice_cadastro: number | null;
+  indice_acompanhamento: number | null;
+  pontos_cadastro: number | null;
+  pontos_acompanhamento: number | null;
+  pontos_total: number | null;
+  percentual_cadastro: number | null;
+  percentual_acompanhamento: number | null;
+  created_at: string;
+}
+
+export interface FechamentoVinculoOut {
+  indicador: "V1";
+  data_referencia: string | null;
+  parametro_configurado: boolean;
+  pessoas_cadastradas: number;
+  cadastro_ponderado: number;
+  pessoas_acompanhadas: number;
+  acompanhamento_ponderado: number;
+  pontos_total: number | null;
+  equipes: VinculoOut[];
+}
+
 // ---------------------------------------------------------------------------
 // Erro padronizado da API (FastAPI HTTPException)
 // ---------------------------------------------------------------------------
