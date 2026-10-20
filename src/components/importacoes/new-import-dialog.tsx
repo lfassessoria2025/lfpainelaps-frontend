@@ -198,7 +198,7 @@ export function NewImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !isBusy && onOpenChange(next)}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-none sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{resumeImport ? "Continuar envio" : "Nova importação"}</DialogTitle>
           <DialogDescription>

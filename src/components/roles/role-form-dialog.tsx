@@ -87,39 +87,41 @@ export function RoleFormDialog({ open, onOpenChange, role, onSubmit }: RoleFormD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{role ? "Editar cargo" : "Novo cargo"}</DialogTitle>
+      <DialogContent className="h-[min(48rem,calc(100vh-1.5rem))] w-[calc(100vw-1.5rem)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 duration-200 sm:w-[calc(100vw-3rem)] sm:max-w-2xl">
+        <DialogHeader className="border-b bg-muted/30 px-6 py-5 pr-14">
+          <DialogTitle className="text-lg">{role ? "Editar cargo" : "Novo cargo"}</DialogTitle>
           <DialogDescription>
             O cargo define o que a pessoa pode fazer. Prefeitura e equipes são escolhidas na lotação do funcionário.
           </DialogDescription>
         </DialogHeader>
-        <FieldGroup>
-          <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor="role-name">Nome do cargo</FieldLabel>
-            <Input id="role-name" value={name} onChange={(event) => setName(event.target.value)} />
-            {error ? <FieldError>{error}</FieldError> : null}
-          </Field>
-          <div className="grid gap-4 md:grid-cols-2">
-            {catalog === null ? <Spinner /> : buildDisplayGroups(catalog).map((group) => (
-              <FieldSet key={group.label}>
-                <FieldLegend variant="label">{group.label}</FieldLegend>
-                <div className="flex flex-col gap-2">
-                  {group.permissions.map((permission) => (
-                    <label key={permission} className="flex cursor-pointer items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={permissions.has(permission)}
-                        onCheckedChange={(checked) => togglePermission(permission, checked === true)}
-                      />
-                      {PERMISSION_LABELS[permission] ?? permission}
-                    </label>
-                  ))}
-                </div>
-              </FieldSet>
-            ))}
-          </div>
-        </FieldGroup>
-        <DialogFooter>
+        <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          <FieldGroup>
+            <Field data-invalid={Boolean(error)}>
+              <FieldLabel htmlFor="role-name">Nome do cargo</FieldLabel>
+              <Input id="role-name" value={name} onChange={(event) => setName(event.target.value)} />
+              {error ? <FieldError>{error}</FieldError> : null}
+            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              {catalog === null ? <Spinner /> : buildDisplayGroups(catalog).map((group) => (
+                <FieldSet key={group.label}>
+                  <FieldLegend variant="label">{group.label}</FieldLegend>
+                  <div className="flex flex-col gap-2">
+                    {group.permissions.map((permission) => (
+                      <label key={permission} className="flex cursor-pointer items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={permissions.has(permission)}
+                          onCheckedChange={(checked) => togglePermission(permission, checked === true)}
+                        />
+                        {PERMISSION_LABELS[permission] ?? permission}
+                      </label>
+                    ))}
+                  </div>
+                </FieldSet>
+              ))}
+            </div>
+          </FieldGroup>
+        </div>
+        <DialogFooter className="mx-0 mb-0 rounded-b-xl px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? <Spinner data-icon="inline-start" /> : null}

@@ -92,6 +92,7 @@ describe("UsersManagement — FLO-55", () => {
     await screen.findByText("Usuária Ativa");
 
     await user.click(screen.getByRole("button", { name: "Editar Usuária Ativa" }));
+    expect(screen.getByRole("dialog", { name: "Editar usuário" })).toHaveClass("sm:max-w-6xl");
     expect(screen.queryByText("Prefeituras permitidas")).not.toBeInTheDocument();
     await user.clear(screen.getByLabelText("Nome"));
     await user.type(screen.getByLabelText("Nome"), "Nome Atualizado");

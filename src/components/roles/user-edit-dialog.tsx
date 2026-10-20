@@ -123,106 +123,108 @@ export function UserEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Editar usuário</DialogTitle>
+      <DialogContent className="h-[min(54rem,calc(100vh-1.5rem))] w-[calc(100vw-1.5rem)] max-w-none grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 duration-200 sm:w-[calc(100vw-3rem)] sm:max-w-6xl">
+        <DialogHeader className="border-b bg-muted/30 px-6 py-5 pr-14">
+          <DialogTitle className="text-lg">Editar usuário</DialogTitle>
           <DialogDescription>
             Altere o cadastro e o escopo de acesso. Reduções relevantes revogam as sessões no backend.
           </DialogDescription>
         </DialogHeader>
 
-        <FieldGroup>
-          <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor="edit-user-name">Nome</FieldLabel>
-            <Input
-              id="edit-user-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              aria-invalid={Boolean(error)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="edit-user-role">Cargo</FieldLabel>
-            {user?.is_admin ? (
-              <>
-                <Input id="edit-user-role" value="Administrador" disabled />
-                <FieldDescription>O administrador não recebe cargo por esta tela.</FieldDescription>
-              </>
-            ) : (
-              <Select value={roleId} onValueChange={(value) => setRoleId(value ?? "none")}>
-                <SelectTrigger id="edit-user-role" className="w-full">
-                  <SelectValue>
-                    {(value: string | null) =>
-                      value && value !== "none"
-                        ? (roles.find((role) => String(role.id) === value)?.name ?? "Sem cargo")
-                        : "Sem cargo"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="none">Sem cargo</SelectItem>
-                    {roles.map((role) => (
-                      <SelectItem key={role.id} value={String(role.id)}>{role.name}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            )}
-          </Field>
-          {canAssignPrefeituras ? (
-            <>
-              <Field>
-                <FieldLabel htmlFor="edit-copy-access">Copiar lotação de outro funcionário</FieldLabel>
-                <Select
-                  value={copyFrom}
-                  onValueChange={(value) => {
-                    const next = value ?? "none";
-                    setCopyFrom(next);
-                    const source = users.find((item) => String(item.id) === next);
-                    if (source) setScopes(source.access_scopes.map((scope) => ({
-                      prefeitura_id: scope.prefeitura_id,
-                      all_teams: scope.all_teams,
-                      team_keys: [...scope.team_keys],
-                    })));
-                  }}
-                >
-                  <SelectTrigger id="edit-copy-access" className="w-full">
-                    <SelectValue placeholder="Manter lotação atual" />
+        <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          <FieldGroup>
+            <Field data-invalid={Boolean(error)}>
+              <FieldLabel htmlFor="edit-user-name">Nome</FieldLabel>
+              <Input
+                id="edit-user-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                aria-invalid={Boolean(error)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="edit-user-role">Cargo</FieldLabel>
+              {user?.is_admin ? (
+                <>
+                  <Input id="edit-user-role" value="Administrador" disabled />
+                  <FieldDescription>O administrador não recebe cargo por esta tela.</FieldDescription>
+                </>
+              ) : (
+                <Select value={roleId} onValueChange={(value) => setRoleId(value ?? "none")}>
+                  <SelectTrigger id="edit-user-role" className="w-full">
+                    <SelectValue>
+                      {(value: string | null) =>
+                        value && value !== "none"
+                          ? (roles.find((role) => String(role.id) === value)?.name ?? "Sem cargo")
+                          : "Sem cargo"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectItem value="none">Manter lotação atual</SelectItem>
-                      {users.filter((item) => item.id !== user?.id && !item.is_admin && item.access_scopes.length > 0).map((item) => (
-                        <SelectItem key={item.id} value={String(item.id)}>{item.name || item.email}</SelectItem>
+                      <SelectItem value="none">Sem cargo</SelectItem>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={String(role.id)}>{role.name}</SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-                <FieldDescription>Use como modelo e ajuste as equipes abaixo.</FieldDescription>
-              </Field>
-              <UserAccessScopeEditor
-                prefeituras={prefeituras}
-                scopes={scopes}
-                onChange={setScopes}
+              )}
+            </Field>
+            {canAssignPrefeituras ? (
+              <>
+                <Field>
+                  <FieldLabel htmlFor="edit-copy-access">Copiar lotação de outro funcionário</FieldLabel>
+                  <Select
+                    value={copyFrom}
+                    onValueChange={(value) => {
+                      const next = value ?? "none";
+                      setCopyFrom(next);
+                      const source = users.find((item) => String(item.id) === next);
+                      if (source) setScopes(source.access_scopes.map((scope) => ({
+                        prefeitura_id: scope.prefeitura_id,
+                        all_teams: scope.all_teams,
+                        team_keys: [...scope.team_keys],
+                      })));
+                    }}
+                  >
+                    <SelectTrigger id="edit-copy-access" className="w-full">
+                      <SelectValue placeholder="Manter lotação atual" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="none">Manter lotação atual</SelectItem>
+                        {users.filter((item) => item.id !== user?.id && !item.is_admin && item.access_scopes.length > 0).map((item) => (
+                          <SelectItem key={item.id} value={String(item.id)}>{item.name || item.email}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  <FieldDescription>Use como modelo e ajuste as equipes abaixo.</FieldDescription>
+                </Field>
+                <UserAccessScopeEditor
+                  prefeituras={prefeituras}
+                  scopes={scopes}
+                  onChange={setScopes}
+                />
+              </>
+            ) : null}
+            <Field data-invalid={Boolean(error)}>
+              <FieldLabel htmlFor="edit-user-reason">Motivo da alteração</FieldLabel>
+              <Input
+                id="edit-user-reason"
+                value={motivo}
+                onChange={(event) => setMotivo(event.target.value)}
+                aria-invalid={Boolean(error)}
+                placeholder="Ex.: mudança de função ou unidade"
               />
-            </>
-          ) : null}
-          <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor="edit-user-reason">Motivo da alteração</FieldLabel>
-            <Input
-              id="edit-user-reason"
-              value={motivo}
-              onChange={(event) => setMotivo(event.target.value)}
-              aria-invalid={Boolean(error)}
-              placeholder="Ex.: mudança de função ou unidade"
-            />
-            <FieldDescription>O motivo será registrado na auditoria.</FieldDescription>
-            {error ? <FieldError>{error}</FieldError> : null}
-          </Field>
-        </FieldGroup>
+              <FieldDescription>O motivo será registrado na auditoria.</FieldDescription>
+              {error ? <FieldError>{error}</FieldError> : null}
+            </Field>
+          </FieldGroup>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="mx-0 mb-0 rounded-b-xl px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isSubmitting || !normalizedName || motivo.trim().length < 3 || !hasChanges}>
             {isSubmitting ? <Spinner data-icon="inline-start" /> : null}

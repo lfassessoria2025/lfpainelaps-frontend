@@ -66,7 +66,7 @@ export function PrefeituraFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-none sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar prefeitura" : "Nova prefeitura"}</DialogTitle>
           <DialogDescription>
