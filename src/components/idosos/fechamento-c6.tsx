@@ -33,7 +33,8 @@ const CLASSIFICACOES = {
   regular: "Regular",
 } as const;
 
-export function FechamentoC6({ dados }: { dados: FechamentoC6Out }) {
+export function FechamentoC6({ dados, modo = "resumo" }: { dados: FechamentoC6Out; modo?: "resumo" | "completos" }) {
+  const itens = modo === "completos" ? dados.itens.filter((idoso) => idoso.status === "completo") : dados.itens;
   const resumo = [
     { titulo: "Pessoas avaliadas", valor: dados.resumo.total_idosos, apoio: "no recorte selecionado", icone: Users },
     { titulo: "Cuidado completo", valor: dados.resumo.total_completos, apoio: "com 100 pontos", icone: CheckCircle2 },
@@ -44,11 +45,12 @@ export function FechamentoC6({ dados }: { dados: FechamentoC6Out }) {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">{modo === "completos" ? "Pessoas idosas com cuidado completo" : "Fechamento do cuidado da pessoa idosa"}</p>
         <p>Referência: <strong className="text-foreground">{formatarData(dados.data_referencia)}</strong></p>
         <p>{dados.quadrimestre ?? "Quadrimestre não informado"}{dados.quadrimestre_inicio && dados.quadrimestre_fim ? ` · ${formatarData(dados.quadrimestre_inicio)} a ${formatarData(dados.quadrimestre_fim)}` : ""}</p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      {modo === "resumo" ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {resumo.map((item) => (
           <Card key={item.titulo} className="gap-2 p-4 shadow-none">
             <div className="flex items-center justify-between gap-3">
@@ -59,9 +61,9 @@ export function FechamentoC6({ dados }: { dados: FechamentoC6Out }) {
             <p className="text-xs text-muted-foreground">{item.apoio}</p>
           </Card>
         ))}
-      </div>
+      </div> : null}
 
-      <section aria-labelledby="praticas-c6">
+      {modo === "resumo" ? <section aria-labelledby="praticas-c6">
         <h2 id="praticas-c6" className="mb-2 text-sm font-semibold">Cobertura por prática</h2>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           {dados.praticas.map((pratica) => (
@@ -80,27 +82,27 @@ export function FechamentoC6({ dados }: { dados: FechamentoC6Out }) {
             </Card>
           ))}
         </div>
-      </section>
+      </section> : null}
 
-      {dados.itens.length === 0 ? (
+      {itens.length === 0 ? (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>Nenhuma pessoa idosa no fechamento</EmptyTitle>
-            <EmptyDescription>Não há registros no recorte selecionado.</EmptyDescription>
+            <EmptyTitle>{modo === "completos" ? "Nenhuma pessoa idosa com cuidado completo" : "Nenhuma pessoa idosa no fechamento"}</EmptyTitle>
+            <EmptyDescription>{modo === "completos" ? "Nenhuma pessoa idosa atingiu todas as práticas no quadrimestre selecionado." : "Não há registros no recorte selecionado."}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <Card className="gap-0 overflow-hidden py-0 shadow-none">
           <CardHeader className="border-b px-4 py-3">
-            <CardTitle className="text-sm">Situação nominal</CardTitle>
-            <p className="text-xs text-muted-foreground">Pessoas com cuidado completo ou práticas pendentes.</p>
+            <CardTitle className="text-sm">{modo === "completos" ? "Pessoas idosas com cuidado completo" : "Situação nominal"}</CardTitle>
+            <p className="text-xs text-muted-foreground">{modo === "completos" ? "Pessoas sem práticas pendentes no quadrimestre." : "Pessoas com cuidado completo ou práticas pendentes."}</p>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table className="min-w-[760px] text-xs">
                 <TableHeader><TableRow><TableHead>Pessoa</TableHead><TableHead>Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Status</TableHead><TableHead>Práticas pendentes</TableHead><TableHead className="text-right">Pontuação</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {dados.itens.map((idoso) => (
+                  {itens.map((idoso) => (
                     <TableRow key={idoso.id}>
                       <TableCell><p className="font-medium">{idoso.nome_cidadao}</p><p className="text-[11px] text-muted-foreground">{formatarData(idoso.data_nascimento)}</p></TableCell>
                       <TableCell>{idoso.equipe_nome ?? "Sem equipe"}</TableCell>

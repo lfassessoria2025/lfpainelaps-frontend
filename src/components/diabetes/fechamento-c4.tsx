@@ -33,7 +33,8 @@ const CLASSIFICACOES = {
   regular: "Regular",
 } as const;
 
-export function FechamentoC4({ dados }: { dados: FechamentoC4Out }) {
+export function FechamentoC4({ dados, modo = "resumo" }: { dados: FechamentoC4Out; modo?: "resumo" | "completas" }) {
+  const itens = modo === "completas" ? dados.itens.filter((pessoa) => pessoa.status === "completa") : dados.itens;
   const resumo = [
     { titulo: "Pessoas avaliadas", valor: dados.resumo.total_pessoas, apoio: "no recorte selecionado", icone: Users },
     { titulo: "Cuidado completo", valor: dados.resumo.total_completas, apoio: "com 100 pontos", icone: CheckCircle2 },
@@ -44,11 +45,12 @@ export function FechamentoC4({ dados }: { dados: FechamentoC4Out }) {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">{modo === "completas" ? "Pessoas com diabetes e cuidado completo" : "Fechamento do cuidado da pessoa com diabetes"}</p>
         <p>Referência: <strong className="text-foreground">{formatarData(dados.data_referencia)}</strong></p>
         <p>{dados.quadrimestre ?? "Quadrimestre não informado"}{dados.quadrimestre_inicio && dados.quadrimestre_fim ? ` · ${formatarData(dados.quadrimestre_inicio)} a ${formatarData(dados.quadrimestre_fim)}` : ""}</p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      {modo === "resumo" ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {resumo.map((item) => (
           <Card key={item.titulo} className="gap-2 shadow-none">
             <CardHeader className="flex-row items-center justify-between gap-3 pb-0">
@@ -61,9 +63,9 @@ export function FechamentoC4({ dados }: { dados: FechamentoC4Out }) {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </div> : null}
 
-      <section aria-labelledby="praticas-c4">
+      {modo === "resumo" ? <section aria-labelledby="praticas-c4">
         <h2 id="praticas-c4" className="mb-2 text-sm font-semibold">Cobertura por prática</h2>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {dados.praticas.map((pratica) => (
@@ -82,20 +84,20 @@ export function FechamentoC4({ dados }: { dados: FechamentoC4Out }) {
             </Card>
           ))}
         </div>
-      </section>
+      </section> : null}
 
-      {dados.itens.length === 0 ? (
+      {itens.length === 0 ? (
         <Empty><EmptyHeader><EmptyTitle>Nenhuma pessoa no fechamento</EmptyTitle><EmptyDescription>Não há pessoas com diabetes no recorte selecionado.</EmptyDescription></EmptyHeader></Empty>
       ) : (
         <Card className="gap-0 overflow-hidden py-0 shadow-none">
           <CardHeader className="border-b px-4 py-3">
-            <CardTitle className="text-sm">Situação nominal</CardTitle>
-            <p className="text-xs text-muted-foreground">Pessoas com cuidado completo ou práticas pendentes.</p>
+            <CardTitle className="text-sm">{modo === "completas" ? "Pessoas com diabetes e cuidado completo" : "Situação nominal"}</CardTitle>
+            <p className="text-xs text-muted-foreground">{modo === "completas" ? "Pessoas sem práticas pendentes no quadrimestre." : "Pessoas com cuidado completo ou práticas pendentes."}</p>
           </CardHeader>
           <CardContent className="p-0">
             <Table className="min-w-[760px] text-xs">
               <TableHeader><TableRow><TableHead>Pessoa</TableHead><TableHead>Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Status</TableHead><TableHead>Práticas pendentes</TableHead><TableHead className="text-right">Pontuação</TableHead></TableRow></TableHeader>
-              <TableBody>{dados.itens.map((pessoa) => (
+              <TableBody>{itens.map((pessoa) => (
                 <TableRow key={pessoa.id}>
                   <TableCell><p className="font-medium">{pessoa.nome_cidadao}</p><p className="text-[11px] text-muted-foreground">{formatarData(pessoa.data_nascimento)}</p></TableCell>
                   <TableCell>{pessoa.equipe_nome ?? "Sem equipe"}</TableCell>

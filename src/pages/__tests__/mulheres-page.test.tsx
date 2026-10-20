@@ -97,7 +97,7 @@ describe("MulheresPage", () => {
     render(<MulheresPage />);
     await screen.findAllByText("Maria da Silva");
 
-    await user.click(screen.getByRole("tab", { name: "Fechamento" }));
+    await user.click(screen.getByRole("tab", { name: "Fechamento do cuidado" }));
 
     expect(await screen.findByText("Pontuação do indicador")).toBeInTheDocument();
     expect(service.fechamento).toHaveBeenCalledWith(1, ["ine:001"], ["01"], expect.any(AbortSignal));

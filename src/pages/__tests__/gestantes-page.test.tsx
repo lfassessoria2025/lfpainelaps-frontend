@@ -194,7 +194,8 @@ describe("GestantesPage", () => {
     expect((await screen.findAllByText("Maria da Silva")).length).toBeGreaterThan(0);
     expect(screen.getByRole("searchbox", { name: /buscar gestante ou equipe/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Filtrar por equipe" })).toBeInTheDocument();
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(screen.getByRole("tab", { name: "Fechadas no quadrimestre" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /fechamento da gestação/i })).toBeInTheDocument();
     expect(screen.queryByText("Acompanhamento operacional da última extração")).not.toBeInTheDocument();
     expect(screen.queryByText("Validação com a planilha da cliente")).not.toBeInTheDocument();

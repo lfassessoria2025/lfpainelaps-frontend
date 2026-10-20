@@ -76,6 +76,8 @@ describe("IdososPage", () => {
     render(<IdososPage />);
 
     const seletor = await screen.findByRole("combobox", { name: "Prefeitura" });
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(screen.getByRole("tab", { name: "Completos no quadrimestre" })).toBeInTheDocument();
     expect(seletor).toHaveTextContent("Pedregulho");
 
     await user.click(seletor);

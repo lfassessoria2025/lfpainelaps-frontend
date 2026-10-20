@@ -63,7 +63,7 @@ type Status = StatusAcompanhamentoPratica;
 type StatusFiltro = Status | "todos";
 type Pratica = "A" | "B" | "C" | "D" | "E";
 type Ordenacao = "nome" | "pontuacao-desc" | "pontuacao-asc";
-type Visao = "acompanhamento" | "fechamento";
+type Visao = "acompanhamento" | "fechamento" | "encerradas";
 
 const PRATICAS: ReadonlyArray<{ codigo: Pratica; rotulo: string }> = [
   { codigo: "A", rotulo: "1ª consulta até 30 dias" },
@@ -351,7 +351,7 @@ export function CriancasPage() {
   }, [comparacaoAberta, prefeituraId]);
 
   useEffect(() => {
-    if (visao !== "fechamento" || prefeituraId === null) return;
+    if ((visao !== "fechamento" && visao !== "encerradas") || prefeituraId === null) return;
     const controller = new AbortController();
     setFechamento(null);
     setErroFechamento(null);
@@ -616,6 +616,7 @@ export function CriancasPage() {
             <CalendarClock data-icon="inline-start" />
             Fechamento aos 2 anos
           </TabsTrigger>
+          <TabsTrigger value="encerradas">Encerradas no quadrimestre</TabsTrigger>
         </TabsList>
         <TabsContent value="acompanhamento">
       {erro ? <p role="alert" className="mb-3 text-sm text-destructive">{erro}</p> : null}
@@ -681,6 +682,14 @@ export function CriancasPage() {
             dados={fechamento}
             carregando={fechamento === null && erroFechamento === null}
             erro={erroFechamento}
+          />
+        </TabsContent>
+        <TabsContent value="encerradas">
+          <FechamentoC2
+            dados={fechamento}
+            carregando={fechamento === null && erroFechamento === null}
+            erro={erroFechamento}
+            modo="encerradas"
           />
         </TabsContent>
       </Tabs>

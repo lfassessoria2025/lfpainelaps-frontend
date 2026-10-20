@@ -147,7 +147,8 @@ describe("CriancasPage", () => {
     expect((await screen.findAllByText("Alice da Silva")).length).toBeGreaterThan(0);
     expect(screen.getByRole("combobox", { name: "Prefeitura" })).toHaveTextContent("Pedregulho");
     expect(screen.getByRole("searchbox", { name: /buscar criança ou equipe/i })).toBeInTheDocument();
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(screen.getByRole("tab", { name: "Encerradas no quadrimestre" })).toBeInTheDocument();
     const tabela = screen.getByRole("table");
     expect(within(tabela).getByText("1ª consulta até 30 dias")).toBeInTheDocument();
     expect(within(tabela).getByText("9 consultas de puericultura")).toBeInTheDocument();

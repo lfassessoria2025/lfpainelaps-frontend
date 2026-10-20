@@ -30,7 +30,7 @@ import { prefeiturasService } from "@/services/prefeituras";
 type Pratica = "A" | "B" | "C" | "D";
 type StatusFiltro = "todos" | "completa" | "pendente";
 type Ordenacao = "nome" | "pontuacao-desc" | "pontuacao-asc";
-type Visao = "acompanhamento" | "fechamento";
+type Visao = "acompanhamento" | "fechamento" | "completas";
 
 const ITENS_POR_PAGINA = 20;
 const PRATICAS: ReadonlyArray<{ codigo: Pratica; titulo: string }> = [
@@ -170,7 +170,7 @@ export function MulheresPage() {
   }, [equipesSelecionadas, microAreasSelecionadas, prefeituraId]);
 
   useEffect(() => {
-    if (visao !== "fechamento" || prefeituraId === null) return;
+    if ((visao !== "fechamento" && visao !== "completas") || prefeituraId === null) return;
     const controller = new AbortController();
     setFechamento(null);
     setErroFechamento(null);
@@ -278,8 +278,9 @@ export function MulheresPage() {
 
       <Tabs value={visao} onValueChange={(valor) => setVisao(valor as Visao)} className="gap-3">
         <TabsList variant="line" aria-label="Visões do indicador de mulheres">
-          <TabsTrigger value="acompanhamento">Tabela de acompanhamento</TabsTrigger>
-          <TabsTrigger value="fechamento"><CalendarClock data-icon="inline-start" />Fechamento</TabsTrigger>
+          <TabsTrigger value="acompanhamento">Acompanhamento</TabsTrigger>
+          <TabsTrigger value="fechamento"><CalendarClock data-icon="inline-start" />Fechamento do cuidado</TabsTrigger>
+          <TabsTrigger value="completas">Completas no quadrimestre</TabsTrigger>
         </TabsList>
         <TabsContent value="acompanhamento">
           {erro ? <p role="alert" className="mb-3 text-sm text-destructive">{erro}</p> : null}
@@ -301,6 +302,7 @@ export function MulheresPage() {
           ) : null}
         </TabsContent>
         <TabsContent value="fechamento"><FechamentoC7 dados={fechamento} carregando={fechamento === null && erroFechamento === null} erro={erroFechamento} /></TabsContent>
+        <TabsContent value="completas"><FechamentoC7 dados={fechamento} carregando={fechamento === null && erroFechamento === null} erro={erroFechamento} modo="completas" /></TabsContent>
       </Tabs>
     </div>
   );

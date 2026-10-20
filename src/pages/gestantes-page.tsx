@@ -137,7 +137,7 @@ function AcaoCondicaoGestante({
 }
 
 type StatusFiltro = StatusPratica | "todos";
-type Visao = "acompanhamento" | "fechamento";
+type Visao = "acompanhamento" | "fechamento" | "fechadas";
 type ParametroFiltro = "todos" | (typeof PRATICAS)[number]["letra"];
 type Ordenacao =
   | "nome-asc"
@@ -624,7 +624,7 @@ export function GestantesPage() {
   }, [loadGestantes]);
 
   useEffect(() => {
-    if (visao !== "fechamento" || selectedId === null) return;
+    if ((visao !== "fechamento" && visao !== "fechadas") || selectedId === null) return;
     const controller = new AbortController();
     setFechamento(null);
     setErroFechamento(null);
@@ -1021,6 +1021,7 @@ export function GestantesPage() {
           <TabsTrigger value="fechamento">
             <CalendarClock /> Fechamento da gestação
           </TabsTrigger>
+          <TabsTrigger value="fechadas">Fechadas no quadrimestre</TabsTrigger>
         </TabsList>
         <TabsContent value="acompanhamento">
 
@@ -1318,6 +1319,14 @@ export function GestantesPage() {
             dados={fechamento}
             carregando={fechamento === null && erroFechamento === null}
             erro={erroFechamento}
+          />
+        </TabsContent>
+        <TabsContent value="fechadas">
+          <FechamentoC3
+            dados={fechamento}
+            carregando={fechamento === null && erroFechamento === null}
+            erro={erroFechamento}
+            modo="fechadas"
           />
         </TabsContent>
       </Tabs>

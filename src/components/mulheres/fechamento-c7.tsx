@@ -48,7 +48,7 @@ function Pendencias({ mulher }: { mulher: MulherFechamentoC7Out }) {
   );
 }
 
-export function FechamentoC7({ dados, carregando, erro }: FechamentoC7Props) {
+export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: FechamentoC7Props & { modo?: "resumo" | "completas" }) {
   if (carregando) {
     return (
       <div className="grid gap-3">
@@ -63,6 +63,8 @@ export function FechamentoC7({ dados, carregando, erro }: FechamentoC7Props) {
   if (erro) return <p role="alert" className="text-sm text-destructive">{erro}</p>;
   if (!dados) return null;
 
+  const itens = modo === "completas" ? dados.itens.filter((mulher) => mulher.status === "completa") : dados.itens;
+
   const resumo = [
     { titulo: "Mulheres avaliadas", valor: dados.resumo.total_mulheres, apoio: "no recorte selecionado", icone: Users },
     { titulo: "Cuidado completo", valor: dados.resumo.total_completas, apoio: "sem práticas pendentes", icone: CheckCircle2 },
@@ -73,11 +75,12 @@ export function FechamentoC7({ dados, carregando, erro }: FechamentoC7Props) {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">{modo === "completas" ? "Mulheres com cuidado completo" : "Fechamento do cuidado da mulher"}</p>
         <p>Referência: <strong className="text-foreground">{formatarData(dados.data_referencia)}</strong></p>
         <p>{dados.quadrimestre ?? "Quadrimestre não informado"}{dados.quadrimestre_inicio && dados.quadrimestre_fim ? ` · ${formatarData(dados.quadrimestre_inicio)} a ${formatarData(dados.quadrimestre_fim)}` : ""}</p>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      {modo === "resumo" ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {resumo.map((item) => (
           <Card key={item.titulo} className="gap-2 p-4 shadow-none">
             <div className="flex items-center justify-between gap-3">
@@ -88,9 +91,9 @@ export function FechamentoC7({ dados, carregando, erro }: FechamentoC7Props) {
             <p className="text-xs text-muted-foreground">{item.apoio}</p>
           </Card>
         ))}
-      </div>
+      </div> : null}
 
-      <section aria-labelledby="praticas-c7">
+      {modo === "resumo" ? <section aria-labelledby="praticas-c7">
         <h2 id="praticas-c7" className="mb-2 text-sm font-semibold">Cobertura por prática</h2>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           {dados.praticas.map((pratica) => (
@@ -109,24 +112,24 @@ export function FechamentoC7({ dados, carregando, erro }: FechamentoC7Props) {
             </Card>
           ))}
         </div>
-      </section>
+      </section> : null}
 
-      {dados.itens.length === 0 ? (
+      {itens.length === 0 ? (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>Nenhuma mulher no fechamento</EmptyTitle>
-            <EmptyDescription>Não há registros para o recorte de equipe e micro-área selecionado.</EmptyDescription>
+            <EmptyTitle>{modo === "completas" ? "Nenhuma mulher com cuidado completo" : "Nenhuma mulher no fechamento"}</EmptyTitle>
+            <EmptyDescription>{modo === "completas" ? "Nenhuma mulher atingiu todas as práticas no quadrimestre selecionado." : "Não há registros para o recorte de equipe e micro-área selecionado."}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <Card className="gap-0 overflow-hidden py-0 shadow-none">
           <CardHeader className="border-b px-4 py-3">
-            <CardTitle className="text-sm">Situação nominal</CardTitle>
-            <p className="text-xs text-muted-foreground">Mulheres completas e pendentes no período.</p>
+            <CardTitle className="text-sm">{modo === "completas" ? "Mulheres com cuidado completo" : "Situação nominal"}</CardTitle>
+            <p className="text-xs text-muted-foreground">{modo === "completas" ? "Mulheres sem práticas pendentes no quadrimestre." : "Mulheres completas e pendentes no período."}</p>
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid gap-2 p-3 md:hidden">
-              {dados.itens.map((mulher) => (
+              {itens.map((mulher) => (
                 <div key={mulher.id} className="rounded-lg border p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -155,7 +158,7 @@ export function FechamentoC7({ dados, carregando, erro }: FechamentoC7Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dados.itens.map((mulher) => (
+                  {itens.map((mulher) => (
                     <TableRow key={mulher.id}>
                       <TableCell>
                         <p className="font-medium">{mulher.nome_cidadao}</p>

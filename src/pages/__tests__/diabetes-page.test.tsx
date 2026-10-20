@@ -83,6 +83,8 @@ describe("DiabetesPage", () => {
     render(<DiabetesPage />);
 
     const seletor = await screen.findByRole("combobox", { name: "Prefeitura" });
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(screen.getByRole("tab", { name: "Completas no quadrimestre" })).toBeInTheDocument();
     expect(seletor).toHaveTextContent("Pedregulho");
 
     await user.click(seletor);

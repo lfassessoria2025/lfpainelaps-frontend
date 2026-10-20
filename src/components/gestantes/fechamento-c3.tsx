@@ -290,10 +290,12 @@ export function FechamentoC3({
   dados,
   carregando,
   erro,
+  modo = "resumo",
 }: {
   dados: FechamentoC3Out | null;
   carregando: boolean;
   erro: string | null;
+  modo?: "resumo" | "fechadas";
 }) {
   const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
   const listasRef = useRef<HTMLDivElement>(null);
@@ -342,7 +344,9 @@ export function FechamentoC3({
     <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-base font-semibold">Fechamento da gestação</h2>
+          <h2 className="text-base font-semibold">
+            {modo === "fechadas" ? "Gestantes fechadas no quadrimestre" : "Fechamento da gestação"}
+          </h2>
           <p className="text-xs text-muted-foreground">
             {dados.quadrimestre} · dados atualizados até {formatarData(dados.data_referencia)}
           </p>
@@ -352,9 +356,9 @@ export function FechamentoC3({
         </p>
       </div>
 
-      <Resumo dados={dados} />
+      {modo === "resumo" ? <Resumo dados={dados} /> : null}
 
-      <section aria-labelledby="meses-fechamento-c3">
+      {modo === "resumo" ? <section aria-labelledby="meses-fechamento-c3">
         <div className="mb-2 flex items-center gap-2">
           <Target className="size-4" aria-hidden />
           <h3 id="meses-fechamento-c3" className="text-sm font-semibold">Visão por mês</h3>
@@ -403,7 +407,7 @@ export function FechamentoC3({
             </Card>
           ))}
         </div>
-      </section>
+      </section> : null}
 
       <div ref={listasRef} className="flex scroll-mt-4 flex-col gap-3">
         {mesSelecionado ? (
@@ -416,11 +420,11 @@ export function FechamentoC3({
             </Button>
           </div>
         ) : null}
-        <ListaGestantes
-          titulo="Dá tempo de agir"
-          descricao="DPP no quadrimestre, sem desfecho confirmado, ordenadas pela data e menor pontuação."
-          gestantes={abertas}
-        />
+        {modo === "resumo" ? <ListaGestantes
+            titulo="Dá tempo de agir"
+            descricao="DPP no quadrimestre, sem desfecho confirmado, ordenadas pela data e menor pontuação."
+            gestantes={abertas}
+          /> : null}
         <ListaGestantes
           titulo="Fechadas neste quadrimestre"
           descricao="Desfechos e abortos confirmados no PEC, com a pontuação do último backup."

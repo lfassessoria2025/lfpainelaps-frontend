@@ -23,7 +23,7 @@ import { prefeiturasService } from "@/services/prefeituras";
 
 type Pratica = "A" | "B" | "C" | "D" | "E" | "F";
 type StatusFiltro = "todos" | "completa" | "pendente";
-type Visao = "acompanhamento" | "fechamento";
+type Visao = "acompanhamento" | "fechamento" | "completas";
 const ITENS_POR_PAGINA = 20;
 const PRATICAS: ReadonlyArray<{ codigo: Pratica; titulo: string }> = [
   { codigo: "A", titulo: "Consulta nos últimos 6 meses" },
@@ -112,7 +112,7 @@ export function DiabetesPage() {
   }, [equipesSelecionadas, microAreasSelecionadas, prefeituraId]);
 
   useEffect(() => {
-    if (visao !== "fechamento" || prefeituraId === null) return;
+    if ((visao !== "fechamento" && visao !== "completas") || prefeituraId === null) return;
     const controller = new AbortController();
     setFechamento(null); setErroFechamento(null);
     diabetesService.fechamento(prefeituraId, equipesSelecionadas, microAreasSelecionadas, controller.signal)
@@ -166,12 +166,13 @@ export function DiabetesPage() {
         activeFilters={<><CatalogFilterChips selectedKeys={equipesSelecionadas} getLabel={(chave) => equipes?.find((item) => item.chave === chave)?.nome ?? chave} clearLabel="Limpar equipes" onClear={() => atualizarEquipes([])} /><CatalogFilterChips selectedKeys={microAreasSelecionadas} getLabel={(chave) => microAreas?.find((item) => item.chave === chave)?.codigo ?? chave} clearLabel="Limpar micro-áreas" onClear={() => atualizarMicroAreas([])} /></>}
       />
       <Tabs value={visao} onValueChange={(valor) => setVisao(valor as Visao)} className="gap-3">
-        <TabsList variant="line" aria-label="Visões do indicador de diabetes"><TabsTrigger value="acompanhamento">Tabela de acompanhamento</TabsTrigger><TabsTrigger value="fechamento"><CalendarClock data-icon="inline-start" />Fechamento</TabsTrigger></TabsList>
+        <TabsList variant="line" aria-label="Visões do indicador de diabetes"><TabsTrigger value="acompanhamento">Acompanhamento</TabsTrigger><TabsTrigger value="fechamento"><CalendarClock data-icon="inline-start" />Fechamento do cuidado</TabsTrigger><TabsTrigger value="completas">Completas no quadrimestre</TabsTrigger></TabsList>
         <TabsContent value="acompanhamento">
           {erro ? <p role="alert" className="mb-3 text-sm text-destructive">{erro}</p> : null}
           {pessoas === null && !erro ? <Skeleton className="h-72" /> : pessoas?.length === 0 ? <Empty><EmptyHeader><EmptyTitle>Nenhuma pessoa com diabetes no recorte</EmptyTitle><EmptyDescription>O último processamento não trouxe pessoas elegíveis com diagnóstico ativo.</EmptyDescription></EmptyHeader></Empty> : pessoas ? <><div className="grid gap-2 md:hidden">{daPagina.map((pessoa) => <Card key={pessoa.id} className="gap-3"><CardHeader className="flex-row justify-between gap-2"><div><CardTitle className="text-sm">{pessoa.nome_cidadao}</CardTitle><p className="text-xs text-muted-foreground">{pessoa.equipe_nome ?? "Sem equipe"} · {pessoa.diagnostico_sistema} {pessoa.diagnostico_codigo}</p></div><strong>{pessoa.pontos_obtidos}/100</strong></CardHeader><CardContent className="grid grid-cols-2 gap-2">{PRATICAS.map((pratica) => <div key={pratica.codigo} className="rounded-md border p-2"><p className="mb-1 text-center text-xs font-semibold">Prática {pratica.codigo}</p><PraticaStatus pessoa={pessoa} pratica={pratica.codigo} /></div>)}</CardContent></Card>)}</div><Card className="hidden min-w-0 overflow-hidden py-0 md:block"><Table className="min-w-[1450px] text-xs" containerClassName={cn("cursor-grab", dragging && "cursor-grabbing select-none")} containerProps={{ ...containerProps, role: "region", "aria-label": "Tabela nominal de pessoas com diabetes" }}><TableHeader><TableRow><TableHead className="sticky left-0 z-[2] min-w-48 bg-muted">Pessoa</TableHead><TableHead>Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Diagnóstico ativo</TableHead><TableHead>Nascimento</TableHead>{PRATICAS.map((pratica) => <TableHead key={pratica.codigo} className="min-w-40 text-center">Prática {pratica.codigo}<span className="block text-[10px] text-muted-foreground">{pratica.titulo}</span></TableHead>)}<TableHead className="text-right">Pontuação</TableHead><TableHead>Referência</TableHead></TableRow></TableHeader><TableBody>{daPagina.map((pessoa) => <TableRow key={pessoa.id} className="[content-visibility:auto]"><TableCell className="sticky left-0 z-[1] bg-background font-medium">{pessoa.nome_cidadao}</TableCell><TableCell>{pessoa.equipe_nome ?? "Sem equipe"}</TableCell><TableCell>{pessoa.micro_area ?? "Sem micro-área"}</TableCell><TableCell><span className="font-medium">{pessoa.diagnostico_sistema} {pessoa.diagnostico_codigo}</span><span className="block text-[10px] text-muted-foreground">Em {formatarData(pessoa.diagnostico_evidencia_data)}</span></TableCell><TableCell>{formatarData(pessoa.data_nascimento)}</TableCell>{PRATICAS.map((pratica) => <TableCell key={pratica.codigo}><PraticaStatus pessoa={pessoa} pratica={pratica.codigo} /></TableCell>)}<TableCell className="text-right font-medium">{pessoa.pontos_obtidos}/100</TableCell><TableCell>{formatarData(pessoa.data_referencia)}</TableCell></TableRow>)}</TableBody></Table></Card><IndicatorPagination currentPage={paginaAtual} totalPages={totalPaginas} onChange={setPagina} ariaLabel="Paginação de pessoas com diabetes" /></> : null}
         </TabsContent>
         <TabsContent value="fechamento">{erroFechamento ? <p role="alert" className="text-sm text-destructive">{erroFechamento}</p> : fechamento ? <FechamentoC4 dados={fechamento} /> : <Skeleton className="h-72" />}</TabsContent>
+        <TabsContent value="completas">{erroFechamento ? <p role="alert" className="text-sm text-destructive">{erroFechamento}</p> : fechamento ? <FechamentoC4 dados={fechamento} modo="completas" /> : <Skeleton className="h-72" />}</TabsContent>
       </Tabs>
     </div>
   );

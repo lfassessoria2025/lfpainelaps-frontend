@@ -23,7 +23,7 @@ import { prefeiturasService } from "@/services/prefeituras";
 
 type Pratica = "A" | "B" | "C" | "D";
 type StatusFiltro = "todos" | "completo" | "pendente";
-type Visao = "acompanhamento" | "fechamento";
+type Visao = "acompanhamento" | "fechamento" | "completos";
 const ITENS_POR_PAGINA = 20;
 const PRATICAS: ReadonlyArray<{ codigo: Pratica; titulo: string }> = [
   { codigo: "A", titulo: "Consulta médica ou de enfermagem" },
@@ -108,7 +108,7 @@ export function IdososPage() {
   }, [equipesSelecionadas, microAreasSelecionadas, prefeituraId]);
 
   useEffect(() => {
-    if (visao !== "fechamento" || prefeituraId === null) return;
+    if ((visao !== "fechamento" && visao !== "completos") || prefeituraId === null) return;
     const controller = new AbortController();
     setFechamento(null); setErroFechamento(null);
     idosoService.fechamento(prefeituraId, equipesSelecionadas, microAreasSelecionadas, controller.signal)
@@ -171,12 +171,13 @@ export function IdososPage() {
         activeFilters={<><CatalogFilterChips selectedKeys={equipesSelecionadas} getLabel={(chave) => equipes?.find((item) => item.chave === chave)?.nome ?? chave} clearLabel="Limpar equipes" onClear={() => atualizarEquipes([])} /><CatalogFilterChips selectedKeys={microAreasSelecionadas} getLabel={(chave) => microAreas?.find((item) => item.chave === chave)?.codigo ?? chave} clearLabel="Limpar micro-áreas" onClear={() => atualizarMicroAreas([])} /></>}
       />
       <Tabs value={visao} onValueChange={(valor) => setVisao(valor as Visao)} className="gap-3">
-        <TabsList variant="line" aria-label="Visões do indicador de pessoas idosas"><TabsTrigger value="acompanhamento">Tabela de acompanhamento</TabsTrigger><TabsTrigger value="fechamento"><CalendarClock data-icon="inline-start" />Fechamento</TabsTrigger></TabsList>
+        <TabsList variant="line" aria-label="Visões do indicador de pessoas idosas"><TabsTrigger value="acompanhamento">Acompanhamento</TabsTrigger><TabsTrigger value="fechamento"><CalendarClock data-icon="inline-start" />Fechamento do cuidado</TabsTrigger><TabsTrigger value="completos">Completos no quadrimestre</TabsTrigger></TabsList>
         <TabsContent value="acompanhamento">
           {erro ? <p role="alert" className="mb-3 text-sm text-destructive">{erro}</p> : null}
           {idosos === null && !erro ? <Skeleton className="h-72" /> : idosos?.length === 0 ? <Empty><EmptyHeader><EmptyTitle>Nenhuma pessoa idosa no recorte</EmptyTitle><EmptyDescription>O último processamento não trouxe pessoas elegíveis.</EmptyDescription></EmptyHeader></Empty> : idosos ? <><div className="grid gap-2 md:hidden">{daPagina.map((idoso) => <Card key={idoso.id} className="gap-3 p-4"><div className="flex justify-between gap-2"><div><p className="font-medium">{idoso.nome_cidadao}</p><p className="text-xs text-muted-foreground">{idoso.equipe_nome ?? "Sem equipe"}</p></div><span className="font-medium">{idoso.pontos_obtidos}/100</span></div><div className="grid grid-cols-2 gap-2">{PRATICAS.map((pratica) => <div key={pratica.codigo} className="rounded-md border p-2"><p className="mb-1 text-center text-xs font-semibold">Prática {pratica.codigo}</p><PraticaStatus idoso={idoso} pratica={pratica.codigo} /></div>)}</div></Card>)}</div><Card className="hidden min-w-0 overflow-hidden py-0 md:block"><Table className="min-w-[1050px] text-xs" containerClassName={cn("cursor-grab", dragging && "cursor-grabbing select-none")} containerProps={{ ...containerProps, role: "region", "aria-label": "Tabela nominal de pessoas idosas" }}><TableHeader><TableRow><TableHead className="sticky left-0 z-[2] min-w-48 bg-muted">Pessoa</TableHead><TableHead>Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Nascimento</TableHead>{PRATICAS.map((pratica) => <TableHead key={pratica.codigo} className="min-w-40 text-center">Prática {pratica.codigo}<span className="block text-[10px] text-muted-foreground">{pratica.titulo}</span></TableHead>)}<TableHead className="text-right">Pontuação</TableHead><TableHead>Referência</TableHead></TableRow></TableHeader><TableBody>{daPagina.map((idoso) => <TableRow key={idoso.id}><TableCell className="sticky left-0 z-[1] bg-background font-medium">{idoso.nome_cidadao}</TableCell><TableCell>{idoso.equipe_nome ?? "Sem equipe"}</TableCell><TableCell>{idoso.micro_area ?? "Sem micro-área"}</TableCell><TableCell>{formatarData(idoso.data_nascimento)}</TableCell>{PRATICAS.map((pratica) => <TableCell key={pratica.codigo}><PraticaStatus idoso={idoso} pratica={pratica.codigo} /></TableCell>)}<TableCell className="text-right font-medium">{idoso.pontos_obtidos}/100</TableCell><TableCell>{formatarData(idoso.data_referencia)}</TableCell></TableRow>)}</TableBody></Table></Card><IndicatorPagination currentPage={paginaAtual} totalPages={totalPaginas} onChange={setPagina} ariaLabel="Paginação de pessoas idosas" /></> : null}
         </TabsContent>
         <TabsContent value="fechamento">{erroFechamento ? <p role="alert" className="text-sm text-destructive">{erroFechamento}</p> : fechamento ? <FechamentoC6 dados={fechamento} /> : <Skeleton className="h-72" />}</TabsContent>
+        <TabsContent value="completos">{erroFechamento ? <p role="alert" className="text-sm text-destructive">{erroFechamento}</p> : fechamento ? <FechamentoC6 dados={fechamento} modo="completos" /> : <Skeleton className="h-72" />}</TabsContent>
       </Tabs>
     </div>
   );

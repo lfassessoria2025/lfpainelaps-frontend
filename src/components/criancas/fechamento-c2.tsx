@@ -342,10 +342,12 @@ export function FechamentoC2({
   dados,
   carregando,
   erro,
+  modo = "resumo",
 }: {
   dados: FechamentoC2Out | null;
   carregando: boolean;
   erro: string | null;
+  modo?: "resumo" | "encerradas";
 }) {
   const [mesSelecionado, setMesSelecionado] = useState<string | null>(null);
   const listasRef = useRef<HTMLDivElement>(null);
@@ -392,7 +394,9 @@ export function FechamentoC2({
     <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-base font-semibold">Fechamento aos 2 anos</h2>
+          <h2 className="text-base font-semibold">
+            {modo === "encerradas" ? "Crianças encerradas no quadrimestre" : "Fechamento aos 2 anos"}
+          </h2>
           <p className="text-xs text-muted-foreground">
             {dados.quadrimestre} · dados atualizados até {formatarData(dados.data_referencia)}
           </p>
@@ -403,9 +407,9 @@ export function FechamentoC2({
         </p>
       </div>
 
-      <Resumo dados={dados} />
+      {modo === "resumo" ? <Resumo dados={dados} /> : null}
 
-      <section aria-labelledby="meses-fechamento">
+      {modo === "resumo" ? <section aria-labelledby="meses-fechamento">
         <div className="mb-2 flex items-center gap-2">
           <Target className="size-4" aria-hidden />
           <h3 id="meses-fechamento" className="text-sm font-semibold">Visão por mês</h3>
@@ -447,7 +451,7 @@ export function FechamentoC2({
             </Card>
           ))}
         </div>
-      </section>
+      </section> : null}
 
       <div ref={listasRef} className="flex scroll-mt-4 flex-col gap-3">
         {mesSelecionado ? (
@@ -460,11 +464,11 @@ export function FechamentoC2({
             </Button>
           </div>
         ) : null}
-        <ListaCriancas
-          titulo="Dá tempo de agir"
-          descricao="Ordenadas pela data em que completam 2 anos e pela menor pontuação."
-          criancas={emAcompanhamento}
-        />
+        {modo === "resumo" ? <ListaCriancas
+            titulo="Dá tempo de agir"
+            descricao="Ordenadas pela data em que completam 2 anos e pela menor pontuação."
+            criancas={emAcompanhamento}
+          /> : null}
         <ListaCriancas
           titulo="Fechadas neste quadrimestre"
           descricao="Último resultado disponível antes do aniversário de 2 anos; permanece visível após sair da lista ativa."
