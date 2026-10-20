@@ -3,10 +3,33 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { useAuth } from "@/contexts/auth-context";
 import { DashboardPage } from "@/pages/dashboard-page";
+import { prefeiturasService } from "@/services/prefeituras";
+import { importacoesService } from "@/services/importacoes";
 
 vi.mock("@/contexts/auth-context", () => ({
   useAuth: vi.fn(),
 }));
+vi.mock("@/services/prefeituras", () => ({
+  prefeiturasService: { list: vi.fn() },
+}));
+vi.mock("@/services/importacoes", () => ({
+  importacoesService: { list: vi.fn() },
+}));
+
+vi.mocked(prefeiturasService.list).mockResolvedValue([
+  { id: 1, ibge_code: "0000000", name: "Jeriquara", active: true },
+]);
+vi.mocked(importacoesService.list).mockResolvedValue([
+  {
+    id: "importacao-1",
+    status: "concluido",
+    display_name: "Backup atual",
+    expected_size_bytes: 100,
+    created_at: "2026-10-19T12:00:00Z",
+    updated_at: "2026-10-19T12:30:00Z",
+    last_failure_code: null,
+  },
+]);
 
 vi.mocked(useAuth).mockReturnValue({
   user: { id: 1, email: "gestor@example.com", name: null, is_admin: true, status: "ativo", permissions: [] },
@@ -16,7 +39,7 @@ vi.mocked(useAuth).mockReturnValue({
   setAuthenticatedUser: vi.fn(),
 });
 
-describe("DashboardPage — microinterações (FLO-45)", () => {
+describe("DashboardPage — visão operacional", () => {
   it("escalona a entrada dos atalhos e reforça o hover dos cards", () => {
     render(
       <MemoryRouter>
@@ -24,13 +47,26 @@ describe("DashboardPage — microinterações (FLO-45)", () => {
       </MemoryRouter>,
     );
 
-    const atalhos = screen.getAllByRole("link");
-    expect(atalhos).toHaveLength(5);
-    expect(atalhos.map((atalho) => atalho.style.animationDelay)).toEqual(["0ms", "90ms", "180ms", "270ms", "360ms"]);
+    const atalhos = Array.from(document.querySelectorAll<HTMLAnchorElement>("a.animate-in"));
+    expect(atalhos).toHaveLength(15);
+    expect(atalhos.slice(0, 3).map((atalho) => atalho.style.animationDelay)).toEqual(["0ms", "55ms", "110ms"]);
     expect(atalhos[0]).toHaveClass("animate-in", "fill-mode-both");
     expect(atalhos[0].firstElementChild).toHaveClass(
       "group-hover:-translate-y-1",
       "group-hover:shadow-lg",
     );
+  });
+
+  it("exibe dados operacionais e o indicador de diabetes nos atalhos", async () => {
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Atualização dos dados")).toBeInTheDocument();
+    expect(screen.getByText("Concluído")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Diabetes/ })).toHaveAttribute("href", "/diabetes");
+    expect(screen.getByText("15 áreas disponíveis")).toBeInTheDocument();
   });
 });
