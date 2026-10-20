@@ -76,8 +76,15 @@ const PRATICAS: ReadonlyArray<{ codigo: Pratica; rotulo: string }> = [
 const STATUS_CLASS: Record<Status, string> = {
   completa: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   parcial: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  pendente: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  pendente: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
   fora_do_prazo: "bg-muted text-muted-foreground",
+};
+
+const STATUS_EXPLICACAO: Record<Status, string> = {
+  completa: "Concluído: a meta desta prática foi atingida.",
+  parcial: "Parcial: a prática já foi iniciada, mas a meta ainda não foi atingida.",
+  pendente: "Pendente: ainda não há registro; a janela continua aberta para realizar a prática.",
+  fora_do_prazo: "Fora do prazo: a janela desta prática foi encerrada e ela não pode mais ser concluída.",
 };
 
 const ITENS_POR_PAGINA = 20;
@@ -116,7 +123,7 @@ function marcador(status: Status, texto: string, titulo?: string) {
         "inline-flex min-w-12 justify-center rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums",
         STATUS_CLASS[status],
       )}
-      title={titulo}
+      title={titulo ? `${titulo} ${STATUS_EXPLICACAO[status]}` : STATUS_EXPLICACAO[status]}
     >
       {rotulo}
     </span>
@@ -525,8 +532,9 @@ export function CriancasPage() {
                   <SelectValue>
                     {(value: StatusFiltro | null) => {
                       if (value === "completa") return "Completo";
-                      if (value === "parcial") return "Parcial";
-                      if (value === "pendente") return "Pendente";
+                      if (value === "parcial") return "Parcial · já iniciado";
+                      if (value === "pendente") return "Pendente · ainda não iniciado";
+                      if (value === "fora_do_prazo") return "Fora do prazo · janela encerrada";
                       return "Todos os status";
                     }}
                   </SelectValue>
@@ -535,9 +543,9 @@ export function CriancasPage() {
                   <SelectGroup>
                     <SelectItem value="todos">Todos os status</SelectItem>
                     <SelectItem value="completa">Completo</SelectItem>
-                    <SelectItem value="parcial">Parcial</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="fora_do_prazo">Fora do prazo</SelectItem>
+                    <SelectItem value="parcial">Parcial · já iniciado</SelectItem>
+                    <SelectItem value="pendente">Pendente · ainda não iniciado</SelectItem>
+                    <SelectItem value="fora_do_prazo">Fora do prazo · janela encerrada</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>

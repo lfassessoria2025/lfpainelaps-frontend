@@ -208,12 +208,16 @@ describe("CriancasPage", () => {
     expect(screen.getByRole("button", { name: /limpar mês/i })).toBeInTheDocument();
   });
 
-  it("mantém amarela a prática cuja janela ainda está aberta", async () => {
+  it("diferencia pendente de parcial quando a janela ainda está aberta", async () => {
     render(<CriancasPage />);
 
     const pendentes = await screen.findAllByText("Pendente");
     expect(pendentes.length).toBeGreaterThanOrEqual(1);
-    expect(pendentes[0]).toHaveClass("bg-amber-500/15");
+    expect(pendentes[0]).toHaveClass("bg-sky-500/15");
+    expect(pendentes[0]).toHaveAttribute(
+      "title",
+      expect.stringContaining("janela continua aberta"),
+    );
   });
 
   it("mostra fora do prazo quando a primeira visita do ACS não foi feita em 30 dias", async () => {

@@ -66,6 +66,7 @@ export function VinculoPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [proibido, setProibido] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const [exportandoNominal, setExportandoNominal] = useState(false);
   const [equipeFiltro, setEquipeFiltro] = useState("todas");
   const [visao, setVisao] = useState<"acompanhamento" | "historico">(
     "acompanhamento",
@@ -119,11 +120,19 @@ export function VinculoPage() {
       });
     return () => controller.abort();
   }, [prefeituraId]);
+  const equipesParaExportar = () => {
+    if (equipeFiltro === "todas") return [];
+    const equipe = (linhas ?? []).find((item) => chaveEquipe(item) === equipeFiltro);
+    if (equipe?.equipe_ine) return [`ine:${equipe.equipe_ine}`];
+    if (equipe?.equipe_nome) return [`nome:${equipe.equipe_nome}`];
+    return [];
+  };
   const exportar = async () => {
     if (prefeituraId === null) return;
     setExportando(true);
     try {
-      const { blob, filename } = await vinculoService.exportar(prefeituraId);
+      const equipesSelecionadas = equipesParaExportar();
+      const { blob, filename } = await vinculoService.exportar(prefeituraId, equipesSelecionadas);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -132,6 +141,22 @@ export function VinculoPage() {
       URL.revokeObjectURL(url);
     } finally {
       setExportando(false);
+    }
+  };
+  const exportarNominal = async () => {
+    if (prefeituraId === null) return;
+    setExportandoNominal(true);
+    try {
+      const equipesSelecionadas = equipesParaExportar();
+      const { blob, filename } = await vinculoService.exportarNominal(prefeituraId, equipesSelecionadas);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportandoNominal(false);
     }
   };
   const equipes = [
@@ -248,19 +273,35 @@ export function VinculoPage() {
         }
         actions={
           linhas?.length ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={exportando}
-              onClick={() => void exportar()}
-            >
-              {exportando ? (
-                <Loader2 className="animate-spin" data-icon="inline-start" />
-              ) : (
-                <Download data-icon="inline-start" />
-              )}
-              Baixar planilha
-            </Button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={exportandoNominal}
+                onClick={() => void exportarNominal()}
+                title="Baixa os nomes e a situação de cadastro e acompanhamento da equipe selecionada"
+              >
+                {exportandoNominal ? (
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                ) : (
+                  <Download data-icon="inline-start" />
+                )}
+                Baixar lista nominal
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={exportando}
+                onClick={() => void exportar()}
+              >
+                {exportando ? (
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                ) : (
+                  <Download data-icon="inline-start" />
+                )}
+                Baixar resumo
+              </Button>
+            </div>
           ) : undefined
         }
       />
