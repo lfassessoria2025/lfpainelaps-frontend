@@ -12,6 +12,7 @@ import type {
   UserAccessScopeIn,
   UserTeamOut,
 } from "@/lib/api-types";
+import { ApiError } from "@/lib/http";
 import { usersService } from "@/services/users";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ export function UserAccessScopeEditor({
 }: UserAccessScopeEditorProps) {
   const [catalogs, setCatalogs] = useState<Record<number, UserTeamOut[]>>({});
   const [loading, setLoading] = useState<Set<number>>(new Set());
+  const [teamErrors, setTeamErrors] = useState<Record<number, string>>({});
   const [searches, setSearches] = useState<Record<number, string>>({});
   const byPrefeitura = useMemo(
     () => new Map(scopes.map((scope) => [scope.prefeitura_id, scope])),
@@ -41,9 +43,21 @@ export function UserAccessScopeEditor({
   const loadTeams = useCallback(async (prefeituraId: number) => {
     if (catalogs[prefeituraId] || loading.has(prefeituraId)) return;
     setLoading((current) => new Set(current).add(prefeituraId));
+    setTeamErrors((current) => {
+      const next = { ...current };
+      delete next[prefeituraId];
+      return next;
+    });
     try {
       const result = await usersService.teamCatalog(prefeituraId);
       setCatalogs((current) => ({ ...current, [prefeituraId]: result.teams }));
+    } catch (error) {
+      setTeamErrors((current) => ({
+        ...current,
+        [prefeituraId]: error instanceof ApiError
+          ? error.detail
+          : "Não foi possível carregar as equipes desta prefeitura.",
+      }));
     } finally {
       setLoading((current) => {
         const next = new Set(current);
@@ -176,7 +190,14 @@ export function UserAccessScopeEditor({
                           aria-label={`Buscar equipes de ${prefeitura.name}`}
                         />
                       </div>
-                      {loading.has(prefeitura.id) ? <Spinner /> : (
+                      {teamErrors[prefeitura.id] ? (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                          <p role="alert" className="text-destructive">{teamErrors[prefeitura.id]}</p>
+                          <Button type="button" variant="outline" size="sm" onClick={() => void loadTeams(prefeitura.id)}>
+                            Tentar novamente
+                          </Button>
+                        </div>
+                      ) : loading.has(prefeitura.id) ? <Spinner /> : (
                         <>
                           {filtered.length > 0 ? (
                             <div className="flex flex-wrap items-center justify-between gap-2">

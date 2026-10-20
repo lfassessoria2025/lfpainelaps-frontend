@@ -11,11 +11,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  Baby,
   BarChart3,
   CalendarClock,
   ChevronDown,
   Download,
+  HeartHandshake,
   Loader2,
   Lock,
   Search,
@@ -1064,7 +1064,7 @@ export function GestantesPage() {
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              <Baby />
+              <HeartHandshake />
             </EmptyMedia>
             <EmptyTitle>Nenhuma gestante em acompanhamento</EmptyTitle>
             <EmptyDescription>

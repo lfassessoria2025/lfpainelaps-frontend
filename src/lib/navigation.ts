@@ -1,13 +1,13 @@
 import {
-  Accessibility,
   Activity,
   BarChart3,
   Baby,
-  Blocks,
   Building2,
   CalendarCheck,
+  HeartHandshake,
   HeartPulse,
   Link2,
+  PersonStanding,
   ShieldCheck,
   Smile,
   UploadCloud,
@@ -33,10 +33,10 @@ export interface NavigationShortcut {
  * renderiza cada link; este arquivo apenas evita listas divergentes.
  */
 export const INDICATOR_SHORTCUTS: NavigationShortcut[] = [
-  { to: "/gestantes", title: "Gestantes", description: "Acompanhe pré-natal, consultas e pendências.", icon: Baby, permission: "relatorio.gestante.visualizar" },
-  { to: "/criancas", title: "Crianças", description: "Veja puericultura, vacinas e desenvolvimento.", icon: Blocks, permission: "relatorio.crianca.visualizar" },
+  { to: "/gestantes", title: "Gestantes", description: "Acompanhe pré-natal, consultas e pendências.", icon: HeartHandshake, permission: "relatorio.gestante.visualizar" },
+  { to: "/criancas", title: "Crianças", description: "Veja puericultura, vacinas e desenvolvimento.", icon: Baby, permission: "relatorio.crianca.visualizar" },
   { to: "/mulheres", title: "Mulheres", description: "Monitore rastreamentos e cuidado integral.", icon: Venus, permission: "relatorio.mulher.visualizar" },
-  { to: "/idosos", title: "Pessoas idosas", description: "Confira acompanhamento, visitas e vacinação.", icon: Accessibility, permission: "relatorio.idoso.visualizar" },
+  { to: "/idosos", title: "Pessoas idosas", description: "Confira acompanhamento, visitas e vacinação.", icon: PersonStanding, permission: "relatorio.idoso.visualizar" },
   { to: "/diabetes", title: "Diabetes", description: "Acompanhe consultas, exames e cuidado completo.", icon: Activity, permission: "relatorio.diabetes.visualizar" },
   { to: "/hipertensao", title: "Hipertensão", description: "Veja pressão, consultas e acompanhamento.", icon: HeartPulse, permission: "relatorio.hipertensao.visualizar" },
   { to: "/saude-bucal", title: "Saúde bucal", description: "Monitore produção, prevenção e equipes.", icon: Smile, permission: "relatorio.saude_bucal.visualizar" },

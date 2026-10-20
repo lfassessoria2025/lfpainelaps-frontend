@@ -180,6 +180,43 @@ describe("UsersManagement — FLO-55", () => {
     expect(screen.getAllByText(/1 equipe/).length).toBeGreaterThan(0);
   });
 
+  it("permite reduzir uma lotação de duas equipes para uma", async () => {
+    const user = userEvent.setup();
+    mockedUsers.list.mockResolvedValue([
+      ...USERS.slice(0, 1),
+      {
+        ...USERS[1],
+        access_scopes: [{
+          prefeitura_id: 10,
+          prefeitura_name: "Jeriquara",
+          all_teams: false,
+          team_keys: ["ine:1234567", "ine:7654321"],
+        }],
+      },
+    ]);
+    mockedUsers.teamCatalog.mockResolvedValue({
+      prefeitura_id: 10,
+      teams: [
+        { key: "ine:1234567", name: "ESF Centro", ine: "1234567" },
+        { key: "ine:7654321", name: "ESF Norte", ine: "7654321" },
+      ],
+    });
+    render(<UsersManagement currentUserId={1} currentUserIsAdmin roles={ROLES} canAssignPrefeituras />);
+    await screen.findByText("Usuária Ativa");
+
+    await user.click(screen.getByRole("button", { name: "Editar Usuária Ativa" }));
+    const equipeNorte = await screen.findByRole("checkbox", { name: /ESF Norte/ });
+    expect(equipeNorte).toBeChecked();
+    await user.click(equipeNorte);
+    await user.type(screen.getByLabelText("Motivo da alteração"), "Ajuste de equipe");
+    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    await waitFor(() => expect(mockedUsers.update).toHaveBeenCalledWith(2, {
+      access_scopes: [{ prefeitura_id: 10, all_teams: false, team_keys: ["ine:1234567"] }],
+      motivo: "Ajuste de equipe",
+    }));
+  });
+
   it.each([
     ["Desativar Usuária Ativa", "Desativar e revogar sessões", mockedUsers.deactivate, 2],
     ["Reativar Usuária Inativa", "Reativar usuário", mockedUsers.reactivate, 4],
