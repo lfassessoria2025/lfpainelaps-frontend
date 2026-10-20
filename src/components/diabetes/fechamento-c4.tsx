@@ -1,9 +1,13 @@
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CircleAlert, Target, Users } from "lucide-react";
+import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { FechamentoC4Out, PessoaFechamentoC4Out } from "@/lib/api-types";
+
+const ITENS_POR_PAGINA = 10;
 
 function formatarData(valor: string | null): string {
   return valor ? new Date(`${valor}T00:00:00`).toLocaleDateString("pt-BR") : "—";
@@ -34,9 +38,20 @@ const CLASSIFICACOES = {
 } as const;
 
 export function FechamentoC4({ dados, modo = "resumo" }: { dados: FechamentoC4Out; modo?: "resumo" | "completas" }) {
-  const itens = modo === "completas"
-    ? dados.itens.filter((pessoa) => pessoa.status === "completa")
-    : dados.itens.filter((pessoa) => pessoa.status === "pendente");
+  const [pagina, setPagina] = useState(1);
+  const itens = useMemo(
+    () => modo === "completas"
+      ? dados.itens.filter((pessoa) => pessoa.status === "completa")
+      : dados.itens.filter((pessoa) => pessoa.status === "pendente"),
+    [dados.itens, modo],
+  );
+  const totalPaginas = Math.max(1, Math.ceil(itens.length / ITENS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const itensDaPagina = useMemo(
+    () => itens.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [itens, paginaAtual],
+  );
+  useEffect(() => setPagina(1), [dados.itens, modo]);
   const resumo = [
     { titulo: "Pessoas avaliadas", valor: dados.resumo.total_pessoas, apoio: "no recorte selecionado", icone: Users },
     { titulo: "Cuidado completo", valor: dados.resumo.total_completas, apoio: "com 100 pontos", icone: CheckCircle2 },
@@ -97,9 +112,9 @@ export function FechamentoC4({ dados, modo = "resumo" }: { dados: FechamentoC4Ou
             <p className="text-xs text-muted-foreground">{modo === "completas" ? "Pessoas sem práticas pendentes no quadrimestre." : "Pessoas com práticas que ainda precisam de acompanhamento."}</p>
           </CardHeader>
           <CardContent className="p-0">
-            <Table className="min-w-[760px] text-xs">
-              <TableHeader><TableRow><TableHead>Pessoa</TableHead><TableHead>Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Status</TableHead><TableHead>Práticas pendentes</TableHead><TableHead className="text-right">Pontuação</TableHead></TableRow></TableHeader>
-              <TableBody>{itens.map((pessoa) => (
+            <Table className="min-w-[760px] text-xs" containerClassName="max-h-[min(60vh,38rem)] overflow-auto">
+              <TableHeader className="sticky top-0 z-[3] bg-muted shadow-sm"><TableRow><TableHead>Pessoa</TableHead><TableHead>Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Status</TableHead><TableHead>Práticas pendentes</TableHead><TableHead className="text-right">Pontuação</TableHead></TableRow></TableHeader>
+              <TableBody>{itensDaPagina.map((pessoa) => (
                 <TableRow key={pessoa.id}>
                   <TableCell><p className="font-medium">{pessoa.nome_cidadao}</p><p className="text-[11px] text-muted-foreground">{formatarData(pessoa.data_nascimento)}</p></TableCell>
                   <TableCell>{pessoa.equipe_nome ?? "Sem equipe"}</TableCell>
@@ -111,6 +126,14 @@ export function FechamentoC4({ dados, modo = "resumo" }: { dados: FechamentoC4Ou
               ))}</TableBody>
             </Table>
           </CardContent>
+          <div className="border-t px-3 pb-2">
+            <IndicatorPagination
+              currentPage={paginaAtual}
+              totalPages={totalPaginas}
+              onChange={setPagina}
+              ariaLabel={`Paginação de ${modo === "completas" ? "pessoas com diabetes completas" : "pendências do cuidado"}`}
+            />
+          </div>
         </Card>
       )}
     </div>

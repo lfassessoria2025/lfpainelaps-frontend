@@ -292,7 +292,7 @@ function ListaCriancas({
             <Table
               className="min-w-[1180px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top"
               containerClassName={cn(
-                "max-w-full cursor-grab overscroll-x-contain",
+                "max-h-[min(60vh,38rem)] max-w-full cursor-grab overflow-auto overscroll-x-contain",
                 dragging && "cursor-grabbing select-none",
               )}
               containerProps={{

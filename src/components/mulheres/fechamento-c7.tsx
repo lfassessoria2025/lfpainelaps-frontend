@@ -1,4 +1,6 @@
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CircleAlert, Target, Users } from "lucide-react";
+import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
@@ -12,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { FechamentoC7Out, MulherFechamentoC7Out } from "@/lib/api-types";
+
+const ITENS_POR_PAGINA = 10;
 
 interface FechamentoC7Props {
   dados: FechamentoC7Out | null;
@@ -49,6 +53,21 @@ function Pendencias({ mulher }: { mulher: MulherFechamentoC7Out }) {
 }
 
 export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: FechamentoC7Props & { modo?: "resumo" | "completas" }) {
+  const [pagina, setPagina] = useState(1);
+  const itens = useMemo(() => {
+    if (!dados) return [];
+    return modo === "completas"
+      ? dados.itens.filter((mulher) => mulher.status === "completa")
+      : dados.itens.filter((mulher) => mulher.status === "pendente");
+  }, [dados, modo]);
+  const totalPaginas = Math.max(1, Math.ceil(itens.length / ITENS_POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const itensDaPagina = useMemo(
+    () => itens.slice((paginaAtual - 1) * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA),
+    [itens, paginaAtual],
+  );
+  useEffect(() => setPagina(1), [dados, modo]);
+
   if (carregando) {
     return (
       <div className="grid gap-3">
@@ -62,10 +81,6 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
 
   if (erro) return <p role="alert" className="text-sm text-destructive">{erro}</p>;
   if (!dados) return null;
-
-  const itens = modo === "completas"
-    ? dados.itens.filter((mulher) => mulher.status === "completa")
-    : dados.itens.filter((mulher) => mulher.status === "pendente");
 
   const resumo = [
     { titulo: "Mulheres avaliadas", valor: dados.resumo.total_mulheres, apoio: "no recorte selecionado", icone: Users },
@@ -131,7 +146,7 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid gap-2 p-3 md:hidden">
-              {itens.map((mulher) => (
+              {itensDaPagina.map((mulher) => (
                 <div key={mulher.id} className="rounded-lg border p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -147,9 +162,9 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
                 </div>
               ))}
             </div>
-            <div className="hidden overflow-x-auto md:block">
-              <Table className="min-w-[760px] text-xs">
-                <TableHeader>
+            <div className="hidden md:block">
+              <Table className="min-w-[760px] text-xs" containerClassName="max-h-[min(60vh,38rem)] overflow-auto">
+                <TableHeader className="sticky top-0 z-[3] bg-muted shadow-sm">
                   <TableRow>
                     <TableHead>Mulher</TableHead>
                     <TableHead>Equipe</TableHead>
@@ -160,7 +175,7 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {itens.map((mulher) => (
+                  {itensDaPagina.map((mulher) => (
                     <TableRow key={mulher.id}>
                       <TableCell>
                         <p className="font-medium">{mulher.nome_cidadao}</p>
@@ -177,6 +192,14 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
               </Table>
             </div>
           </CardContent>
+          <div className="border-t px-3 pb-2">
+            <IndicatorPagination
+              currentPage={paginaAtual}
+              totalPages={totalPaginas}
+              onChange={setPagina}
+              ariaLabel={`Paginação de ${modo === "completas" ? "mulheres completas" : "pendências do cuidado"}`}
+            />
+          </div>
         </Card>
       )}
     </div>
