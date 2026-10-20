@@ -469,12 +469,12 @@ export function FechamentoC2({
             descricao="Ordenadas pela data em que completam 2 anos e pela menor pontuação."
             criancas={emAcompanhamento}
           /> : null}
-        <ListaCriancas
+        {modo === "encerradas" ? <ListaCriancas
           titulo="Fechadas neste quadrimestre"
           descricao="Último resultado disponível antes do aniversário de 2 anos; permanece visível após sair da lista ativa."
           criancas={encerradas}
           encerrada
-        />
+        /> : null}
       </div>
     </div>
   );

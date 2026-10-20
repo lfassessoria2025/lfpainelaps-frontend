@@ -63,7 +63,9 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
   if (erro) return <p role="alert" className="text-sm text-destructive">{erro}</p>;
   if (!dados) return null;
 
-  const itens = modo === "completas" ? dados.itens.filter((mulher) => mulher.status === "completa") : dados.itens;
+  const itens = modo === "completas"
+    ? dados.itens.filter((mulher) => mulher.status === "completa")
+    : dados.itens.filter((mulher) => mulher.status === "pendente");
 
   const resumo = [
     { titulo: "Mulheres avaliadas", valor: dados.resumo.total_mulheres, apoio: "no recorte selecionado", icone: Users },
@@ -117,15 +119,15 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
       {itens.length === 0 ? (
         <Empty>
           <EmptyHeader>
-            <EmptyTitle>{modo === "completas" ? "Nenhuma mulher com cuidado completo" : "Nenhuma mulher no fechamento"}</EmptyTitle>
-            <EmptyDescription>{modo === "completas" ? "Nenhuma mulher atingiu todas as práticas no quadrimestre selecionado." : "Não há registros para o recorte de equipe e micro-área selecionado."}</EmptyDescription>
+            <EmptyTitle>{modo === "completas" ? "Nenhuma mulher com cuidado completo" : "Nenhuma pendência de cuidado"}</EmptyTitle>
+            <EmptyDescription>{modo === "completas" ? "Nenhuma mulher atingiu todas as práticas no quadrimestre selecionado." : "Todas as mulheres do recorte estão completas ou não há registros."}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <Card className="gap-0 overflow-hidden py-0 shadow-none">
           <CardHeader className="border-b px-4 py-3">
-            <CardTitle className="text-sm">{modo === "completas" ? "Mulheres com cuidado completo" : "Situação nominal"}</CardTitle>
-            <p className="text-xs text-muted-foreground">{modo === "completas" ? "Mulheres sem práticas pendentes no quadrimestre." : "Mulheres completas e pendentes no período."}</p>
+            <CardTitle className="text-sm">{modo === "completas" ? "Mulheres com cuidado completo" : "Pendências do cuidado"}</CardTitle>
+            <p className="text-xs text-muted-foreground">{modo === "completas" ? "Mulheres sem práticas pendentes no quadrimestre." : "Mulheres com práticas que ainda precisam de acompanhamento."}</p>
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid gap-2 p-3 md:hidden">

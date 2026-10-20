@@ -425,11 +425,11 @@ export function FechamentoC3({
             descricao="DPP no quadrimestre, sem desfecho confirmado, ordenadas pela data e menor pontuação."
             gestantes={abertas}
           /> : null}
-        <ListaGestantes
+        {modo === "fechadas" ? <ListaGestantes
           titulo="Fechadas neste quadrimestre"
           descricao="Desfechos e abortos confirmados no PEC, com a pontuação do último backup."
           gestantes={fechadas}
-        />
+        /> : null}
       </div>
     </div>
   );

@@ -34,7 +34,9 @@ const CLASSIFICACOES = {
 } as const;
 
 export function FechamentoC4({ dados, modo = "resumo" }: { dados: FechamentoC4Out; modo?: "resumo" | "completas" }) {
-  const itens = modo === "completas" ? dados.itens.filter((pessoa) => pessoa.status === "completa") : dados.itens;
+  const itens = modo === "completas"
+    ? dados.itens.filter((pessoa) => pessoa.status === "completa")
+    : dados.itens.filter((pessoa) => pessoa.status === "pendente");
   const resumo = [
     { titulo: "Pessoas avaliadas", valor: dados.resumo.total_pessoas, apoio: "no recorte selecionado", icone: Users },
     { titulo: "Cuidado completo", valor: dados.resumo.total_completas, apoio: "com 100 pontos", icone: CheckCircle2 },
@@ -87,12 +89,12 @@ export function FechamentoC4({ dados, modo = "resumo" }: { dados: FechamentoC4Ou
       </section> : null}
 
       {itens.length === 0 ? (
-        <Empty><EmptyHeader><EmptyTitle>Nenhuma pessoa no fechamento</EmptyTitle><EmptyDescription>Não há pessoas com diabetes no recorte selecionado.</EmptyDescription></EmptyHeader></Empty>
+        <Empty><EmptyHeader><EmptyTitle>{modo === "completas" ? "Nenhuma pessoa com diabetes e cuidado completo" : "Nenhuma pendência de cuidado"}</EmptyTitle><EmptyDescription>{modo === "completas" ? "Nenhuma pessoa atingiu todas as práticas no quadrimestre selecionado." : "Todas as pessoas com diabetes do recorte estão completas ou não há registros."}</EmptyDescription></EmptyHeader></Empty>
       ) : (
         <Card className="gap-0 overflow-hidden py-0 shadow-none">
           <CardHeader className="border-b px-4 py-3">
-            <CardTitle className="text-sm">{modo === "completas" ? "Pessoas com diabetes e cuidado completo" : "Situação nominal"}</CardTitle>
-            <p className="text-xs text-muted-foreground">{modo === "completas" ? "Pessoas sem práticas pendentes no quadrimestre." : "Pessoas com cuidado completo ou práticas pendentes."}</p>
+            <CardTitle className="text-sm">{modo === "completas" ? "Pessoas com diabetes e cuidado completo" : "Pendências do cuidado"}</CardTitle>
+            <p className="text-xs text-muted-foreground">{modo === "completas" ? "Pessoas sem práticas pendentes no quadrimestre." : "Pessoas com práticas que ainda precisam de acompanhamento."}</p>
           </CardHeader>
           <CardContent className="p-0">
             <Table className="min-w-[760px] text-xs">

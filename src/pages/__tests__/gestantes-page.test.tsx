@@ -202,7 +202,7 @@ describe("GestantesPage", () => {
     expect(screen.queryByText("Atenção à qualidade desta leva")).not.toBeInTheDocument();
   });
 
-  it("mostra pontuação, abertas e fechadas e filtra a lista ao clicar no mês", async () => {
+  it("mostra as abertas no fechamento e reserva as fechadas para a aba própria", async () => {
     mockedPrefeiturasService.list.mockResolvedValue([PREFEITURA]);
     mockedGestanteService.list.mockResolvedValue([GESTANTE]);
     const user = userEvent.setup();
@@ -212,8 +212,14 @@ describe("GestantesPage", () => {
 
     expect(await screen.findByRole("heading", { name: "Fechamento da gestação" })).toBeInTheDocument();
     expect(screen.getAllByText("Gestante Outubro").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Gestante Setembro").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Gestante Setembro")).not.toBeInTheDocument();
     expect(screen.getAllByText("91 pts").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("tab", { name: "Fechadas no quadrimestre" }));
+    expect(await screen.findByRole("heading", { name: "Gestantes fechadas no quadrimestre" })).toBeInTheDocument();
+    expect(screen.getAllByText("Gestante Setembro").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("tab", { name: /fechamento da gestação/i }));
 
     await user.click(screen.getByRole("button", { name: /1 gestante.*outubro de 2026/i }));
 
