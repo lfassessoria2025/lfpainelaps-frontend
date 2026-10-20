@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Link2, Loader2, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,7 @@ export function VinculoPage() {
   const [visao, setVisao] = useState<"acompanhamento" | "historico">(
     "acompanhamento",
   );
+  const requisicaoAtual = useRef(0);
 
   useEffect(() => {
     prefeiturasService
@@ -85,6 +86,7 @@ export function VinculoPage() {
   useEffect(() => {
     if (prefeituraId === null) return;
     const controller = new AbortController();
+    const numeroRequisicao = ++requisicaoAtual.current;
     setLinhas(null);
     setFechamento(null);
     setHistorico(null);
@@ -92,17 +94,19 @@ export function VinculoPage() {
     setProibido(false);
     setEquipeFiltro("todas");
     Promise.all([
-      vinculoService.list(prefeituraId, controller.signal),
       vinculoService.fechamento(prefeituraId, controller.signal),
       analyticsService.historico("V1", prefeituraId, controller.signal, true),
     ])
-      .then(([lista, resumo, serie]) => {
-        setLinhas(lista);
+      .then(([resumo, serie]) => {
+        if (controller.signal.aborted || numeroRequisicao !== requisicaoAtual.current) return;
+        setLinhas(resumo.equipes);
         setFechamento(resumo);
         setHistorico(serie);
       })
       .catch((falha: unknown) => {
         if (falha instanceof DOMException && falha.name === "AbortError")
+          return;
+        if (controller.signal.aborted || numeroRequisicao !== requisicaoAtual.current)
           return;
         if (falha instanceof ApiError && falha.status === 403)
           setProibido(true);
