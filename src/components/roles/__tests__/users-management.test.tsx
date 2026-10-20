@@ -11,6 +11,7 @@ vi.mock("@/services/users", () => ({
   usersService: {
     list: vi.fn(),
     invite: vi.fn(),
+    resendInvitation: vi.fn(),
     update: vi.fn(),
     deactivate: vi.fn(),
     reactivate: vi.fn(),
@@ -45,6 +46,7 @@ beforeEach(() => {
   mockedUsers.deactivate.mockResolvedValue(undefined);
   mockedUsers.reactivate.mockResolvedValue(undefined);
   mockedUsers.cancelInvitation.mockResolvedValue(undefined);
+  mockedUsers.resendInvitation.mockResolvedValue({ user_id: 3, token: "novo-token", email_agendado: false });
   mockedUsers.teamCatalog.mockResolvedValue({
     prefeitura_id: 10,
     teams: [{ key: "ine:1234567", name: "ESF Centro", ine: "1234567" }],

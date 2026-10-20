@@ -24,6 +24,7 @@ const DashboardPage = lazy(() =>
   import("@/pages/dashboard-page").then((m) => ({ default: m.DashboardPage })),
 );
 const RolesPage = lazy(() => import("@/pages/roles-page").then((m) => ({ default: m.RolesPage })));
+const UsersPage = lazy(() => import("@/pages/users-page").then((m) => ({ default: m.UsersPage })));
 const PrefeiturasPage = lazy(() =>
   import("@/pages/prefeituras-page").then((m) => ({ default: m.PrefeiturasPage })),
 );
@@ -104,6 +105,7 @@ function App() {
             <Route element={<AppLayout />}>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/cargos" element={<RolesPage />} />
+              <Route path="/usuarios" element={<UsersPage />} />
               <Route path="/prefeituras" element={<PrefeiturasPage />} />
               <Route path="/importacoes" element={<ImportacoesPage />} />
               <Route path="/gestantes" element={<GestantesPage />} />

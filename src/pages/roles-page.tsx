@@ -25,7 +25,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RoleFormDialog } from "@/components/roles/role-form-dialog";
-import { UsersManagement } from "@/components/roles/users-management";
 import { PageHeader } from "@/components/layout/page-header";
 import { useAuth } from "@/contexts/auth-context";
 import type { RoleCreate, RoleOut } from "@/lib/api-types";
@@ -44,8 +43,6 @@ export function RolesPage() {
   const canCreateRole = permissions.includes("cargo.criar");
   const canEditRole = permissions.includes("cargo.editar");
   const canDeleteRole = permissions.includes("cargo.excluir");
-  const canManageUsers = permissions.includes("equipe.gerenciar");
-  const canAssignPrefeituras = permissions.includes("prefeitura.atribuir");
 
   async function loadRoles() {
     try {
@@ -180,15 +177,6 @@ export function RolesPage() {
           </Table>
         </Card>
       )}
-
-      {canManageUsers && user ? (
-        <UsersManagement
-          currentUserId={user.id}
-          currentUserIsAdmin={user.is_admin}
-          roles={roles ?? []}
-          canAssignPrefeituras={canAssignPrefeituras}
-        />
-      ) : null}
 
       <RoleFormDialog
         open={formOpen}

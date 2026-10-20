@@ -1,4 +1,4 @@
-import { Accessibility, Activity, Baby, BarChart3, Blocks, Building2, HeartPulse, LayoutDashboard, ShieldCheck, Smile, UploadCloud, Venus, UsersRound, CalendarCheck, Link2 } from "lucide-react";
+import { Accessibility, Activity, Baby, BarChart3, Blocks, Building2, HeartPulse, LayoutDashboard, ShieldCheck, Smile, UploadCloud, Venus, Users, UsersRound, CalendarCheck, Link2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -42,6 +42,7 @@ const INDICADORES_ITEMS: NavItem[] = [
 const ADMINISTRATIVO_ITEMS: NavItem[] = [
   { to: "/prefeituras", label: "Prefeituras", icon: Building2, permission: "prefeitura.gerenciar" },
   { to: "/cargos", label: "Cargos e permissões", icon: ShieldCheck, permission: "cargo.visualizar" },
+  { to: "/usuarios", label: "Usuários e convites", icon: Users, permission: "equipe.gerenciar" },
 ];
 
 const DADOS_ITEMS: NavItem[] = [

@@ -62,6 +62,7 @@ export function InviteUserDialog({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invitedToken, setInvitedToken] = useState<string | null>(null);
+  const [emailScheduled, setEmailScheduled] = useState(false);
   const [scopes, setScopes] = useState<UserAccessScopeIn[]>([]);
   const [copyFrom, setCopyFrom] = useState("none");
   const totalTeams = useMemo(
@@ -75,6 +76,7 @@ export function InviteUserDialog({
       setRoleId("none");
       setError(null);
       setInvitedToken(null);
+      setEmailScheduled(false);
       setScopes([]);
       setCopyFrom("none");
     }
@@ -100,6 +102,7 @@ export function InviteUserDialog({
         ...(canAssignPrefeituras ? { access_scopes: scopes } : {}),
       });
       setInvitedToken(invitation.token);
+      setEmailScheduled(invitation.email_agendado);
       onInvited?.();
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : "Não foi possível convidar o funcionário.");
@@ -132,7 +135,11 @@ export function InviteUserDialog({
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle2 className="text-primary" /> Convite criado
                 </CardTitle>
-                <CardDescription>Compartilhe o link abaixo por um canal seguro.</CardDescription>
+                <CardDescription>
+                  {emailScheduled
+                    ? "O e-mail foi agendado. O link também pode ser compartilhado por um canal seguro."
+                    : "O envio automático não está configurado. Compartilhe o link abaixo por um canal seguro."}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <code className="block break-all rounded-lg bg-muted px-3 py-3 text-xs text-muted-foreground">

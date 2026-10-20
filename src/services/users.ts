@@ -14,6 +14,8 @@ export const usersService = {
   teamCatalog: (prefeituraId: number, signal?: AbortSignal) =>
     http.get<UserTeamCatalogOut>(`/users/team-catalog?prefeitura_id=${prefeituraId}`, signal),
   invite: (payload: InvitationCreate) => http.post<InvitationOut>("/users/invitations", payload),
+  resendInvitation: (userId: number) =>
+    http.post<InvitationOut>(`/users/${userId}/resend-invitation`),
   assignRole: (userId: number, payload: RoleAssignment) =>
     http.put<void>(`/users/${userId}/role`, payload),
   update: (userId: number, payload: UserManagementUpdate) =>

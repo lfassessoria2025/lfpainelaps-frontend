@@ -8,11 +8,6 @@ vi.mock("@/contexts/auth-context", () => ({ useAuth: vi.fn() }));
 vi.mock("@/services/roles", () => ({
   rolesService: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
 }));
-vi.mock("@/components/roles/users-management", () => ({
-  UsersManagement: ({ canAssignPrefeituras }: { canAssignPrefeituras: boolean }) => (
-    <div>Gestão de usuários {canAssignPrefeituras ? "com prefeituras" : "sem prefeituras"}</div>
-  ),
-}));
 
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedRoles = vi.mocked(rolesService);
@@ -34,22 +29,21 @@ beforeEach(() => {
 });
 
 describe("RolesPage — RBAC visual do FLO-55", () => {
-  it("não renderiza gestão nem ações quando capabilities estão ausentes", async () => {
+  it("não renderiza ações quando capabilities estão ausentes", async () => {
     mockAuth([]);
     render(<RolesPage />);
 
     expect(await screen.findByText("Enfermeira")).toBeInTheDocument();
-    expect(screen.queryByText(/Gestão de usuários/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Novo cargo" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar Enfermeira" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Excluir Enfermeira" })).not.toBeInTheDocument();
   });
 
-  it("renderiza capacidades de equipe e prefeitura somente quando concedidas pelo backend", async () => {
+  it("renderiza as ações de cargo somente quando concedidas pelo backend", async () => {
     mockAuth(["cargo.criar", "cargo.editar", "cargo.excluir", "equipe.gerenciar", "prefeitura.atribuir"]);
     render(<RolesPage />);
 
-    expect(await screen.findByText("Gestão de usuários com prefeituras")).toBeInTheDocument();
+    expect(await screen.findByText("Enfermeira")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Novo cargo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Editar Enfermeira" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Excluir Enfermeira" })).toBeInTheDocument();

@@ -168,6 +168,7 @@ export interface InvitationCreate {
 export interface InvitationOut {
   user_id: number;
   token: string;
+  email_agendado: boolean;
 }
 
 // ---------------------------------------------------------------------------

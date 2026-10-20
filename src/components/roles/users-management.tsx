@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, RotateCcw, UserMinus, UserPlus, XCircle } from "lucide-react";
+import { LoaderCircle, Mail, Pencil, RotateCcw, UserMinus, UserPlus, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
   const [editingUser, setEditingUser] = useState<UserSummaryOut | null>(null);
   const [statusTarget, setStatusTarget] = useState<UserSummaryOut | null>(null);
   const [statusAction, setStatusAction] = useState<UserStatusAction>("deactivate");
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -110,6 +111,23 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
   async function handleSaved(message: string) {
     await loadUsers();
     toast.success(message);
+  }
+
+  async function resendInvitation(user: UserSummaryOut) {
+    setResendingId(user.id);
+    try {
+      const invitation = await usersService.resendInvitation(user.id);
+      await loadUsers();
+      toast.success(
+        invitation.email_agendado
+          ? "Convite reenviado por e-mail."
+          : "Novo convite criado. Compartilhe o link exibido pelo sistema.",
+      );
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.detail : "Não foi possível reenviar o convite.");
+    } finally {
+      setResendingId(null);
+    }
   }
 
   return (
@@ -200,14 +218,25 @@ export function UsersManagement({ currentUserId, currentUserIsAdmin, roles, canA
                           </Button>
                         ) : null}
                         {canManageTarget && managedUser.status === "convidado" ? (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Cancelar convite de ${managedUser.name || managedUser.email}`}
-                            onClick={() => openStatus(managedUser, "cancel-invitation")}
-                          >
-                            <XCircle />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Reenviar convite para ${managedUser.name || managedUser.email}`}
+                              disabled={resendingId === managedUser.id}
+                              onClick={() => void resendInvitation(managedUser)}
+                            >
+                              {resendingId === managedUser.id ? <LoaderCircle className="animate-spin" /> : <Mail />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Cancelar convite de ${managedUser.name || managedUser.email}`}
+                              onClick={() => openStatus(managedUser, "cancel-invitation")}
+                            >
+                              <XCircle />
+                            </Button>
+                          </>
                         ) : null}
                       </div>
                     </TableCell>
