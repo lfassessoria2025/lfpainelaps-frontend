@@ -28,13 +28,13 @@ function renderComRota(path: string) {
 }
 
 describe("AppSidebar — grupos de navegação (FLO-42)", () => {
-  it("agrupa os itens em Indicadores, Administrativo e Dados, com Painel fora de grupo", () => {
+  it("mantém o painel limpo e concentra os indicadores em uma entrada própria", () => {
     renderComRota("/");
 
     expect(screen.getByText("Painel")).toBeInTheDocument();
-    expect(screen.getByText("Indicadores")).toBeInTheDocument();
-    expect(screen.getByText("Gestantes")).toBeInTheDocument();
-    expect(screen.getByText("Crianças")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Indicadores" })).toBeInTheDocument();
+    expect(screen.queryByText("Gestantes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Crianças")).not.toBeInTheDocument();
     expect(screen.getByText("Administrativo")).toBeInTheDocument();
     expect(screen.getByText("Prefeituras")).toBeInTheDocument();
     expect(screen.getByText("Cargos e permissões")).toBeInTheDocument();
@@ -44,9 +44,9 @@ describe("AppSidebar — grupos de navegação (FLO-42)", () => {
   });
 
   it("marca o item ativo correto dentro do seu grupo, sem afetar os outros", () => {
-    renderComRota("/gestantes");
+    renderComRota("/indicadores");
 
-    expect(screen.getByRole("link", { name: /Gestantes/ })).toHaveAttribute("data-active");
+    expect(screen.getByRole("link", { name: "Indicadores" })).toHaveAttribute("data-active");
     expect(screen.getByRole("link", { name: /Painel/ })).not.toHaveAttribute("data-active");
     expect(screen.getByRole("link", { name: "Prefeituras" })).not.toHaveAttribute("data-active");
   });
@@ -56,8 +56,7 @@ describe("AppSidebar — grupos de navegação (FLO-42)", () => {
 
     const rotasEsperadas = [
       "/",
-      "/gestantes",
-      "/criancas",
+      "/indicadores",
       "/prefeituras",
       "/cargos",
       "/importacoes",
@@ -87,8 +86,8 @@ describe("AppSidebar — grupos de navegação (FLO-42)", () => {
 
     renderComRota("/gestantes");
 
-    expect(screen.getByText("Gestantes")).toBeInTheDocument();
-    expect(screen.queryByText("Crianças")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Indicadores" })).toBeInTheDocument();
+    expect(screen.queryByText("Gestantes")).not.toBeInTheDocument();
     expect(screen.queryByText("Prefeituras")).not.toBeInTheDocument();
     expect(screen.queryByText("Importações")).not.toBeInTheDocument();
   });

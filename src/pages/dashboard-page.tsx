@@ -1,25 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Accessibility,
-  Activity,
-  ArrowUpRight,
-  BarChart3,
-  Baby,
-  Blocks,
-  Building2,
-  CalendarCheck,
-  Clock3,
-  HeartPulse,
-  Link2,
-  Loader2,
-  ShieldCheck,
-  Smile,
-  UploadCloud,
-  UserCog,
-  UsersRound,
-  Venus,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowUpRight, BarChart3, Building2, Clock3, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,38 +7,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/auth-context";
 import { IMPORTACAO_STATUS_INFO } from "@/lib/importacao-status";
-import type { ImportacaoOut, Permission, PrefeituraOut } from "@/lib/api-types";
+import type { ImportacaoOut, PrefeituraOut } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
+import { INDICATORS_PAGE_ITEM, OPERATION_SHORTCUTS } from "@/lib/navigation";
 import { temPermissao } from "@/lib/permissions";
 import { importacoesService } from "@/services/importacoes";
 import { prefeiturasService } from "@/services/prefeituras";
-
-interface DashboardShortcut {
-  to: string;
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  permission: Permission | Permission[];
-  category: "indicador" | "operacao";
-}
-
-const SHORTCUTS: DashboardShortcut[] = [
-  { to: "/gestantes", title: "Gestantes", description: "Acompanhe pré-natal, consultas e pendências.", icon: Baby, permission: "relatorio.gestante.visualizar", category: "indicador" },
-  { to: "/criancas", title: "Crianças", description: "Veja puericultura, vacinas e desenvolvimento.", icon: Blocks, permission: "relatorio.crianca.visualizar", category: "indicador" },
-  { to: "/mulheres", title: "Mulheres", description: "Monitore rastreamentos e cuidado integral.", icon: Venus, permission: "relatorio.mulher.visualizar", category: "indicador" },
-  { to: "/idosos", title: "Pessoas idosas", description: "Confira acompanhamento, visitas e vacinação.", icon: Accessibility, permission: "relatorio.idoso.visualizar", category: "indicador" },
-  { to: "/diabetes", title: "Diabetes", description: "Acompanhe consultas, exames e cuidado completo.", icon: Activity, permission: "relatorio.diabetes.visualizar", category: "indicador" },
-  { to: "/hipertensao", title: "Hipertensão", description: "Veja pressão, consultas e acompanhamento.", icon: HeartPulse, permission: "relatorio.hipertensao.visualizar", category: "indicador" },
-  { to: "/saude-bucal", title: "Saúde bucal", description: "Monitore produção, prevenção e equipes.", icon: Smile, permission: "relatorio.saude_bucal.visualizar", category: "indicador" },
-  { to: "/emulti", title: "eMulti", description: "Consulte ações e atendimentos compartilhados.", icon: UsersRound, permission: "relatorio.emulti.visualizar", category: "indicador" },
-  { to: "/mais-acesso", title: "Mais acesso APS", description: "Analise demanda programada e atendimentos.", icon: CalendarCheck, permission: "relatorio.c1.visualizar", category: "indicador" },
-  { to: "/vinculo", title: "Vínculo e acompanhamento", description: "Acompanhe cadastro, vínculo e vulnerabilidades.", icon: Link2, permission: "relatorio.vinculo.visualizar", category: "indicador" },
-  { to: "/analytics", title: "Analytics", description: "Compare resultados, períodos e equipes.", icon: BarChart3, permission: ["relatorio.visualizar", "relatorio.gestante.visualizar", "relatorio.crianca.visualizar", "relatorio.mulher.visualizar", "relatorio.idoso.visualizar", "relatorio.diabetes.visualizar", "relatorio.hipertensao.visualizar", "relatorio.saude_bucal.visualizar", "relatorio.emulti.visualizar", "relatorio.c1.visualizar", "relatorio.vinculo.visualizar"], category: "operacao" },
-  { to: "/importacoes", title: "Importações", description: "Envie backups e acompanhe o processamento.", icon: UploadCloud, permission: "dump.upload", category: "operacao" },
-  { to: "/prefeituras", title: "Prefeituras", description: "Gerencie municípios atendidos.", icon: Building2, permission: "prefeitura.gerenciar", category: "operacao" },
-  { to: "/usuarios", title: "Usuários e convites", description: "Controle cargos, equipes e acessos.", icon: UserCog, permission: "equipe.gerenciar", category: "operacao" },
-  { to: "/cargos", title: "Cargos e permissões", description: "Configure as capacidades de cada cargo.", icon: ShieldCheck, permission: "cargo.visualizar", category: "operacao" },
-];
 
 interface DashboardOverview {
   prefeituras: PrefeituraOut[];
@@ -81,8 +35,7 @@ function latestImportOf(imports: ImportacaoOut[], prefeitura: PrefeituraOut) {
 export function DashboardPage() {
   const { user } = useAuth();
   const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "equipe";
-  const shortcuts = SHORTCUTS.filter((shortcut) => temPermissao(user, shortcut.permission));
-  const indicadores = shortcuts.filter((shortcut) => shortcut.category === "indicador");
+  const shortcuts = OPERATION_SHORTCUTS.filter((shortcut) => temPermissao(user, shortcut.permission));
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [overviewError, setOverviewError] = useState<string | null>(null);
   const canViewImports = temPermissao(user, "dump.upload");
@@ -120,11 +73,20 @@ export function DashboardPage() {
       <PageHeader
         title={`Olá, ${displayName}`}
         description="Uma visão rápida do que está disponível e do que merece atenção agora."
-        actions={temPermissao(user, "relatorio.visualizar") ? (
-          <Link to="/analytics" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted">
-            Abrir analytics <ArrowUpRight className="size-4" />
-          </Link>
-        ) : undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            {temPermissao(user, INDICATORS_PAGE_ITEM.permission) ? (
+              <Link to="/indicadores" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted">
+                Indicadores <ArrowUpRight className="size-4" />
+              </Link>
+            ) : null}
+            {temPermissao(user, "relatorio.visualizar") ? (
+              <Link to="/analytics" className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-muted">
+                Abrir analytics <ArrowUpRight className="size-4" />
+              </Link>
+            ) : null}
+          </div>
+        }
       />
 
       <section aria-label="Resumo operacional" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -144,8 +106,8 @@ export function DashboardPage() {
             <BarChart3 className="size-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <strong className="text-3xl font-semibold tabular-nums">{indicadores.length}</strong>
-            <p className="mt-1 text-xs text-muted-foreground">disponíveis para este usuário</p>
+            <strong className="text-3xl font-semibold tabular-nums">{shortcuts.length}</strong>
+            <p className="mt-1 text-xs text-muted-foreground">atalhos operacionais disponíveis</p>
           </CardContent>
         </Card>
         <Card className="animate-in fade-in slide-in-from-bottom-2 border-border/60 shadow-sm duration-500 [animation-delay:180ms]">
@@ -177,7 +139,7 @@ export function DashboardPage() {
         <div className="mb-3 flex items-end justify-between gap-4">
           <div>
             <h2 id="acesso-rapido-titulo" className="text-lg font-semibold tracking-tight">Acesso rápido</h2>
-            <p className="text-sm text-muted-foreground">Abra diretamente o indicador ou tarefa que você precisa acompanhar.</p>
+            <p className="text-sm text-muted-foreground">Abra uma área operacional sem sobrecarregar o painel principal.</p>
           </div>
           <Badge variant="secondary" className="hidden sm:inline-flex">{shortcuts.length} áreas disponíveis</Badge>
         </div>

@@ -48,7 +48,7 @@ describe("DashboardPage — visão operacional", () => {
     );
 
     const atalhos = Array.from(document.querySelectorAll<HTMLAnchorElement>("a.animate-in"));
-    expect(atalhos).toHaveLength(15);
+    expect(atalhos).toHaveLength(5);
     expect(atalhos.slice(0, 3).map((atalho) => atalho.style.animationDelay)).toEqual(["0ms", "55ms", "110ms"]);
     expect(atalhos[0]).toHaveClass("animate-in", "fill-mode-both");
     expect(atalhos[0].firstElementChild).toHaveClass(
@@ -57,7 +57,7 @@ describe("DashboardPage — visão operacional", () => {
     );
   });
 
-  it("exibe dados operacionais e o indicador de diabetes nos atalhos", async () => {
+  it("exibe dados operacionais e encaminha os indicadores para a tela própria", async () => {
     render(
       <MemoryRouter>
         <DashboardPage />
@@ -66,7 +66,7 @@ describe("DashboardPage — visão operacional", () => {
 
     expect(await screen.findByText("Atualização dos dados")).toBeInTheDocument();
     expect(screen.getByText("Concluído")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Diabetes/ })).toHaveAttribute("href", "/diabetes");
-    expect(screen.getByText("15 áreas disponíveis")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Indicadores" })).toHaveAttribute("href", "/indicadores");
+    expect(screen.getByText("5 áreas disponíveis")).toBeInTheDocument();
   });
 });

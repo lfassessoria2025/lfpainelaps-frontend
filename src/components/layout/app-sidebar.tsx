@@ -1,4 +1,4 @@
-import { Accessibility, Activity, Baby, BarChart3, Blocks, Building2, HeartPulse, LayoutDashboard, ShieldCheck, Smile, UploadCloud, Venus, Users, UsersRound, CalendarCheck, Link2 } from "lucide-react";
+import { LayoutDashboard, PanelLeftClose, PanelLeftOpen, type LucideIcon } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -10,62 +10,36 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import type { Permission } from "@/lib/api-types";
 import { temPermissao } from "@/lib/permissions";
+import {
+  ADMIN_NAVIGATION_ITEMS,
+  ANALYTICS_PERMISSIONS,
+  DATA_NAVIGATION_ITEMS,
+  INDICATORS_PAGE_ITEM,
+} from "@/lib/navigation";
 
 interface NavItem {
   to: string;
   label: string;
-  icon: typeof LayoutDashboard;
-  permission?: Permission;
+  icon: LucideIcon;
+  permission?: Permission | Permission[];
   anyPermission?: Permission[];
 }
 
 const PAINEL_ITEM: NavItem = { to: "/", label: "Painel", icon: LayoutDashboard };
 
-const INDICADORES_ITEMS: NavItem[] = [
-  { to: "/gestantes", label: "Gestantes", icon: Baby, permission: "relatorio.gestante.visualizar" },
-  { to: "/criancas", label: "Crianças", icon: Blocks, permission: "relatorio.crianca.visualizar" },
-  { to: "/mulheres", label: "Mulheres", icon: Venus, permission: "relatorio.mulher.visualizar" },
-  { to: "/idosos", label: "Pessoas idosas", icon: Accessibility, permission: "relatorio.idoso.visualizar" },
-  { to: "/diabetes", label: "Diabetes", icon: Activity, permission: "relatorio.diabetes.visualizar" },
-  { to: "/hipertensao", label: "Hipertensão", icon: HeartPulse, permission: "relatorio.hipertensao.visualizar" },
-  { to: "/saude-bucal", label: "Saúde bucal", icon: Smile, permission: "relatorio.saude_bucal.visualizar" },
-  { to: "/emulti", label: "eMulti", icon: UsersRound, permission: "relatorio.emulti.visualizar" },
-  { to: "/mais-acesso", label: "Mais acesso APS", icon: CalendarCheck, permission: "relatorio.c1.visualizar" },
-  { to: "/vinculo", label: "Vínculo e acompanhamento", icon: Link2, permission: "relatorio.vinculo.visualizar" },
-];
-
-const ADMINISTRATIVO_ITEMS: NavItem[] = [
-  { to: "/prefeituras", label: "Prefeituras", icon: Building2, permission: "prefeitura.gerenciar" },
-  { to: "/cargos", label: "Cargos e permissões", icon: ShieldCheck, permission: "cargo.visualizar" },
-  { to: "/usuarios", label: "Usuários e convites", icon: Users, permission: "equipe.gerenciar" },
-];
-
-const DADOS_ITEMS: NavItem[] = [
-  { to: "/importacoes", label: "Importações", icon: UploadCloud, permission: "dump.upload" },
-  {
-    to: "/analytics",
-    label: "Analytics",
-    icon: BarChart3,
-    anyPermission: [
-      "relatorio.visualizar",
-      "relatorio.gestante.visualizar",
-      "relatorio.crianca.visualizar",
-      "relatorio.mulher.visualizar",
-      "relatorio.idoso.visualizar",
-      "relatorio.diabetes.visualizar",
-      "relatorio.hipertensao.visualizar",
-      "relatorio.saude_bucal.visualizar",
-      "relatorio.emulti.visualizar",
-      "relatorio.c1.visualizar",
-      "relatorio.vinculo.visualizar",
-    ],
-  },
-];
+const INDICADORES_ITEMS: NavItem[] = [{ ...INDICATORS_PAGE_ITEM, label: INDICATORS_PAGE_ITEM.title }];
+const ADMINISTRATIVO_ITEMS: NavItem[] = ADMIN_NAVIGATION_ITEMS;
+const DADOS_ITEMS: NavItem[] = DATA_NAVIGATION_ITEMS.map((item) => ({
+  ...item,
+  anyPermission: item.anyPermission ?? ANALYTICS_PERMISSIONS,
+}));
 
 const GRUPOS: { label: string; items: NavItem[] }[] = [
   { label: "Indicadores", items: INDICADORES_ITEMS },
@@ -96,6 +70,7 @@ function NavItemButton({ item, isActive }: { item: NavItem; isActive: boolean })
 export function AppSidebar() {
   const location = useLocation();
   const { user } = useAuth();
+  const { state } = useSidebar();
   const gruposVisiveis = GRUPOS.map((grupo) => ({
     ...grupo,
     items: grupo.items.filter((item) => temPermissao(user, item.permission ?? item.anyPermission)),
@@ -112,6 +87,13 @@ export function AppSidebar() {
             <span className="text-sm font-semibold text-sidebar-foreground">Painel APS</span>
             <span className="text-xs text-sidebar-foreground/60">Dados de saúde</span>
           </div>
+          <SidebarTrigger
+            className="ml-auto text-sidebar-foreground/70 group-data-[collapsible=icon]:mx-auto"
+            aria-label={state === "expanded" ? "Recolher menu lateral" : "Expandir menu lateral"}
+            title={state === "expanded" ? "Recolher menu lateral" : "Expandir menu lateral"}
+          >
+            {state === "expanded" ? <PanelLeftClose /> : <PanelLeftOpen />}
+          </SidebarTrigger>
         </div>
       </SidebarHeader>
       <SidebarContent>
