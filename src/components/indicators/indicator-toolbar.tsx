@@ -24,7 +24,7 @@ export function IndicatorToolbar({
     <Card size="sm" className="mb-5 gap-0 border-border/70 bg-card/95 py-0 shadow-sm">
       <CardHeader className={cn("px-3 py-2.5", hasContent && "border-b")}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div className="w-full sm:max-w-64">{municipality}</div>
+          <div className="w-full min-w-0 sm:max-w-80">{municipality}</div>
           {summary || actions ? (
             <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
               {summary}

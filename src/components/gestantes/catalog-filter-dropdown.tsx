@@ -46,14 +46,24 @@ export function CatalogFilterDropdown<T>({
     <IndicatorFilterField label={label}>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="outline" className="h-8 justify-between text-xs font-normal" />}
+          render={
+            <Button
+              variant="outline"
+              className="h-8 w-full min-w-0 justify-between text-xs font-normal"
+            />
+          }
           aria-label={ariaLabel}
           disabled={items === null || items.length === 0}
         >
-          <span className="truncate">{items === null ? loadingLabel : summaryLabel}</span>
+          <span className="min-w-0 truncate">
+            {items === null ? loadingLabel : summaryLabel}
+          </span>
           <ChevronDown data-icon="inline-end" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-80" align="start">
+        <DropdownMenuContent
+          className="w-80 max-w-[calc(100vw-2rem)]"
+          align="start"
+        >
           <DropdownMenuGroup>
             <DropdownMenuLabel>{groupLabel}</DropdownMenuLabel>
             {items?.map((item) => {
@@ -66,8 +76,12 @@ export function CatalogFilterDropdown<T>({
                   onCheckedChange={(checked) => onToggle(key, checked)}
                 >
                   <span className="flex min-w-0 flex-col">
-                    <span className="truncate">{getPrimaryLabel(item)}</span>
-                    <span className="text-xs text-muted-foreground">{getSecondaryLabel(item)}</span>
+                    <span className="break-words whitespace-normal">
+                      {getPrimaryLabel(item)}
+                    </span>
+                    <span className="break-words text-xs whitespace-normal text-muted-foreground">
+                      {getSecondaryLabel(item)}
+                    </span>
                   </span>
                 </DropdownMenuCheckboxItem>
               );
