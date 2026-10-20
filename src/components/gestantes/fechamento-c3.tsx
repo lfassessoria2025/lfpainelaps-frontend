@@ -163,7 +163,7 @@ function LinhaGestante({ gestante }: { gestante: GestanteFechamentoC3Out }) {
           {gestante.micro_area ? ` · Micro-área ${gestante.micro_area}` : ""}
         </p>
       </TableCell>
-      <TableCell className="w-36 min-w-36 whitespace-nowrap">
+      <TableCell className="w-36 min-w-36 whitespace-normal break-words">
         <p>{formatarData(gestante.data_fechamento)}</p>
         <p className="text-[11px] text-muted-foreground">
           {gestante.data_fechamento_confirmada
@@ -171,8 +171,8 @@ function LinhaGestante({ gestante }: { gestante: GestanteFechamentoC3Out }) {
             : `${gestante.dias_restantes} dia(s) para a DPP`}
         </p>
       </TableCell>
-      <TableCell className="w-40 min-w-40"><Situacao gestante={gestante} /></TableCell>
-      <TableCell className="w-60 min-w-60"><Praticas praticas={gestante.praticas} /></TableCell>
+      <TableCell className="w-40 min-w-40 whitespace-normal"><Situacao gestante={gestante} /></TableCell>
+      <TableCell className="w-60 min-w-60 whitespace-normal"><Praticas praticas={gestante.praticas} /></TableCell>
       <TableCell className="w-96 min-w-96 whitespace-normal text-xs leading-4 text-muted-foreground">
         <ProximasAcoes gestante={gestante} />
       </TableCell>
@@ -241,7 +241,7 @@ function ListaGestantes({
           </div>
           <div className="hidden md:block">
             <Table
-              className="min-w-[1250px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top"
+              className="min-w-[1250px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top [&_td]:whitespace-normal [&_td]:break-words"
               containerClassName={cn(
                 "max-h-[min(60vh,38rem)] max-w-full cursor-grab overflow-auto overscroll-x-contain",
                 dragging && "cursor-grabbing select-none",

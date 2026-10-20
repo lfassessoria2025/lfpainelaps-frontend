@@ -204,13 +204,13 @@ function LinhaCrianca({
           {crianca.micro_area ? ` · Micro-área ${crianca.micro_area}` : ""}
         </p>
       </TableCell>
-      <TableCell className="w-24 min-w-24 whitespace-nowrap">
+      <TableCell className="w-24 min-w-24 whitespace-normal">
         {formatarData(crianca.data_nascimento)}
       </TableCell>
-      <TableCell className="w-20 min-w-20 whitespace-nowrap">
+      <TableCell className="w-20 min-w-20 whitespace-normal">
         {formatarIdade(crianca.idade_meses)}
       </TableCell>
-      <TableCell className="whitespace-nowrap">
+      <TableCell className="whitespace-normal break-words">
         <p>{formatarData(crianca.data_limite)}</p>
         <p className="text-[11px] text-muted-foreground">
           {encerrada
@@ -218,8 +218,8 @@ function LinhaCrianca({
             : `${crianca.dias_restantes} dia(s) restantes`}
         </p>
       </TableCell>
-      <TableCell className="w-28 min-w-28"><Praticas praticas={crianca.praticas} /></TableCell>
-      <TableCell className="w-64 min-w-64 align-top"><SituacaoVacinal crianca={crianca} /></TableCell>
+      <TableCell className="w-28 min-w-28 whitespace-normal"><Praticas praticas={crianca.praticas} /></TableCell>
+      <TableCell className="w-64 min-w-64 align-top whitespace-normal"><SituacaoVacinal crianca={crianca} /></TableCell>
       <TableCell className="w-80 min-w-80 whitespace-normal text-xs leading-4 text-muted-foreground">
         <ProximasAcoes crianca={crianca} encerrada={encerrada} />
       </TableCell>
@@ -290,7 +290,7 @@ function ListaCriancas({
           </div>
           <div className="hidden md:block">
             <Table
-              className="min-w-[1180px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top"
+              className="min-w-[1180px] table-fixed text-xs [&_th]:whitespace-normal [&_td]:align-top [&_td]:whitespace-normal [&_td]:break-words"
               containerClassName={cn(
                 "max-h-[min(60vh,38rem)] max-w-full cursor-grab overflow-auto overscroll-x-contain",
                 dragging && "cursor-grabbing select-none",

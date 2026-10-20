@@ -163,7 +163,7 @@ export function FechamentoC7({ dados, carregando, erro, modo = "resumo" }: Fecha
               ))}
             </div>
             <div className="hidden md:block">
-              <Table className="min-w-[760px] text-xs" containerClassName="max-h-[min(60vh,38rem)] overflow-auto">
+              <Table className="min-w-[760px] text-xs [&_td]:align-top [&_td]:whitespace-normal [&_td]:break-words" containerClassName="max-h-[min(60vh,38rem)] overflow-auto">
                 <TableHeader className="sticky top-0 z-[3] bg-muted shadow-sm">
                   <TableRow>
                     <TableHead>Mulher</TableHead>

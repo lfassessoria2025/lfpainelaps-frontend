@@ -112,7 +112,7 @@ export function FechamentoC4({ dados, modo = "resumo" }: { dados: FechamentoC4Ou
             <p className="text-xs text-muted-foreground">{modo === "completas" ? "Pessoas sem práticas pendentes no quadrimestre." : "Pessoas com práticas que ainda precisam de acompanhamento."}</p>
           </CardHeader>
           <CardContent className="p-0">
-            <Table className="min-w-[760px] text-xs" containerClassName="max-h-[min(60vh,38rem)] overflow-auto">
+            <Table className="min-w-[760px] text-xs [&_td]:align-top [&_td]:whitespace-normal [&_td]:break-words" containerClassName="max-h-[min(60vh,38rem)] overflow-auto">
               <TableHeader className="sticky top-0 z-[3] bg-muted shadow-sm"><TableRow><TableHead>Pessoa</TableHead><TableHead>Equipe</TableHead><TableHead>Micro-área</TableHead><TableHead>Status</TableHead><TableHead>Práticas pendentes</TableHead><TableHead className="text-right">Pontuação</TableHead></TableRow></TableHeader>
               <TableBody>{itensDaPagina.map((pessoa) => (
                 <TableRow key={pessoa.id}>

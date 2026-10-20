@@ -639,7 +639,7 @@ export function CriancasPage() {
 
           <Card className="hidden min-w-0 max-w-full gap-0 overflow-hidden py-0 md:block">
             <Table
-              className="text-xs [&_th]:h-8 [&_th]:whitespace-normal [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5"
+              className="text-xs [&_th]:h-8 [&_th]:whitespace-normal [&_th]:px-1.5 [&_td]:align-top [&_td]:whitespace-normal [&_td]:px-1.5 [&_td]:py-1.5"
               containerClassName={cn("max-w-full cursor-grab overscroll-x-contain", arrastando && "cursor-grabbing select-none")}
               containerProps={{
                 ...dragContainerProps,
@@ -657,7 +657,7 @@ export function CriancasPage() {
               </TableHeader>
               <TableBody>
                 {daPagina.map((crianca) => (
-                  <TableRow key={crianca.id} className="[content-visibility:auto]">
+                  <TableRow key={crianca.id}>
                     <TableCell className="sticky left-0 z-[1] max-w-56 border-r bg-background font-medium"><span className="block truncate" title={crianca.nome_cidadao}>{crianca.nome_cidadao}</span></TableCell>
                     <TableCell>{crianca.equipe_nome ?? "—"}</TableCell><TableCell>{crianca.micro_area ?? "—"}</TableCell><TableCell>{formatarData(crianca.data_nascimento)}</TableCell><TableCell>{formatarIdade(crianca.idade_meses)}</TableCell>
                     {PRATICAS.map((pratica) => <TableCell key={pratica.codigo} className="text-center">{valorPratica(crianca, pratica.codigo)}</TableCell>)}
