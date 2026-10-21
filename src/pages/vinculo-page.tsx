@@ -32,9 +32,11 @@ import {
   IndicatorFilterField,
 } from "@/components/indicators/indicator-toolbar";
 import { HistoricoMensal } from "@/components/indicators/historico-mensal";
+import { IndicatorPagination } from "@/components/indicators/indicator-pagination";
 import type {
   FechamentoVinculoOut,
   PrefeituraOut,
+  VinculoNominalOut,
   VinculoOut,
 } from "@/lib/api-types";
 import { ApiError } from "@/lib/http";
@@ -57,6 +59,7 @@ export function VinculoPage() {
   const [prefeituras, setPrefeituras] = useState<PrefeituraOut[] | null>(null);
   const [prefeituraId, setPrefeituraId] = useState<number | null>(null);
   const [linhas, setLinhas] = useState<VinculoOut[] | null>(null);
+  const [nominal, setNominal] = useState<VinculoNominalOut[] | null>(null);
   const [fechamento, setFechamento] = useState<FechamentoVinculoOut | null>(
     null,
   );
@@ -68,6 +71,7 @@ export function VinculoPage() {
   const [exportando, setExportando] = useState(false);
   const [exportandoNominal, setExportandoNominal] = useState(false);
   const [equipeFiltro, setEquipeFiltro] = useState("todas");
+  const [paginaNominal, setPaginaNominal] = useState(1);
   const [visao, setVisao] = useState<"acompanhamento" | "historico">(
     "acompanhamento",
   );
@@ -89,6 +93,7 @@ export function VinculoPage() {
     const controller = new AbortController();
     const numeroRequisicao = ++requisicaoAtual.current;
     setLinhas(null);
+    setNominal(null);
     setFechamento(null);
     setHistorico(null);
     setErro(null);
@@ -96,11 +101,13 @@ export function VinculoPage() {
     setEquipeFiltro("todas");
     Promise.all([
       vinculoService.fechamento(prefeituraId, controller.signal),
+      vinculoService.nominal(prefeituraId, controller.signal),
       analyticsService.historico("V1", prefeituraId, controller.signal, true),
     ])
-      .then(([resumo, serie]) => {
+      .then(([resumo, listaNominal, serie]) => {
         if (controller.signal.aborted || numeroRequisicao !== requisicaoAtual.current) return;
         setLinhas(resumo.equipes);
+        setNominal(listaNominal);
         setFechamento(resumo);
         setHistorico(serie);
       })
@@ -120,6 +127,9 @@ export function VinculoPage() {
       });
     return () => controller.abort();
   }, [prefeituraId]);
+  useEffect(() => {
+    setPaginaNominal(1);
+  }, [equipeFiltro]);
   const equipesParaExportar = () => {
     if (equipeFiltro === "todas") return [];
     const equipe = (linhas ?? []).find((item) => chaveEquipe(item) === equipeFiltro);
@@ -166,6 +176,19 @@ export function VinculoPage() {
   ].sort((a, b) => a.equipe_nome.localeCompare(b.equipe_nome, "pt-BR"));
   const linhasVisiveis = (linhas ?? []).filter(
     (item) => equipeFiltro === "todas" || chaveEquipe(item) === equipeFiltro,
+  );
+  const nominalVisivel = (nominal ?? []).filter(
+    (item) => equipeFiltro === "todas" || item.equipe_ine === equipeFiltro,
+  );
+  const tamanhoPaginaNominal = 25;
+  const totalPaginasNominal = Math.max(
+    1,
+    Math.ceil(nominalVisivel.length / tamanhoPaginaNominal),
+  );
+  const paginaNominalAtual = Math.min(paginaNominal, totalPaginasNominal);
+  const nominalDaPagina = nominalVisivel.slice(
+    (paginaNominalAtual - 1) * tamanhoPaginaNominal,
+    paginaNominalAtual * tamanhoPaginaNominal,
   );
   const fechamentoVisivel =
     fechamento && equipeFiltro !== "todas"
@@ -475,6 +498,82 @@ export function VinculoPage() {
                 </TableBody>
               </Table>
             </CardContent>
+          </Card>
+          <Card className="mt-4 overflow-hidden py-0">
+            <CardHeader className="border-b px-4 py-3">
+              <CardTitle className="text-sm">Lista nominal de acompanhamento</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Pessoas da última extração, com a situação do cadastro e do acompanhamento.
+              </p>
+            </CardHeader>
+            {nominal === null ? (
+              <Skeleton className="m-4 h-40" />
+            ) : nominalVisivel.length === 0 ? (
+              <Empty className="border-0">
+                <EmptyHeader>
+                  <EmptyTitle>Nenhuma pessoa no recorte</EmptyTitle>
+                  <EmptyDescription>
+                    O último processamento não trouxe pessoas nominais para esta equipe.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <>
+                <CardContent className="overflow-x-auto p-0">
+                  <Table className="min-w-[1120px] text-xs [&_td]:align-top [&_td]:whitespace-normal">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pessoa</TableHead>
+                        <TableHead>Nascimento</TableHead>
+                        <TableHead>Equipe</TableHead>
+                        <TableHead>Micro-área</TableHead>
+                        <TableHead>Cadastro atualizado</TableHead>
+                        <TableHead>Cadastro + domiciliar</TableHead>
+                        <TableHead>Acompanhada</TableHead>
+                        <TableHead>Último atendimento</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {nominalDaPagina.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.nome_cidadao}</TableCell>
+                          <TableCell>{data(item.data_nascimento)}</TableCell>
+                          <TableCell>
+                            <span className="font-medium">{item.equipe_nome}</span>
+                            <span className="block text-[10px] text-muted-foreground">{item.equipe_ine}</span>
+                          </TableCell>
+                          <TableCell>{item.micro_area ?? "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={item.cadastro_atualizado ? "default" : "secondary"}>
+                              {item.cadastro_atualizado ? "Sim" : "Não"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={item.cadastro_domiciliar_atualizado ? "default" : "secondary"}>
+                              {item.cadastro_domiciliar_atualizado ? "Sim" : "Não"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={item.acompanhada ? "default" : "secondary"}>
+                              {item.acompanhada ? "Sim" : "Não"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{data(item.ultimo_atendimento)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+                <div className="px-4 pb-4 pt-3">
+                  <IndicatorPagination
+                    currentPage={paginaNominalAtual}
+                    totalPages={totalPaginasNominal}
+                    onChange={setPaginaNominal}
+                    ariaLabel="Paginação da lista nominal de acompanhamento"
+                  />
+                </div>
+              </>
+            )}
           </Card>
             </>
           </TabsContent>

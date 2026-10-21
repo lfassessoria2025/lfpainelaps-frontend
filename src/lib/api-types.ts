@@ -1212,6 +1212,21 @@ export interface FechamentoVinculoOut {
   equipes: VinculoOut[];
 }
 
+export interface VinculoNominalOut {
+  id: number;
+  data_referencia: string;
+  nome_cidadao: string;
+  data_nascimento: string;
+  equipe_nome: string;
+  equipe_ine: string;
+  micro_area: string | null;
+  data_cadastro: string;
+  cadastro_atualizado: boolean;
+  cadastro_domiciliar_atualizado: boolean;
+  acompanhada: boolean;
+  ultimo_atendimento: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Erro padronizado da API (FastAPI HTTPException)
 // ---------------------------------------------------------------------------

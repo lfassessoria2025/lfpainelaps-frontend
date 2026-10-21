@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import type {
   FechamentoVinculoOut,
   PrefeituraOut,
+  VinculoNominalOut,
   VinculoOut,
 } from "@/lib/api-types";
 import { VinculoPage } from "@/pages/vinculo-page";
@@ -20,6 +21,7 @@ vi.mock("@/services/vinculo", () => ({
   vinculoService: {
     list: vi.fn(),
     fechamento: vi.fn(),
+    nominal: vi.fn(),
     exportar: vi.fn(),
   },
 }));
@@ -69,9 +71,25 @@ const FECHAMENTO: FechamentoVinculoOut = {
   equipes: [EQUIPE],
 };
 
+const NOMINAL: VinculoNominalOut = {
+  id: 101,
+  data_referencia: "2026-09-30",
+  nome_cidadao: "Pessoa acompanhada",
+  data_nascimento: "1985-04-20",
+  equipe_nome: EQUIPE.equipe_nome,
+  equipe_ine: EQUIPE.equipe_ine,
+  micro_area: "01",
+  data_cadastro: "2026-01-10",
+  cadastro_atualizado: true,
+  cadastro_domiciliar_atualizado: true,
+  acompanhada: true,
+  ultimo_atendimento: "2026-09-12",
+};
+
 beforeEach(() => {
   prefeituraService.list.mockResolvedValue([PREFEITURA]);
   service.fechamento.mockResolvedValue(FECHAMENTO);
+  service.nominal.mockResolvedValue([NOMINAL]);
   analytics.historico.mockResolvedValue([]);
 });
 
@@ -84,10 +102,12 @@ describe("VinculoPage", () => {
   it("renderiza as equipes do mesmo fechamento usado pelos cards", async () => {
     render(<VinculoPage />);
 
-    const tabela = await screen.findByRole("table");
+    const tabelas = await screen.findAllByRole("table");
+    const tabela = tabelas[0];
     expect(within(tabela).getByText("ESF Centro")).toBeInTheDocument();
     expect(within(tabela).getByText("0001599011")).toBeInTheDocument();
     expect(within(tabela).getByText("1.917")).toBeInTheDocument();
+    expect(screen.getByText("Pessoa acompanhada")).toBeInTheDocument();
     expect(service.fechamento).toHaveBeenCalledWith(3, expect.any(AbortSignal));
     expect(service.list).not.toHaveBeenCalled();
   });
